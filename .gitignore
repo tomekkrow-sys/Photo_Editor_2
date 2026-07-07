@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+
+# Virtual env
+venv/
+.venv/
+
+# Qt
+*.autosave
+*.pro.user
+
+# Build
+build/
+dist/
+
+# Cache
+cache/
+temp/
+
+# Logs
+logs/*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
