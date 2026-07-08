@@ -4,7 +4,7 @@ Photo Editor 2.0
 
 Canvas
 
-Version: 0.2.0
+Version: 0.2.1
 """
 
 from __future__ import annotations
@@ -38,7 +38,6 @@ class Canvas(QGraphicsView):
     ZOOM_STEP = 1.15
 
     def __init__(self, parent=None) -> None:
-
         super().__init__(parent)
 
         self.document = ImageDocument()
@@ -52,7 +51,6 @@ class Canvas(QGraphicsView):
         self._configure()
 
     def _configure(self) -> None:
-
         self.setDragMode(
             QGraphicsView.DragMode.ScrollHandDrag
         )
@@ -70,7 +68,6 @@ class Canvas(QGraphicsView):
         )
 
     def open_image(self) -> None:
-
         filename, _ = QFileDialog.getOpenFileName(
             self,
             "Otwórz obraz",
@@ -119,16 +116,43 @@ class Canvas(QGraphicsView):
 
         self.image_loaded.emit()
 
+    def zoom_in(self) -> None:
+        self.scale(
+            self.ZOOM_STEP,
+            self.ZOOM_STEP,
+        )
+
+        self.document.zoom *= self.ZOOM_STEP
+
+    def zoom_out(self) -> None:
+        factor = 1.0 / self.ZOOM_STEP
+
+        self.scale(
+            factor,
+            factor,
+        )
+
+        self.document.zoom *= factor
+
+    def reset_zoom(self) -> None:
+        self.resetTransform()
+
+        if not self.image_item.pixmap().isNull():
+            self.fitInView(
+                self.image_item,
+                Qt.AspectRatioMode.KeepAspectRatio,
+            )
+
+        self.document.zoom = 100.0
+
     def wheelEvent(
         self,
         event: QWheelEvent,
     ) -> None:
 
         if event.angleDelta().y() > 0:
-            factor = self.ZOOM_STEP
+            self.zoom_in()
         else:
-            factor = 1.0 / self.ZOOM_STEP
+            self.zoom_out()
 
-        self.scale(factor, factor)
-
-        self.document.zoom *= factor
+        event.accept()
