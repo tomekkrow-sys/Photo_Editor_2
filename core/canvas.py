@@ -2,17 +2,20 @@
 """
 Photo Editor 2.0
 
-Canvas widget.
+Canvas
+
+Version: 0.2.0
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import (
     QImage,
     QPixmap,
+    QWheelEvent,
 )
 
 from PySide6.QtWidgets import (
@@ -22,35 +25,33 @@ from PySide6.QtWidgets import (
     QGraphicsView,
 )
 
+from core.image_document import ImageDocument
+
 
 class Canvas(QGraphicsView):
     """
     Main image canvas.
     """
 
-    def __init__(self, parent=None):
+    image_loaded = Signal()
+
+    ZOOM_STEP = 1.15
+
+    def __init__(self, parent=None) -> None:
 
         super().__init__(parent)
 
-        self.scene = QGraphicsScene(self)
+        self.document = ImageDocument()
 
+        self.scene = QGraphicsScene(self)
         self.setScene(self.scene)
 
         self.image_item = QGraphicsPixmapItem()
-
         self.scene.addItem(self.image_item)
-
-        self.current_file: Path | None = None
-
-        self.zoom_factor = 1.0
 
         self._configure()
 
-    def _configure(self):
-
-        self.setRenderHints(
-            self.renderHints()
-        )
+    def _configure(self) -> None:
 
         self.setDragMode(
             QGraphicsView.DragMode.ScrollHandDrag
@@ -68,15 +69,16 @@ class Canvas(QGraphicsView):
             Qt.GlobalColor.darkGray
         )
 
-    # --------------------------------------------------
-
-    def open_image(self):
+    def open_image(self) -> None:
 
         filename, _ = QFileDialog.getOpenFileName(
             self,
-            "Open image",
+            "Otwórz obraz",
             "",
-            "Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp)"
+            (
+                "Images (*.png *.jpg *.jpeg "
+                "*.bmp *.tif *.tiff *.webp)"
+            ),
         )
 
         if not filename:
@@ -87,43 +89,46 @@ class Canvas(QGraphicsView):
         if image.isNull():
             return
 
-        self.current_file = Path(filename)
+        self.document.clear()
+
+        self.document.image = image
+        self.document.original_image = image.copy()
+
+        self.document.file_path = Path(filename)
+        self.document.file_name = Path(filename).name
+
+        self.document.width = image.width()
+        self.document.height = image.height()
 
         pixmap = QPixmap.fromImage(image)
 
         self.image_item.setPixmap(pixmap)
 
         self.scene.setSceneRect(
-            pixmap.rect()
+            self.image_item.boundingRect()
         )
+
+        self.resetTransform()
 
         self.fitInView(
             self.image_item,
-            Qt.AspectRatioMode.KeepAspectRatio
+            Qt.AspectRatioMode.KeepAspectRatio,
         )
 
-        self.zoom_factor = 1.0
+        self.document.zoom = 100.0
 
-    # --------------------------------------------------
+        self.image_loaded.emit()
 
-    def wheelEvent(self, event):
-
-        factor = 1.15
+    def wheelEvent(
+        self,
+        event: QWheelEvent,
+    ) -> None:
 
         if event.angleDelta().y() > 0:
-
-            self.scale(
-                factor,
-                factor,
-            )
-
-            self.zoom_factor *= factor
-
+            factor = self.ZOOM_STEP
         else:
+            factor = 1.0 / self.ZOOM_STEP
 
-            self.scale(
-                1 / factor,
-                1 / factor,
-            )
+        self.scale(factor, factor)
 
-            self.zoom_factor /= factor
+        self.document.zoom *= factor

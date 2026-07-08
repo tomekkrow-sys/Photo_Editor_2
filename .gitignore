@@ -30,3 +30,17 @@ logs/*.log
 # OS
 .DS_Store
 Thumbs.db
+
+*.tar.gz
+*.zip
+
+logs/*.log
+
+__pycache__/
+*.pyc
+
+.venv/
+
+cache/
+
+temp/
