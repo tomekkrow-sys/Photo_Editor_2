@@ -1,24 +1,14 @@
 #!/usr/bin/env python3
-"""
-Photo Editor 2.0
-
-Main Window
-
-Version: 0.3.0
-"""
+"""Photo Editor 2.0 - Main Window."""
 
 from __future__ import annotations
 
-from PySide6.QtWidgets import (
-    QFileDialog,
-    QMainWindow,
-    QMessageBox,
-)
+from pathlib import Path
 
-from config.defaults import (
-    DEFAULT_WINDOW_HEIGHT,
-    DEFAULT_WINDOW_WIDTH,
-)
+from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox
+
+from config.defaults import DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH
 from config.version import WINDOW_TITLE
 from core.canvas import Canvas
 from core.image_saver import ImageSaver
@@ -36,52 +26,40 @@ class MainWindow(QMainWindow):
 
         self.actions = ActionManager(self)
         self.canvas = Canvas(self)
+        self._save_target_created = False
 
         self._build_window()
         self._create_connections()
 
     def _build_window(self) -> None:
         self.setWindowTitle(WINDOW_TITLE)
-
         self.resize(
             DEFAULT_WINDOW_WIDTH,
             DEFAULT_WINDOW_HEIGHT,
         )
 
-        self.setMenuBar(
-            MenuBar(
-                self,
-                self.actions,
-            )
-        )
-
-        self.addToolBar(
-            ToolBar(
-                self,
-                self.actions,
-            )
-        )
+        self.setMenuBar(MenuBar(self, self.actions))
+        self.addToolBar(ToolBar(self, self.actions))
 
         self.status_bar = StatusBar(self)
         self.setStatusBar(self.status_bar)
 
         self.setCentralWidget(self.canvas)
-
         self.status_bar.set_message("Gotowy")
 
     def _create_connections(self) -> None:
-        self.actions.open.triggered.connect(
-            self.canvas.open_image
+        self.actions.new.triggered.connect(
+            self._new_document
         )
-
+        self.actions.open.triggered.connect(
+            self._open_image
+        )
         self.actions.save.triggered.connect(
             self._save_image
         )
-
         self.actions.save_as.triggered.connect(
             self._save_image_as
         )
-
         self.actions.exit.triggered.connect(
             self.close
         )
@@ -89,15 +67,12 @@ class MainWindow(QMainWindow):
         self.actions.zoom_in.triggered.connect(
             self.canvas.zoom_in
         )
-
         self.actions.zoom_out.triggered.connect(
             self.canvas.zoom_out
         )
-
         self.actions.fit.triggered.connect(
             self.canvas.fit_to_window
         )
-
         self.actions.actual_size.triggered.connect(
             self.canvas.actual_size
         )
@@ -105,7 +80,6 @@ class MainWindow(QMainWindow):
         self.actions.undo.triggered.connect(
             self.canvas.undo
         )
-
         self.actions.redo.triggered.connect(
             self.canvas.redo
         )
@@ -115,66 +89,136 @@ class MainWindow(QMainWindow):
         )
 
         self.canvas.image_loaded.connect(
-            self._update_status_bar
+            self._handle_image_loaded
         )
-
         self.canvas.zoom_changed.connect(
             self.status_bar.set_zoom
         )
-
         self.canvas.crop_mode_changed.connect(
             self.actions.crop.setChecked
         )
-
         self.canvas.history_state_changed.connect(
             self._update_history_actions
         )
 
         self._update_history_actions(False, False)
 
-    def _save_image(self) -> None:
-        """Save the current image."""
+    def _confirm_discard_changes(self) -> bool:
+        """Ask what to do with unsaved changes."""
+
+        if not self.canvas.document.modified:
+            return True
+
+        answer = QMessageBox.warning(
+            self,
+            "Niezapisane zmiany",
+            (
+                "Obraz został zmodyfikowany.\n\n"
+                "Czy chcesz zapisać zmiany?"
+            ),
+            QMessageBox.StandardButton.Save
+            | QMessageBox.StandardButton.Discard
+            | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Save,
+        )
+
+        if answer == QMessageBox.StandardButton.Save:
+            return self._save_image()
+
+        if answer == QMessageBox.StandardButton.Discard:
+            return True
+
+        return False
+
+    def _new_document(self) -> None:
+        """Clear the current document."""
+
+        if not self._confirm_discard_changes():
+            return
+
+        self.canvas.crop_tool.cancel()
+        self.canvas.set_crop_selection_enabled(False)
+        self.canvas.history.clear()
+        self.canvas.document.clear()
+        self.canvas.image_item.setPixmap(QPixmap())
+        self.canvas.scene.setSceneRect(0, 0, 0, 0)
+        self.canvas.resetTransform()
+
+        self._save_target_created = False
+
+        self._update_history_actions(False, False)
+        self.status_bar.set_file_name("")
+        self.status_bar.set_image_size(0, 0)
+        self.status_bar.set_zoom(100.0)
+        self.status_bar.set_message("Nowy dokument")
+
+    def _open_image(self) -> None:
+        """Open an image after checking for unsaved changes."""
+
+        if not self._confirm_discard_changes():
+            return
+
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            "Otwórz obraz",
+            "",
+            (
+                "Obrazy (*.jpg *.jpeg *.png *.webp *.bmp "
+                "*.tif *.tiff *.nef *.cr2 *.cr3 *.arw "
+                "*.dng *.orf *.rw2 *.raf *.pef);;"
+                "Wszystkie pliki (*)"
+            ),
+        )
+
+        if filename:
+            self.canvas.load_image(filename)
+
+    def _save_image(self) -> bool:
+        """Save safely without overwriting the original image."""
 
         document = self.canvas.document
 
         if not document.is_loaded:
-            return
+            return False
 
         if (
-            document.file_path is None
+            not self._save_target_created
+            or document.file_path is None
             or not ImageSaver.can_save(document.file_path)
         ):
-            self._save_image_as()
-            return
+            return self._save_image_as()
 
         if self.canvas.save_image():
             self._update_status_bar()
             self.status_bar.set_message("Obraz zapisany")
-            return
+            return True
 
         QMessageBox.warning(
             self,
             "Photo Editor 2.0",
             "Nie udało się zapisać obrazu.",
         )
+        return False
 
-    def _save_image_as(self) -> None:
+    def _save_image_as(self) -> bool:
         """Save the current image under a new file name."""
 
         document = self.canvas.document
 
         if not document.is_loaded:
-            return
+            return False
+
+        suggested_path = self._suggest_save_path()
 
         filename, _ = QFileDialog.getSaveFileName(
             self,
             "Zapisz obraz jako",
-            document.file_name,
+            str(suggested_path),
             ImageSaver.file_dialog_filter(),
         )
 
         if not filename:
-            return
+            return False
 
         if not ImageSaver.can_save(filename):
             QMessageBox.warning(
@@ -186,20 +230,49 @@ class MainWindow(QMainWindow):
                     "Wybierz JPG, PNG, WebP, BMP lub TIFF."
                 ),
             )
-            return
+            return False
 
         if self.canvas.save_image(filename):
+            self._save_target_created = True
             self._update_status_bar()
             self.status_bar.set_message("Obraz zapisany")
-            return
+            return True
 
         QMessageBox.warning(
             self,
             "Photo Editor 2.0",
             "Nie udało się zapisać obrazu.",
         )
+        return False
 
-    def _handle_crop_action_toggled(self, enabled: bool) -> None:
+    def _suggest_save_path(self) -> Path:
+        """Suggest a safe edited copy name."""
+
+        document = self.canvas.document
+
+        if document.file_path is None:
+            return Path("image_edited.jpg")
+
+        source = Path(document.file_path)
+        suffix = source.suffix.lower()
+
+        if not ImageSaver.can_save(source):
+            suffix = ".jpg"
+
+        return source.with_name(
+            f"{source.stem}_edited{suffix}"
+        )
+
+    def _handle_image_loaded(self) -> None:
+        """Reset safe-save state after loading an original image."""
+
+        self._save_target_created = False
+        self._update_status_bar()
+
+    def _handle_crop_action_toggled(
+        self,
+        enabled: bool,
+    ) -> None:
         if enabled:
             self.canvas.set_crop_selection_enabled(True)
             return
@@ -219,12 +292,10 @@ class MainWindow(QMainWindow):
         self.status_bar.set_file_name(
             document.file_name
         )
-
         self.status_bar.set_image_size(
             document.width,
             document.height,
         )
-
         self.status_bar.set_message(
             "Obraz załadowany"
         )
@@ -238,18 +309,10 @@ class MainWindow(QMainWindow):
         self.actions.redo.setEnabled(can_redo)
 
     def closeEvent(self, event) -> None:
-        if self.canvas.document.modified:
-            answer = QMessageBox.question(
-                self,
-                "Photo Editor 2.0",
-                (
-                    "Obraz został zmodyfikowany.\n\n"
-                    "Na pewno zamknąć program?"
-                ),
-            )
+        """Handle application closing."""
 
-            if answer != QMessageBox.StandardButton.Yes:
-                event.ignore()
-                return
+        if not self._confirm_discard_changes():
+            event.ignore()
+            return
 
         event.accept()
