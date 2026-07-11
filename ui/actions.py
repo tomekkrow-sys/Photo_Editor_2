@@ -77,6 +77,11 @@ class ActionManager:
 
         # IMAGE
 
+        self.resize_image = QAction(
+            "Zmień rozmiar...",
+            self.parent,
+        )
+
         self.rotate_left = QAction(
             "Obróć 90° w lewo",
             self.parent,

@@ -13,6 +13,7 @@ from config.version import WINDOW_TITLE
 from core.canvas import Canvas
 from core.image_saver import ImageSaver
 from ui.actions import ActionManager
+from ui.dialogs import ResizeImageDialog
 from ui.menubar import MenuBar
 from ui.statusbar import StatusBar
 from ui.toolbar import ToolBar
@@ -82,6 +83,10 @@ class MainWindow(QMainWindow):
         )
         self.actions.redo.triggered.connect(
             self.canvas.redo
+        )
+
+        self.actions.resize_image.triggered.connect(
+            self._resize_image
         )
 
         self.actions.rotate_left.triggered.connect(
@@ -282,6 +287,29 @@ class MainWindow(QMainWindow):
 
         self._save_target_created = False
         self._update_status_bar()
+
+    def _resize_image(self) -> None:
+        """Open the image resize dialog and resize the image."""
+
+        document = self.canvas.document
+
+        if not document.is_loaded:
+            return
+
+        dialog = ResizeImageDialog(
+            document.width,
+            document.height,
+            self,
+        )
+
+        if not dialog.exec():
+            return
+
+        if self.canvas.resize_image(
+            dialog.image_width,
+            dialog.image_height,
+        ):
+            self._update_status_bar()
 
     def _handle_crop_action_toggled(
         self,

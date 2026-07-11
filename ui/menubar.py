@@ -60,6 +60,10 @@ class MenuBar(QMenuBar):
 
         image_menu = self.addMenu("&Obraz")
 
+        image_menu.addAction(self.actions.resize_image)
+
+        image_menu.addSeparator()
+
         image_menu.addAction(self.actions.rotate_left)
         image_menu.addAction(self.actions.rotate_right)
 
@@ -67,6 +71,7 @@ class MenuBar(QMenuBar):
 
         image_menu.addAction(self.actions.flip_horizontal)
         image_menu.addAction(self.actions.flip_vertical)
+
         # FILTERS
 
         self.addMenu("&Filtry")

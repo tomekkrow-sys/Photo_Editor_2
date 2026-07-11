@@ -208,6 +208,38 @@ class Canvas(QGraphicsView):
 
         return True
 
+    def resize_image(
+        self,
+        width: int,
+        height: int,
+    ) -> bool:
+        """Resize the current image and add the result to history."""
+
+        if (
+            not self.document.is_loaded
+            or self.document.image is None
+            or width <= 0
+            or height <= 0
+        ):
+            return False
+
+        resized_image = self.document.image.scaled(
+            width,
+            height,
+            Qt.AspectRatioMode.IgnoreAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+
+        if resized_image.isNull():
+            return False
+
+        self.history.push(resized_image)
+        self._restore_image(resized_image)
+        self._update_history_state()
+        self.fit_to_window()
+
+        return True
+
     def rotate_left(self) -> bool:
         """Rotate the current image 90 degrees counterclockwise."""
 
