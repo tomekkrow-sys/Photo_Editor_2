@@ -4,7 +4,7 @@ Photo Editor 2.0
 
 Canvas
 
-Version: 0.3.2
+Version: 0.3.3
 """
 
 from __future__ import annotations
@@ -16,9 +16,9 @@ from PySide6.QtGui import (
     QDragEnterEvent,
     QDragMoveEvent,
     QDropEvent,
+    QImage,
     QKeyEvent,
     QMouseEvent,
-    QImage,
     QPixmap,
     QWheelEvent,
 )
@@ -29,10 +29,11 @@ from PySide6.QtWidgets import (
     QGraphicsView,
 )
 
-from core.image_document import ImageDocument
-from core.history import ImageHistory
-from core.image_loader import ImageLoader
 from core.crop_tool import CropTool
+from core.history import ImageHistory
+from core.image_document import ImageDocument
+from core.image_loader import ImageLoader
+from core.image_saver import ImageSaver
 
 
 class Canvas(QGraphicsView):
@@ -120,6 +121,34 @@ class Canvas(QGraphicsView):
         self.fit_to_window()
         self.image_loaded.emit()
         self._update_history_state()
+
+        return True
+
+    def save_image(
+        self,
+        file_path: str | Path | None = None,
+    ) -> bool:
+        """Save the current image to disk."""
+
+        if not self.document.is_loaded or self.document.image is None:
+            return False
+
+        path = (
+            Path(file_path)
+            if file_path is not None
+            else self.document.file_path
+        )
+
+        if path is None or not ImageSaver.can_save(path):
+            return False
+
+        if not ImageSaver.save(self.document.image, path):
+            return False
+
+        self.document.file_path = path
+        self.document.file_name = path.name
+        self.document.format = path.suffix.lower().lstrip(".")
+        self.document.modified = False
 
         return True
 

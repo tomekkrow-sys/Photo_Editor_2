@@ -4,12 +4,13 @@ Photo Editor 2.0
 
 Main Window
 
-Version: 0.2.1
+Version: 0.3.0
 """
 
 from __future__ import annotations
 
 from PySide6.QtWidgets import (
+    QFileDialog,
     QMainWindow,
     QMessageBox,
 )
@@ -20,6 +21,7 @@ from config.defaults import (
 )
 from config.version import WINDOW_TITLE
 from core.canvas import Canvas
+from core.image_saver import ImageSaver
 from ui.actions import ActionManager
 from ui.menubar import MenuBar
 from ui.statusbar import StatusBar
@@ -27,12 +29,9 @@ from ui.toolbar import ToolBar
 
 
 class MainWindow(QMainWindow):
-    """
-    Main application window.
-    """
+    """Main application window."""
 
     def __init__(self) -> None:
-
         super().__init__()
 
         self.actions = ActionManager(self)
@@ -42,7 +41,6 @@ class MainWindow(QMainWindow):
         self._create_connections()
 
     def _build_window(self) -> None:
-
         self.setWindowTitle(WINDOW_TITLE)
 
         self.resize(
@@ -72,9 +70,16 @@ class MainWindow(QMainWindow):
         self.status_bar.set_message("Gotowy")
 
     def _create_connections(self) -> None:
-
         self.actions.open.triggered.connect(
             self.canvas.open_image
+        )
+
+        self.actions.save.triggered.connect(
+            self._save_image
+        )
+
+        self.actions.save_as.triggered.connect(
+            self._save_image_as
         )
 
         self.actions.exit.triggered.connect(
@@ -127,20 +132,88 @@ class MainWindow(QMainWindow):
 
         self._update_history_actions(False, False)
 
-    def _handle_crop_action_toggled(self, enabled: bool) -> None:
+    def _save_image(self) -> None:
+        """Save the current image."""
 
+        document = self.canvas.document
+
+        if not document.is_loaded:
+            return
+
+        if (
+            document.file_path is None
+            or not ImageSaver.can_save(document.file_path)
+        ):
+            self._save_image_as()
+            return
+
+        if self.canvas.save_image():
+            self._update_status_bar()
+            self.status_bar.set_message("Obraz zapisany")
+            return
+
+        QMessageBox.warning(
+            self,
+            "Photo Editor 2.0",
+            "Nie udało się zapisać obrazu.",
+        )
+
+    def _save_image_as(self) -> None:
+        """Save the current image under a new file name."""
+
+        document = self.canvas.document
+
+        if not document.is_loaded:
+            return
+
+        filename, _ = QFileDialog.getSaveFileName(
+            self,
+            "Zapisz obraz jako",
+            document.file_name,
+            ImageSaver.file_dialog_filter(),
+        )
+
+        if not filename:
+            return
+
+        if not ImageSaver.can_save(filename):
+            QMessageBox.warning(
+                self,
+                "Nieobsługiwany format",
+                (
+                    "Nie można zapisać obrazu w tym formacie.\n\n"
+                    "Formaty RAW, takie jak NEF, są tylko do odczytu.\n"
+                    "Wybierz JPG, PNG, WebP, BMP lub TIFF."
+                ),
+            )
+            return
+
+        if self.canvas.save_image(filename):
+            self._update_status_bar()
+            self.status_bar.set_message("Obraz zapisany")
+            return
+
+        QMessageBox.warning(
+            self,
+            "Photo Editor 2.0",
+            "Nie udało się zapisać obrazu.",
+        )
+
+    def _handle_crop_action_toggled(self, enabled: bool) -> None:
         if enabled:
             self.canvas.set_crop_selection_enabled(True)
             return
 
-        if self.canvas.crop_selection_enabled and self.canvas.crop_tool.has_selection:
+        if (
+            self.canvas.crop_selection_enabled
+            and self.canvas.crop_tool.has_selection
+        ):
             if self.canvas.apply_crop():
                 return
 
         self.canvas.set_crop_selection_enabled(False)
 
     def _update_status_bar(self) -> None:
-
         document = self.canvas.document
 
         self.status_bar.set_file_name(
@@ -161,14 +234,11 @@ class MainWindow(QMainWindow):
         can_undo: bool,
         can_redo: bool,
     ) -> None:
-
         self.actions.undo.setEnabled(can_undo)
         self.actions.redo.setEnabled(can_redo)
 
     def closeEvent(self, event) -> None:
-
         if self.canvas.document.modified:
-
             answer = QMessageBox.question(
                 self,
                 "Photo Editor 2.0",
@@ -179,7 +249,6 @@ class MainWindow(QMainWindow):
             )
 
             if answer != QMessageBox.StandardButton.Yes:
-
                 event.ignore()
                 return
 
