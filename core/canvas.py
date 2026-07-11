@@ -34,6 +34,7 @@ class Canvas(QGraphicsView):
     """Main image canvas."""
 
     image_loaded = Signal()
+    zoom_changed = Signal(float)
 
     ZOOM_STEP = 1.15
 
@@ -100,7 +101,7 @@ class Canvas(QGraphicsView):
             self.image_item.boundingRect()
         )
 
-        self.reset_zoom()
+        self.fit_to_window()
         self.image_loaded.emit()
 
         return True
@@ -168,7 +169,7 @@ class Canvas(QGraphicsView):
             self.ZOOM_STEP,
         )
 
-        self.document.zoom *= self.ZOOM_STEP
+        self._update_zoom()
 
     def zoom_out(self) -> None:
         if not self.document.is_loaded:
@@ -181,9 +182,23 @@ class Canvas(QGraphicsView):
             factor,
         )
 
-        self.document.zoom *= factor
+        self._update_zoom()
 
-    def reset_zoom(self) -> None:
+    def actual_size(self) -> None:
+        """Display the image at a 1:1 scale."""
+
+        if not self.document.is_loaded:
+            return
+
+        self.resetTransform()
+        self._update_zoom()
+
+    def fit_to_window(self) -> None:
+        """Fit the image into the available viewport."""
+
+        if not self.document.is_loaded:
+            return
+
         self.resetTransform()
 
         if not self.image_item.pixmap().isNull():
@@ -192,19 +207,33 @@ class Canvas(QGraphicsView):
                 Qt.AspectRatioMode.KeepAspectRatio,
             )
 
-        self.document.zoom = 100.0
+        self._update_zoom()
+
+    def _update_zoom(self) -> None:
+        zoom = self.transform().m11() * 100.0
+
+        self.document.zoom = zoom
+        self.zoom_changed.emit(zoom)
 
     def wheelEvent(
         self,
         event: QWheelEvent,
     ) -> None:
-        if not self.document.is_loaded:
+        if (
+            not self.document.is_loaded
+            or not event.modifiers() & Qt.KeyboardModifier.ControlModifier
+        ):
             super().wheelEvent(event)
             return
 
-        if event.angleDelta().y() > 0:
+        delta = event.angleDelta().y()
+
+        if delta > 0:
             self.zoom_in()
-        else:
+        elif delta < 0:
             self.zoom_out()
+        else:
+            super().wheelEvent(event)
+            return
 
         event.accept()

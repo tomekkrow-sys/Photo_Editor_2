@@ -81,8 +81,28 @@ class MainWindow(QMainWindow):
             self.close
         )
 
+        self.actions.zoom_in.triggered.connect(
+            self.canvas.zoom_in
+        )
+
+        self.actions.zoom_out.triggered.connect(
+            self.canvas.zoom_out
+        )
+
+        self.actions.fit.triggered.connect(
+            self.canvas.fit_to_window
+        )
+
+        self.actions.actual_size.triggered.connect(
+            self.canvas.actual_size
+        )
+
         self.canvas.image_loaded.connect(
             self._update_status_bar
+        )
+
+        self.canvas.zoom_changed.connect(
+            self.status_bar.set_zoom
         )
 
     def _update_status_bar(self) -> None:
@@ -96,10 +116,6 @@ class MainWindow(QMainWindow):
         self.status_bar.set_image_size(
             document.width,
             document.height,
-        )
-
-        self.status_bar.set_zoom(
-            document.zoom
         )
 
         self.status_bar.set_message(
