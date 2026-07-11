@@ -10,23 +10,16 @@ from PySide6.QtWidgets import QMenuBar
 
 
 class MenuBar(QMenuBar):
-    """
-    Main application menu.
-    """
+    """Main application menu."""
 
     def __init__(self, parent, actions):
-
         super().__init__(parent)
 
         self.actions = actions
-
         self._build()
 
     def _build(self):
-
-        #
         # FILE
-        #
 
         file_menu = self.addMenu("&Plik")
 
@@ -46,9 +39,7 @@ class MenuBar(QMenuBar):
 
         file_menu.addAction(self.actions.exit)
 
-        #
         # EDIT
-        #
 
         edit_menu = self.addMenu("&Edycja")
 
@@ -65,21 +56,18 @@ class MenuBar(QMenuBar):
 
         edit_menu.addAction(self.actions.delete)
 
-        #
         # IMAGE
-        #
 
-        self.addMenu("&Obraz")
+        image_menu = self.addMenu("&Obraz")
 
-        #
+        image_menu.addAction(self.actions.rotate_left)
+        image_menu.addAction(self.actions.rotate_right)
+
         # FILTERS
-        #
 
         self.addMenu("&Filtry")
 
-        #
         # VIEW
-        #
 
         view_menu = self.addMenu("&Widok")
 
@@ -91,9 +79,7 @@ class MenuBar(QMenuBar):
         view_menu.addAction(self.actions.fit)
         view_menu.addAction(self.actions.actual_size)
 
-        #
         # TOOLS
-        #
 
         tools_menu = self.addMenu("&Narzędzia")
 
@@ -105,8 +91,6 @@ class MenuBar(QMenuBar):
         tools_menu.addAction(self.actions.rectangle)
         tools_menu.addAction(self.actions.ellipse)
 
-        #
         # HELP
-        #
 
         self.addMenu("&Pomoc")

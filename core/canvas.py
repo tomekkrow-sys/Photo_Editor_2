@@ -20,6 +20,7 @@ from PySide6.QtGui import (
     QKeyEvent,
     QMouseEvent,
     QPixmap,
+    QTransform,
     QWheelEvent,
 )
 from PySide6.QtWidgets import (
@@ -204,6 +205,43 @@ class Canvas(QGraphicsView):
         self.crop_tool.cancel()
         self.set_crop_selection_enabled(False)
         self._update_history_state()
+
+        return True
+
+    def rotate_left(self) -> bool:
+        """Rotate the current image 90 degrees counterclockwise."""
+
+        return self._rotate_image(-90)
+
+    def rotate_right(self) -> bool:
+        """Rotate the current image 90 degrees clockwise."""
+
+        return self._rotate_image(90)
+
+    def _rotate_image(self, angle: int) -> bool:
+        """Rotate the current image and add the result to history."""
+
+        if (
+            not self.document.is_loaded
+            or self.document.image is None
+        ):
+            return False
+
+        transform = QTransform()
+        transform.rotate(angle)
+
+        rotated_image = self.document.image.transformed(
+            transform,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+
+        if rotated_image.isNull():
+            return False
+
+        self.history.push(rotated_image)
+        self._restore_image(rotated_image)
+        self._update_history_state()
+        self.fit_to_window()
 
         return True
 

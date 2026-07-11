@@ -12,21 +12,14 @@ from config import shortcuts
 
 
 class ActionManager:
-    """
-    Creates and stores all application actions.
-    """
+    """Creates and stores all application actions."""
 
     def __init__(self, parent):
-
         self.parent = parent
-
         self._create_actions()
 
     def _create_actions(self):
-
-        #
         # FILE
-        #
 
         self.new = QAction("&Nowy", self.parent)
         self.new.setShortcut(shortcuts.NEW)
@@ -46,9 +39,7 @@ class ActionManager:
         self.exit = QAction("&Zakończ", self.parent)
         self.exit.setShortcut(shortcuts.EXIT)
 
-        #
         # EDIT
-        #
 
         self.undo = QAction("&Cofnij", self.parent)
         self.undo.setShortcut(shortcuts.UNDO)
@@ -70,9 +61,7 @@ class ActionManager:
         self.delete = QAction("&Usuń", self.parent)
         self.delete.setShortcut(shortcuts.DELETE)
 
-        #
         # VIEW
-        #
 
         self.zoom_in = QAction("Powiększ", self.parent)
         self.zoom_in.setShortcut(shortcuts.ZOOM_IN)
@@ -86,9 +75,19 @@ class ActionManager:
         self.actual_size = QAction("100%", self.parent)
         self.actual_size.setShortcut(shortcuts.ACTUAL_SIZE)
 
-        #
+        # IMAGE
+
+        self.rotate_left = QAction(
+            "Obróć 90° w lewo",
+            self.parent,
+        )
+
+        self.rotate_right = QAction(
+            "Obróć 90° w prawo",
+            self.parent,
+        )
+
         # TOOLS
-        #
 
         self.crop = QAction("Kadruj", self.parent)
         self.crop.setShortcut(shortcuts.CROP)
