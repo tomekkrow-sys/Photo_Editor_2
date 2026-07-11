@@ -97,6 +97,14 @@ class MainWindow(QMainWindow):
             self.canvas.actual_size
         )
 
+        self.actions.undo.triggered.connect(
+            self.canvas.undo
+        )
+
+        self.actions.redo.triggered.connect(
+            self.canvas.redo
+        )
+
         self.actions.crop.toggled.connect(
             self._handle_crop_action_toggled
         )
@@ -112,6 +120,12 @@ class MainWindow(QMainWindow):
         self.canvas.crop_mode_changed.connect(
             self.actions.crop.setChecked
         )
+
+        self.canvas.history_state_changed.connect(
+            self._update_history_actions
+        )
+
+        self._update_history_actions(False, False)
 
     def _handle_crop_action_toggled(self, enabled: bool) -> None:
 
@@ -141,6 +155,15 @@ class MainWindow(QMainWindow):
         self.status_bar.set_message(
             "Obraz załadowany"
         )
+
+    def _update_history_actions(
+        self,
+        can_undo: bool,
+        can_redo: bool,
+    ) -> None:
+
+        self.actions.undo.setEnabled(can_undo)
+        self.actions.redo.setEnabled(can_redo)
 
     def closeEvent(self, event) -> None:
 

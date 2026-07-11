@@ -18,6 +18,7 @@ from PySide6.QtGui import (
     QDropEvent,
     QKeyEvent,
     QMouseEvent,
+    QImage,
     QPixmap,
     QWheelEvent,
 )
@@ -29,6 +30,7 @@ from PySide6.QtWidgets import (
 )
 
 from core.image_document import ImageDocument
+from core.history import ImageHistory
 from core.image_loader import ImageLoader
 from core.crop_tool import CropTool
 
@@ -39,6 +41,7 @@ class Canvas(QGraphicsView):
     image_loaded = Signal()
     zoom_changed = Signal(float)
     crop_mode_changed = Signal(bool)
+    history_state_changed = Signal(bool, bool)
 
     ZOOM_STEP = 1.15
 
@@ -46,6 +49,7 @@ class Canvas(QGraphicsView):
         super().__init__(parent)
 
         self.document = ImageDocument()
+        self.history = ImageHistory()
 
         self.scene = QGraphicsScene(self)
         self.setScene(self.scene)
@@ -101,7 +105,9 @@ class Canvas(QGraphicsView):
             return False
 
         self.crop_tool.cancel()
+        self.history.clear()
         self.document = document
+        self.history.push(document.image)
 
         pixmap = QPixmap.fromImage(document.image)
 
@@ -113,6 +119,7 @@ class Canvas(QGraphicsView):
 
         self.fit_to_window()
         self.image_loaded.emit()
+        self._update_history_state()
 
         return True
 
@@ -155,16 +162,47 @@ class Canvas(QGraphicsView):
         if cropped_image.isNull():
             return False
 
+        self.history.push(self.document.image)
         self.document.image = cropped_image
         self.document.width = cropped_image.width()
         self.document.height = cropped_image.height()
         self.document.modified = True
+        self.history.push(cropped_image)
 
         self.image_item.setPixmap(QPixmap.fromImage(cropped_image))
         self.scene.setSceneRect(self.image_item.boundingRect())
 
         self.crop_tool.cancel()
         self.set_crop_selection_enabled(False)
+        self._update_history_state()
+
+        return True
+
+    def undo(self, checked: bool = False) -> bool:
+        if not self.document.is_loaded:
+            return False
+
+        image = self.history.undo()
+
+        if image is None:
+            return False
+
+        self._restore_image(image)
+        self._update_history_state()
+
+        return True
+
+    def redo(self, checked: bool = False) -> bool:
+        if not self.document.is_loaded:
+            return False
+
+        image = self.history.redo()
+
+        if image is None:
+            return False
+
+        self._restore_image(image)
+        self._update_history_state()
 
         return True
 
@@ -331,6 +369,24 @@ class Canvas(QGraphicsView):
 
         self.document.zoom = zoom
         self.zoom_changed.emit(zoom)
+
+    def _update_history_state(self) -> None:
+        self.document.modified = self.history.can_undo
+        self.history_state_changed.emit(
+            self.history.can_undo,
+            self.history.can_redo,
+        )
+
+    def _restore_image(self, image: QImage) -> None:
+        self.document.image = image
+        self.document.width = image.width()
+        self.document.height = image.height()
+
+        self.image_item.setPixmap(QPixmap.fromImage(image))
+        self.scene.setSceneRect(self.image_item.boundingRect())
+
+        self.crop_tool.cancel()
+        self.set_crop_selection_enabled(False)
 
     def wheelEvent(
         self,

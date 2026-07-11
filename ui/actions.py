@@ -52,9 +52,11 @@ class ActionManager:
 
         self.undo = QAction("&Cofnij", self.parent)
         self.undo.setShortcut(shortcuts.UNDO)
+        self.undo.setEnabled(False)
 
         self.redo = QAction("&Ponów", self.parent)
         self.redo.setShortcut(shortcuts.REDO)
+        self.redo.setEnabled(False)
 
         self.cut = QAction("&Wytnij", self.parent)
         self.cut.setShortcut(shortcuts.CUT)

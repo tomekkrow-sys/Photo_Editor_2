@@ -129,6 +129,7 @@ class CanvasCropTests(unittest.TestCase):
     def test_crop_action_applies_selection_and_updates_document(self) -> None:
         window = MainWindow()
         self.assertTrue(window.canvas.load_image(self.image_path))
+        original_snapshot = window.canvas.document.original_image.copy()
 
         window.actions.crop.trigger()
 
@@ -165,6 +166,115 @@ class CanvasCropTests(unittest.TestCase):
             window.canvas.document.original_image.size().height(),
             800,
         )
+        self.assertEqual(
+            window.canvas.document.original_image.pixelColor(0, 0).name(),
+            original_snapshot.pixelColor(0, 0).name(),
+        )
+
+    def test_crop_undo_redo_restores_image_and_history_state(self) -> None:
+        window = MainWindow()
+        self.assertTrue(window.canvas.load_image(self.image_path))
+        original_snapshot = window.canvas.document.original_image.copy()
+
+        window.actions.crop.trigger()
+        bounds = window.canvas.image_item.sceneBoundingRect()
+        selection_start = bounds.topLeft() + QPointF(30, 20)
+        selection_end = bounds.topLeft() + QPointF(180, 120)
+
+        window.canvas.crop_tool.begin(selection_start, bounds)
+        window.canvas.crop_tool.update(selection_end, bounds)
+        window.canvas.crop_tool.finish(selection_end, bounds)
+        window.actions.crop.trigger()
+
+        self.assertTrue(window.actions.undo.isEnabled())
+        self.assertFalse(window.actions.redo.isEnabled())
+        self.assertEqual(window.canvas.document.width, 150)
+        self.assertEqual(window.canvas.document.height, 100)
+        self.assertTrue(window.canvas.document.modified)
+
+        window.actions.undo.trigger()
+
+        self.assertEqual(window.canvas.document.width, 1200)
+        self.assertEqual(window.canvas.document.height, 800)
+        self.assertFalse(window.canvas.document.modified)
+        self.assertFalse(window.actions.undo.isEnabled())
+        self.assertTrue(window.actions.redo.isEnabled())
+
+        window.actions.redo.trigger()
+
+        self.assertEqual(window.canvas.document.width, 150)
+        self.assertEqual(window.canvas.document.height, 100)
+        self.assertTrue(window.canvas.document.modified)
+        self.assertTrue(window.actions.undo.isEnabled())
+        self.assertFalse(window.actions.redo.isEnabled())
+        self.assertEqual(
+            window.canvas.document.original_image.size().width(),
+            original_snapshot.size().width(),
+        )
+        self.assertEqual(
+            window.canvas.document.original_image.size().height(),
+            original_snapshot.size().height(),
+        )
+        self.assertEqual(
+            window.canvas.document.original_image.pixelColor(0, 0).name(),
+            original_snapshot.pixelColor(0, 0).name(),
+        )
+
+    def test_new_crop_after_undo_clears_redo_history(self) -> None:
+        window = MainWindow()
+        self.assertTrue(window.canvas.load_image(self.image_path))
+
+        window.actions.crop.trigger()
+        bounds = window.canvas.image_item.sceneBoundingRect()
+        first_start = bounds.topLeft() + QPointF(40, 30)
+        first_end = bounds.topLeft() + QPointF(190, 130)
+
+        window.canvas.crop_tool.begin(first_start, bounds)
+        window.canvas.crop_tool.update(first_end, bounds)
+        window.canvas.crop_tool.finish(first_end, bounds)
+        window.actions.crop.trigger()
+
+        window.actions.undo.trigger()
+        self.assertTrue(window.actions.redo.isEnabled())
+
+        window.actions.crop.trigger()
+        second_start = window.canvas.image_item.sceneBoundingRect().topLeft() + QPointF(60, 50)
+        second_end = window.canvas.image_item.sceneBoundingRect().topLeft() + QPointF(260, 170)
+
+        window.canvas.crop_tool.begin(second_start, window.canvas.image_item.sceneBoundingRect())
+        window.canvas.crop_tool.update(second_end, window.canvas.image_item.sceneBoundingRect())
+        window.canvas.crop_tool.finish(second_end, window.canvas.image_item.sceneBoundingRect())
+        window.actions.crop.trigger()
+
+        self.assertFalse(window.actions.redo.isEnabled())
+        self.assertTrue(window.actions.undo.isEnabled())
+        self.assertEqual(window.canvas.document.width, 200)
+        self.assertEqual(window.canvas.document.height, 120)
+
+    def test_loading_new_image_clears_history(self) -> None:
+        window = MainWindow()
+        self.assertTrue(window.canvas.load_image(self.image_path))
+
+        window.actions.crop.trigger()
+        bounds = window.canvas.image_item.sceneBoundingRect()
+        selection_start = bounds.topLeft() + QPointF(20, 20)
+        selection_end = bounds.topLeft() + QPointF(120, 90)
+
+        window.canvas.crop_tool.begin(selection_start, bounds)
+        window.canvas.crop_tool.update(selection_end, bounds)
+        window.canvas.crop_tool.finish(selection_end, bounds)
+        window.actions.crop.trigger()
+
+        self.assertTrue(window.actions.undo.isEnabled())
+        self.assertFalse(window.actions.redo.isEnabled())
+
+        self.assertTrue(window.canvas.load_image(self.second_image_path))
+
+        self.assertFalse(window.actions.undo.isEnabled())
+        self.assertFalse(window.actions.redo.isEnabled())
+        self.assertFalse(window.canvas.document.modified)
+        self.assertEqual(window.canvas.document.width, 1200)
+        self.assertEqual(window.canvas.document.height, 800)
 
     def _mouse_event(
         self,
