@@ -97,12 +97,20 @@ class MainWindow(QMainWindow):
             self.canvas.actual_size
         )
 
+        self.actions.crop.toggled.connect(
+            self.canvas.set_crop_selection_enabled
+        )
+
         self.canvas.image_loaded.connect(
             self._update_status_bar
         )
 
         self.canvas.zoom_changed.connect(
             self.status_bar.set_zoom
+        )
+
+        self.canvas.crop_mode_changed.connect(
+            self.actions.crop.setChecked
         )
 
     def _update_status_bar(self) -> None:

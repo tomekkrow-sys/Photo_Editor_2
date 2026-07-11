@@ -90,6 +90,7 @@ class ActionManager:
 
         self.crop = QAction("Kadruj", self.parent)
         self.crop.setShortcut(shortcuts.CROP)
+        self.crop.setCheckable(True)
 
         self.rectangle = QAction("Prostokąt", self.parent)
         self.rectangle.setShortcut(shortcuts.RECTANGLE)

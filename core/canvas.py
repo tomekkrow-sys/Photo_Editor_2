@@ -16,6 +16,8 @@ from PySide6.QtGui import (
     QDragEnterEvent,
     QDragMoveEvent,
     QDropEvent,
+    QKeyEvent,
+    QMouseEvent,
     QPixmap,
     QWheelEvent,
 )
@@ -28,6 +30,7 @@ from PySide6.QtWidgets import (
 
 from core.image_document import ImageDocument
 from core.image_loader import ImageLoader
+from core.crop_tool import CropTool
 
 
 class Canvas(QGraphicsView):
@@ -35,6 +38,7 @@ class Canvas(QGraphicsView):
 
     image_loaded = Signal()
     zoom_changed = Signal(float)
+    crop_mode_changed = Signal(bool)
 
     ZOOM_STEP = 1.15
 
@@ -49,6 +53,9 @@ class Canvas(QGraphicsView):
         self.image_item = QGraphicsPixmapItem()
         self.scene.addItem(self.image_item)
 
+        self.crop_tool = CropTool(self.scene)
+        self.crop_selection_enabled = False
+
         self._configure()
 
     def _configure(self) -> None:
@@ -58,6 +65,8 @@ class Canvas(QGraphicsView):
         self.setDragMode(
             QGraphicsView.DragMode.ScrollHandDrag
         )
+
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         self.setTransformationAnchor(
             QGraphicsView.ViewportAnchor.AnchorUnderMouse
@@ -91,6 +100,7 @@ class Canvas(QGraphicsView):
         except (FileNotFoundError, ValueError):
             return False
 
+        self.crop_tool.cancel()
         self.document = document
 
         pixmap = QPixmap.fromImage(document.image)
@@ -105,6 +115,77 @@ class Canvas(QGraphicsView):
         self.image_loaded.emit()
 
         return True
+
+    def set_crop_selection_enabled(self, enabled: bool) -> None:
+        """Enable or disable rectangular crop selection mode."""
+
+        if self.crop_selection_enabled == enabled:
+            return
+
+        self.crop_selection_enabled = enabled
+
+        if enabled:
+            self.setDragMode(QGraphicsView.DragMode.NoDrag)
+        else:
+            self.crop_tool.cancel()
+            self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+
+        self.crop_mode_changed.emit(enabled)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if (
+            self.crop_selection_enabled
+            and self.document.is_loaded
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            point = self.mapToScene(event.position().toPoint())
+            image_bounds = self.image_item.sceneBoundingRect()
+
+            self.setFocus()
+            self.crop_tool.begin(point, image_bounds)
+            event.accept()
+            return
+
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if self.crop_selection_enabled and self.crop_tool.is_selecting:
+            point = self.mapToScene(event.position().toPoint())
+            self.crop_tool.update(
+                point,
+                self.image_item.sceneBoundingRect(),
+            )
+            event.accept()
+            return
+
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        if (
+            self.crop_selection_enabled
+            and self.crop_tool.is_selecting
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            point = self.mapToScene(event.position().toPoint())
+            self.crop_tool.finish(
+                point,
+                self.image_item.sceneBoundingRect(),
+            )
+            event.accept()
+            return
+
+        super().mouseReleaseEvent(event)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        if (
+            self.crop_selection_enabled
+            and event.key() == Qt.Key.Key_Escape
+        ):
+            self.set_crop_selection_enabled(False)
+            event.accept()
+            return
+
+        super().keyPressEvent(event)
 
     def _event_has_supported_image(
         self,
