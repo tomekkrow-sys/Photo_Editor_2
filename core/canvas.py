@@ -245,6 +245,49 @@ class Canvas(QGraphicsView):
 
         return True
 
+    def flip_horizontal(self) -> bool:
+        """Flip the current image horizontally."""
+
+        return self._flip_image(
+            horizontal=True,
+            vertical=False,
+        )
+
+    def flip_vertical(self) -> bool:
+        """Flip the current image vertically."""
+
+        return self._flip_image(
+            horizontal=False,
+            vertical=True,
+        )
+
+    def _flip_image(
+        self,
+        horizontal: bool,
+        vertical: bool,
+    ) -> bool:
+        """Flip the current image and add the result to history."""
+
+        if (
+            not self.document.is_loaded
+            or self.document.image is None
+        ):
+            return False
+
+        flipped_image = self.document.image.mirrored(
+            horizontal,
+            vertical,
+        )
+
+        if flipped_image.isNull():
+            return False
+
+        self.history.push(flipped_image)
+        self._restore_image(flipped_image)
+        self._update_history_state()
+
+        return True
+
     def undo(self, checked: bool = False) -> bool:
         if not self.document.is_loaded:
             return False

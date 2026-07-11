@@ -91,6 +91,13 @@ class MainWindow(QMainWindow):
             self.canvas.rotate_right
         )
 
+        self.actions.flip_horizontal.triggered.connect(
+            self.canvas.flip_horizontal
+        )
+        self.actions.flip_vertical.triggered.connect(
+            self.canvas.flip_vertical
+        )
+
         self.actions.crop.toggled.connect(
             self._handle_crop_action_toggled
         )

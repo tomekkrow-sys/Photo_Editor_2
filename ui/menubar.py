@@ -63,6 +63,10 @@ class MenuBar(QMenuBar):
         image_menu.addAction(self.actions.rotate_left)
         image_menu.addAction(self.actions.rotate_right)
 
+        image_menu.addSeparator()
+
+        image_menu.addAction(self.actions.flip_horizontal)
+        image_menu.addAction(self.actions.flip_vertical)
         # FILTERS
 
         self.addMenu("&Filtry")

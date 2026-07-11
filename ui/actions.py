@@ -87,6 +87,16 @@ class ActionManager:
             self.parent,
         )
 
+        self.flip_horizontal = QAction(
+            "Odbij poziomo",
+            self.parent,
+        )
+
+        self.flip_vertical = QAction(
+            "Odbij pionowo",
+            self.parent,
+        )
+
         # TOOLS
 
         self.crop = QAction("Kadruj", self.parent)
