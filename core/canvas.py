@@ -11,14 +11,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import rawpy
-
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import (
     QDragEnterEvent,
     QDragMoveEvent,
     QDropEvent,
-    QImage,
     QPixmap,
     QWheelEvent,
 )
@@ -30,6 +27,7 @@ from PySide6.QtWidgets import (
 )
 
 from core.image_document import ImageDocument
+from core.image_loader import ImageLoader
 
 
 class Canvas(QGraphicsView):
@@ -38,32 +36,6 @@ class Canvas(QGraphicsView):
     image_loaded = Signal()
 
     ZOOM_STEP = 1.15
-
-    STANDARD_EXTENSIONS = {
-        ".png",
-        ".jpg",
-        ".jpeg",
-        ".bmp",
-        ".tif",
-        ".tiff",
-        ".webp",
-    }
-
-    RAW_EXTENSIONS = {
-        ".nef",
-        ".cr2",
-        ".cr3",
-        ".arw",
-        ".dng",
-        ".orf",
-        ".rw2",
-        ".raf",
-        ".pef",
-    }
-
-    SUPPORTED_EXTENSIONS = (
-        STANDARD_EXTENSIONS | RAW_EXTENSIONS
-    )
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -103,16 +75,7 @@ class Canvas(QGraphicsView):
             self,
             "Otwórz obraz",
             "",
-            (
-                "Wszystkie obsługiwane obrazy "
-                "(*.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp "
-                "*.nef *.cr2 *.cr3 *.arw *.dng *.orf *.rw2 "
-                "*.raf *.pef);;"
-                "Obrazy (*.png *.jpg *.jpeg *.bmp "
-                "*.tif *.tiff *.webp);;"
-                "RAW (*.nef *.cr2 *.cr3 *.arw *.dng "
-                "*.orf *.rw2 *.raf *.pef)"
-            ),
+            ImageLoader.file_dialog_filter(),
         )
 
         if filename:
@@ -122,36 +85,14 @@ class Canvas(QGraphicsView):
         self,
         file_path: str | Path,
     ) -> bool:
-        path = Path(file_path)
-
-        if not path.is_file():
+        try:
+            document = ImageLoader.load(file_path)
+        except (FileNotFoundError, ValueError):
             return False
 
-        extension = path.suffix.lower()
+        self.document = document
 
-        if extension not in self.SUPPORTED_EXTENSIONS:
-            return False
-
-        if extension in self.RAW_EXTENSIONS:
-            image = self._load_raw_image(path)
-        else:
-            image = QImage(str(path))
-
-        if image.isNull():
-            return False
-
-        self.document.clear()
-
-        self.document.image = image
-        self.document.original_image = image.copy()
-        self.document.file_path = path
-        self.document.file_name = path.name
-        self.document.width = image.width()
-        self.document.height = image.height()
-        self.document.format = extension.lstrip(".")
-        self.document.modified = False
-
-        pixmap = QPixmap.fromImage(image)
+        pixmap = QPixmap.fromImage(document.image)
 
         self.image_item.setPixmap(pixmap)
 
@@ -163,40 +104,6 @@ class Canvas(QGraphicsView):
         self.image_loaded.emit()
 
         return True
-
-    @staticmethod
-    def _load_raw_image(path: Path) -> QImage:
-        try:
-            with rawpy.imread(str(path)) as raw:
-                rgb = raw.postprocess(
-                    use_camera_wb=True,
-                    no_auto_bright=False,
-                    output_bps=8,
-                )
-
-            height, width, channels = rgb.shape
-
-            if channels != 3:
-                return QImage()
-
-            bytes_per_line = width * channels
-
-            image = QImage(
-                rgb.data,
-                width,
-                height,
-                bytes_per_line,
-                QImage.Format.Format_RGB888,
-            )
-
-            return image.copy()
-
-        except (
-            rawpy.LibRawError,
-            OSError,
-            ValueError,
-        ):
-            return QImage()
 
     def _event_has_supported_image(
         self,
@@ -211,13 +118,7 @@ class Canvas(QGraphicsView):
             if not url.isLocalFile():
                 continue
 
-            path = Path(url.toLocalFile())
-
-            if (
-                path.is_file()
-                and path.suffix.lower()
-                in self.SUPPORTED_EXTENSIONS
-            ):
+            if ImageLoader.can_load(url.toLocalFile()):
                 return True
 
         return False
