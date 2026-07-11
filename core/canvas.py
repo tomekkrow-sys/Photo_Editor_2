@@ -132,6 +132,42 @@ class Canvas(QGraphicsView):
 
         self.crop_mode_changed.emit(enabled)
 
+    def apply_crop(self) -> bool:
+        """Crop the current image to the active selection."""
+
+        if (
+            not self.document.is_loaded
+            or not self.crop_tool.has_selection
+            or self.document.image is None
+        ):
+            return False
+
+        selection = self.crop_tool.selection_rect.intersected(
+            self.image_item.sceneBoundingRect()
+        )
+        crop_rect = selection.toAlignedRect()
+
+        if crop_rect.isEmpty():
+            return False
+
+        cropped_image = self.document.image.copy(crop_rect)
+
+        if cropped_image.isNull():
+            return False
+
+        self.document.image = cropped_image
+        self.document.width = cropped_image.width()
+        self.document.height = cropped_image.height()
+        self.document.modified = True
+
+        self.image_item.setPixmap(QPixmap.fromImage(cropped_image))
+        self.scene.setSceneRect(self.image_item.boundingRect())
+
+        self.crop_tool.cancel()
+        self.set_crop_selection_enabled(False)
+
+        return True
+
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if (
             self.crop_selection_enabled

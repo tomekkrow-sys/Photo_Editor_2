@@ -126,6 +126,46 @@ class CanvasCropTests(unittest.TestCase):
         self.assertFalse(window.canvas.crop_selection_enabled)
         window.close()
 
+    def test_crop_action_applies_selection_and_updates_document(self) -> None:
+        window = MainWindow()
+        self.assertTrue(window.canvas.load_image(self.image_path))
+
+        window.actions.crop.trigger()
+
+        bounds = window.canvas.image_item.sceneBoundingRect()
+        selection_start = bounds.topLeft() + QPointF(50, 40)
+        selection_end = bounds.topLeft() + QPointF(250, 140)
+
+        window.canvas.crop_tool.begin(selection_start, bounds)
+        window.canvas.crop_tool.update(selection_end, bounds)
+        window.canvas.crop_tool.finish(selection_end, bounds)
+
+        original_image = window.canvas.document.original_image.copy()
+        window.actions.crop.trigger()
+
+        self.assertFalse(window.actions.crop.isChecked())
+        self.assertFalse(window.canvas.crop_selection_enabled)
+        self.assertFalse(window.canvas.crop_tool.has_selection)
+        self.assertTrue(window.canvas.document.modified)
+        self.assertEqual(window.canvas.document.width, 200)
+        self.assertEqual(window.canvas.document.height, 100)
+        self.assertEqual(window.canvas.image_item.pixmap().width(), 200)
+        self.assertEqual(window.canvas.image_item.pixmap().height(), 100)
+        self.assertEqual(window.canvas.scene.sceneRect().width(), 200)
+        self.assertEqual(window.canvas.scene.sceneRect().height(), 100)
+        self.assertEqual(
+            window.canvas.document.original_image.size(),
+            original_image.size(),
+        )
+        self.assertEqual(
+            window.canvas.document.original_image.size().width(),
+            1200,
+        )
+        self.assertEqual(
+            window.canvas.document.original_image.size().height(),
+            800,
+        )
+
     def _mouse_event(
         self,
         event_type: QEvent.Type,

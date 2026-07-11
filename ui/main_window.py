@@ -98,7 +98,7 @@ class MainWindow(QMainWindow):
         )
 
         self.actions.crop.toggled.connect(
-            self.canvas.set_crop_selection_enabled
+            self._handle_crop_action_toggled
         )
 
         self.canvas.image_loaded.connect(
@@ -112,6 +112,18 @@ class MainWindow(QMainWindow):
         self.canvas.crop_mode_changed.connect(
             self.actions.crop.setChecked
         )
+
+    def _handle_crop_action_toggled(self, enabled: bool) -> None:
+
+        if enabled:
+            self.canvas.set_crop_selection_enabled(True)
+            return
+
+        if self.canvas.crop_selection_enabled and self.canvas.crop_tool.has_selection:
+            if self.canvas.apply_crop():
+                return
+
+        self.canvas.set_crop_selection_enabled(False)
 
     def _update_status_bar(self) -> None:
 
