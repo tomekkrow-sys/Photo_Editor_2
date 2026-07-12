@@ -62,6 +62,54 @@ class ImageAdjustmentsTests(unittest.TestCase):
             100,
         )
 
+    def test_positive_saturation_increases_color_difference(
+        self,
+    ) -> None:
+        self.image.fill(QColor(180, 100, 80, 255))
+
+        result = ImageAdjustments.apply(
+            self.image,
+            saturation=50,
+        )
+
+        original = self.image.pixelColor(0, 0)
+        adjusted = result.pixelColor(0, 0)
+
+        original_difference = (
+            original.red() - original.blue()
+        )
+        adjusted_difference = (
+            adjusted.red() - adjusted.blue()
+        )
+
+        self.assertGreater(
+            adjusted_difference,
+            original_difference,
+        )
+
+    def test_negative_saturation_reduces_color_difference(
+        self,
+    ) -> None:
+        self.image.fill(QColor(180, 100, 80, 255))
+
+        result = ImageAdjustments.apply(
+            self.image,
+            saturation=-100,
+        )
+
+        color = result.pixelColor(0, 0)
+
+        self.assertAlmostEqual(
+            color.red(),
+            color.green(),
+            delta=1,
+        )
+        self.assertAlmostEqual(
+            color.green(),
+            color.blue(),
+            delta=1,
+        )
+
     def test_adjustments_preserve_alpha(self) -> None:
         self.image.setPixelColor(
             0,

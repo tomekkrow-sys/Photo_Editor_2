@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fast image brightness and contrast adjustments."""
+"""Fast image brightness, contrast, and saturation adjustments."""
 
 from __future__ import annotations
 
@@ -16,14 +16,16 @@ class ImageAdjustments:
         image: QImage,
         brightness: int = 0,
         contrast: int = 0,
+        saturation: int = 0,
     ) -> QImage:
-        """Apply brightness and contrast in a single operation."""
+        """Apply image adjustments in a single operation."""
 
         if image.isNull():
             return QImage()
 
         brightness = max(-100, min(100, brightness))
         contrast = max(-100, min(100, contrast))
+        saturation = max(-100, min(100, saturation))
 
         result = image.convertToFormat(
             QImage.Format.Format_RGBA8888
@@ -49,9 +51,7 @@ class ImageAdjustments:
             4,
         )
 
-        rgb = pixels[:, :, :3].astype(
-            np.float32
-        )
+        rgb = pixels[:, :, :3].astype(np.float32)
 
         if brightness != 0:
             rgb += brightness * 2.55
@@ -59,13 +59,23 @@ class ImageAdjustments:
         if contrast != 0:
             factor = (
                 259.0 * (contrast + 255.0)
-                / (
-                    255.0
-                    * (259.0 - contrast)
-                )
+                / (255.0 * (259.0 - contrast))
+            )
+            rgb = factor * (rgb - 128.0) + 128.0
+
+        if saturation != 0:
+            saturation_factor = 1.0 + saturation / 100.0
+
+            luminance = (
+                rgb[:, :, 0:1] * 0.2126
+                + rgb[:, :, 1:2] * 0.7152
+                + rgb[:, :, 2:3] * 0.0722
             )
 
-            rgb = factor * (rgb - 128.0) + 128.0
+            rgb = (
+                luminance
+                + saturation_factor * (rgb - luminance)
+            )
 
         pixels[:, :, :3] = np.clip(
             rgb,
@@ -97,4 +107,16 @@ class ImageAdjustments:
         return ImageAdjustments.apply(
             image,
             contrast=value,
+        )
+
+    @staticmethod
+    def saturation(
+        image: QImage,
+        value: int,
+    ) -> QImage:
+        """Adjust image saturation."""
+
+        return ImageAdjustments.apply(
+            image,
+            saturation=value,
         )

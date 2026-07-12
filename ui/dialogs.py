@@ -142,7 +142,7 @@ class ResizeImageDialog(QDialog):
 class AdjustmentsDialog(QDialog):
     """Dialog for brightness and contrast adjustments."""
 
-    values_changed = Signal(int, int)
+    values_changed = Signal(int, int, int)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -156,6 +156,9 @@ class AdjustmentsDialog(QDialog):
 
         self.contrast_slider = self._create_slider()
         self.contrast_value = QLabel("0", self)
+
+        self.saturation_slider = self._create_slider()
+        self.saturation_value = QLabel("0", self)
 
         brightness_layout = QHBoxLayout()
         brightness_layout.addWidget(
@@ -173,6 +176,14 @@ class AdjustmentsDialog(QDialog):
             self.contrast_value
         )
 
+        saturation_layout = QHBoxLayout()
+        saturation_layout.addWidget(
+            self.saturation_slider
+        )
+        saturation_layout.addWidget(
+            self.saturation_value
+        )
+
         form_layout = QFormLayout()
         form_layout.addRow(
             "Jasność:",
@@ -181,6 +192,10 @@ class AdjustmentsDialog(QDialog):
         form_layout.addRow(
             "Kontrast:",
             contrast_layout,
+        )
+        form_layout.addRow(
+            "Nasycenie:",
+            saturation_layout,
         )
 
         buttons = QDialogButtonBox(
@@ -199,6 +214,9 @@ class AdjustmentsDialog(QDialog):
         )
         self.contrast_slider.valueChanged.connect(
             self._update_contrast_value
+        )
+        self.saturation_slider.valueChanged.connect(
+            self._update_saturation_value
         )
 
         buttons.accepted.connect(self.accept)
@@ -234,6 +252,12 @@ class AdjustmentsDialog(QDialog):
 
         return self.contrast_slider.value()
 
+    @property
+    def saturation(self) -> int:
+        """Return the selected saturation value."""
+
+        return self.saturation_slider.value()
+
     def _update_brightness_value(
         self,
         value: int,
@@ -244,6 +268,7 @@ class AdjustmentsDialog(QDialog):
         self.values_changed.emit(
             self.brightness,
             self.contrast,
+            self.saturation,
         )
 
     def _update_contrast_value(
@@ -256,6 +281,20 @@ class AdjustmentsDialog(QDialog):
         self.values_changed.emit(
             self.brightness,
             self.contrast,
+            self.saturation,
+        )
+
+    def _update_saturation_value(
+        self,
+        value: int,
+    ) -> None:
+        """Update the saturation value label."""
+
+        self.saturation_value.setText(str(value))
+        self.values_changed.emit(
+            self.brightness,
+            self.contrast,
+            self.saturation,
         )
 
     def reset_values(self) -> None:
