@@ -315,12 +315,14 @@ class MainWindow(QMainWindow):
                 dialog.brightness,
                 dialog.contrast,
                 dialog.saturation,
+                dialog.temperature,
             )
 
         def schedule_preview(
             brightness: int,
             contrast: int,
             saturation: int,
+            temperature: int,
         ) -> None:
             preview_timer.start()
 
@@ -332,6 +334,7 @@ class MainWindow(QMainWindow):
                 dialog.brightness,
                 dialog.contrast,
                 dialog.saturation,
+                dialog.temperature,
             )
 
             self.canvas.fit_to_window()

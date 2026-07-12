@@ -215,6 +215,7 @@ class Canvas(QGraphicsView):
         brightness: int,
         contrast: int,
         saturation: int = 0,
+        temperature: int = 0,
     ) -> bool:
         """Preview adjustments without changing history."""
 
@@ -226,6 +227,7 @@ class Canvas(QGraphicsView):
             brightness=brightness,
             contrast=contrast,
             saturation=saturation,
+            temperature=temperature,
         )
 
         self._restore_image(image)
@@ -237,8 +239,9 @@ class Canvas(QGraphicsView):
         brightness: int,
         contrast: int,
         saturation: int = 0,
+        temperature: int = 0,
     ) -> bool:
-        """Apply brightness and contrast adjustments."""
+        """Apply image adjustments."""
 
         if (
             not self.document.is_loaded
@@ -251,12 +254,14 @@ class Canvas(QGraphicsView):
             brightness=brightness,
             contrast=contrast,
             saturation=saturation,
+            temperature=temperature,
         )
 
         if (
             brightness == 0
             and contrast == 0
             and saturation == 0
+            and temperature == 0
         ):
             return False
 

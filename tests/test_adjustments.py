@@ -127,7 +127,27 @@ class ImageAdjustmentsTests(unittest.TestCase):
             result.pixelColor(0, 0).alpha(),
             123,
         )
+    def test_positive_temperature_warms_image(self) -> None:
+        result = ImageAdjustments.apply(
+            self.image,
+            temperature=50,
+        )
 
+        color = result.pixelColor(0, 0)
+
+        self.assertGreater(color.red(), 100)
+        self.assertLess(color.blue(), 100)
+
+    def test_negative_temperature_cools_image(self) -> None:
+        result = ImageAdjustments.apply(
+            self.image,
+            temperature=-50,
+        )
+
+        color = result.pixelColor(0, 0)
+
+        self.assertLess(color.red(), 100)
+        self.assertGreater(color.blue(), 100)
 
 class CanvasAdjustmentsTests(unittest.TestCase):
     """Tests for applying adjustments through Canvas."""

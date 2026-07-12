@@ -17,6 +17,7 @@ class ImageAdjustments:
         brightness: int = 0,
         contrast: int = 0,
         saturation: int = 0,
+        temperature: int = 0,
     ) -> QImage:
         """Apply image adjustments in a single operation."""
 
@@ -26,6 +27,7 @@ class ImageAdjustments:
         brightness = max(-100, min(100, brightness))
         contrast = max(-100, min(100, contrast))
         saturation = max(-100, min(100, saturation))
+        temperature = max(-100, min(100, temperature))
 
         result = image.convertToFormat(
             QImage.Format.Format_RGBA8888
@@ -77,6 +79,12 @@ class ImageAdjustments:
                 + saturation_factor * (rgb - luminance)
             )
 
+        if temperature != 0:
+            temperature_offset = temperature * 1.2
+
+            rgb[:, :, 0] += temperature_offset
+            rgb[:, :, 2] -= temperature_offset
+
         pixels[:, :, :3] = np.clip(
             rgb,
             0,
@@ -107,6 +115,18 @@ class ImageAdjustments:
         return ImageAdjustments.apply(
             image,
             contrast=value,
+        )
+
+    @staticmethod
+    def temperature(
+        image: QImage,
+        value: int,
+    ) -> QImage:
+        """Adjust image color temperature."""
+
+        return ImageAdjustments.apply(
+            image,
+            temperature=value,
         )
 
     @staticmethod

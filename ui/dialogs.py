@@ -142,7 +142,7 @@ class ResizeImageDialog(QDialog):
 class AdjustmentsDialog(QDialog):
     """Dialog for brightness and contrast adjustments."""
 
-    values_changed = Signal(int, int, int)
+    values_changed = Signal(int, int, int, int)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -159,6 +159,9 @@ class AdjustmentsDialog(QDialog):
 
         self.saturation_slider = self._create_slider()
         self.saturation_value = QLabel("0", self)
+
+        self.temperature_slider = self._create_slider()
+        self.temperature_value = QLabel("0", self)
 
         brightness_layout = QHBoxLayout()
         brightness_layout.addWidget(
@@ -184,6 +187,14 @@ class AdjustmentsDialog(QDialog):
             self.saturation_value
         )
 
+        temperature_layout = QHBoxLayout()
+        temperature_layout.addWidget(
+            self.temperature_slider
+        )
+        temperature_layout.addWidget(
+            self.temperature_value
+        )
+
         form_layout = QFormLayout()
         form_layout.addRow(
             "Jasność:",
@@ -196,6 +207,10 @@ class AdjustmentsDialog(QDialog):
         form_layout.addRow(
             "Nasycenie:",
             saturation_layout,
+        )
+        form_layout.addRow(
+            "Temperatura:",
+            temperature_layout,
         )
 
         buttons = QDialogButtonBox(
@@ -217,6 +232,9 @@ class AdjustmentsDialog(QDialog):
         )
         self.saturation_slider.valueChanged.connect(
             self._update_saturation_value
+        )
+        self.temperature_slider.valueChanged.connect(
+            self._update_temperature_value
         )
 
         buttons.accepted.connect(self.accept)
@@ -258,6 +276,12 @@ class AdjustmentsDialog(QDialog):
 
         return self.saturation_slider.value()
 
+    @property
+    def temperature(self) -> int:
+        """Return the selected temperature value."""
+
+        return self.temperature_slider.value()
+
     def _update_brightness_value(
         self,
         value: int,
@@ -269,6 +293,7 @@ class AdjustmentsDialog(QDialog):
             self.brightness,
             self.contrast,
             self.saturation,
+            self.temperature,
         )
 
     def _update_contrast_value(
@@ -282,6 +307,7 @@ class AdjustmentsDialog(QDialog):
             self.brightness,
             self.contrast,
             self.saturation,
+            self.temperature,
         )
 
     def _update_saturation_value(
@@ -295,6 +321,21 @@ class AdjustmentsDialog(QDialog):
             self.brightness,
             self.contrast,
             self.saturation,
+            self.temperature,
+        )
+
+    def _update_temperature_value(
+        self,
+        value: int,
+    ) -> None:
+        """Update the temperature value label."""
+
+        self.temperature_value.setText(str(value))
+        self.values_changed.emit(
+            self.brightness,
+            self.contrast,
+            self.saturation,
+            self.temperature,
         )
 
     def reset_values(self) -> None:
@@ -302,3 +343,5 @@ class AdjustmentsDialog(QDialog):
 
         self.brightness_slider.setValue(0)
         self.contrast_slider.setValue(0)
+        self.saturation_slider.setValue(0)
+        self.temperature_slider.setValue(0)
