@@ -61,6 +61,7 @@ class MenuBar(QMenuBar):
         image_menu = self.addMenu("&Obraz")
 
         image_menu.addAction(self.actions.resize_image)
+        image_menu.addAction(self.actions.adjustments)
 
         image_menu.addSeparator()
 

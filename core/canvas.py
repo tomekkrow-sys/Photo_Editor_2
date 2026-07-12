@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QGraphicsView,
 )
 
+from core.adjustments import ImageAdjustments
 from core.crop_tool import CropTool
 from core.history import ImageHistory
 from core.image_document import ImageDocument
@@ -204,6 +205,55 @@ class Canvas(QGraphicsView):
 
         self.crop_tool.cancel()
         self.set_crop_selection_enabled(False)
+        self._update_history_state()
+
+        return True
+
+    def preview_adjustments(
+        self,
+        source_image: QImage,
+        brightness: int,
+        contrast: int,
+    ) -> bool:
+        """Preview adjustments without changing history."""
+
+        if source_image.isNull():
+            return False
+
+        image = ImageAdjustments.apply(
+            source_image,
+            brightness=brightness,
+            contrast=contrast,
+        )
+
+        self._restore_image(image)
+
+        return True
+
+    def apply_adjustments(
+        self,
+        brightness: int,
+        contrast: int,
+    ) -> bool:
+        """Apply brightness and contrast adjustments."""
+
+        if (
+            not self.document.is_loaded
+            or self.document.image is None
+        ):
+            return False
+
+        image = ImageAdjustments.apply(
+            self.document.image,
+            brightness=brightness,
+            contrast=contrast,
+        )
+
+        if brightness == 0 and contrast == 0:
+            return False
+
+        self.history.push(image)
+        self._restore_image(image)
         self._update_history_state()
 
         return True

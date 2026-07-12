@@ -77,6 +77,11 @@ class ActionManager:
 
         # IMAGE
 
+        self.adjustments = QAction(
+            "Jasność i kontrast...",
+            self.parent,
+        )
+
         self.resize_image = QAction(
             "Zmień rozmiar...",
             self.parent,

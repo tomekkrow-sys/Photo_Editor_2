@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox
 
@@ -13,7 +14,7 @@ from config.version import WINDOW_TITLE
 from core.canvas import Canvas
 from core.image_saver import ImageSaver
 from ui.actions import ActionManager
-from ui.dialogs import ResizeImageDialog
+from ui.dialogs import AdjustmentsDialog, ResizeImageDialog
 from ui.menubar import MenuBar
 from ui.statusbar import StatusBar
 from ui.toolbar import ToolBar
@@ -87,6 +88,9 @@ class MainWindow(QMainWindow):
 
         self.actions.resize_image.triggered.connect(
             self._resize_image
+        )
+        self.actions.adjustments.triggered.connect(
+            self._adjust_image
         )
 
         self.actions.rotate_left.triggered.connect(
@@ -287,6 +291,61 @@ class MainWindow(QMainWindow):
 
         self._save_target_created = False
         self._update_status_bar()
+
+    def _adjust_image(self) -> None:
+        """Open adjustments dialog with live preview."""
+
+        if (
+            not self.canvas.document.is_loaded
+            or self.canvas.document.image is None
+        ):
+            return
+
+        original_image = self.canvas.document.image.copy()
+        dialog = AdjustmentsDialog(self)
+        self._adjustments_dialog = dialog
+
+        preview_timer = QTimer(dialog)
+        preview_timer.setSingleShot(True)
+        preview_timer.setInterval(40)
+
+        def update_preview() -> None:
+            self.canvas.preview_adjustments(
+                original_image,
+                dialog.brightness,
+                dialog.contrast,
+            )
+
+        def schedule_preview(
+            brightness: int,
+            contrast: int,
+        ) -> None:
+            preview_timer.start()
+
+        def accept_adjustments() -> None:
+            preview_timer.stop()
+            self.canvas._restore_image(original_image)
+
+            self.canvas.apply_adjustments(
+                dialog.brightness,
+                dialog.contrast,
+            )
+
+            self.canvas.fit_to_window()
+            self._adjustments_dialog = None
+
+        def cancel_adjustments() -> None:
+            preview_timer.stop()
+            self.canvas._restore_image(original_image)
+            self.canvas.fit_to_window()
+            self._adjustments_dialog = None
+
+        dialog.values_changed.connect(schedule_preview)
+        preview_timer.timeout.connect(update_preview)
+        dialog.accepted.connect(accept_adjustments)
+        dialog.rejected.connect(cancel_adjustments)
+
+        dialog.show()
 
     def _resize_image(self) -> None:
         """Open the image resize dialog and resize the image."""
