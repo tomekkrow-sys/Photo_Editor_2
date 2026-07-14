@@ -316,6 +316,7 @@ class MainWindow(QMainWindow):
                 contrast=dialog.contrast,
                 saturation=dialog.saturation,
                 temperature=dialog.temperature,
+                tint=dialog.tint,
             )
 
             self.canvas.preview_adjustments(
@@ -340,6 +341,7 @@ class MainWindow(QMainWindow):
                 contrast=dialog.contrast,
                 saturation=dialog.saturation,
                 temperature=dialog.temperature,
+                tint=dialog.tint,
             )
 
             self.canvas.apply_adjustments(

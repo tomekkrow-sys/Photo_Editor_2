@@ -27,6 +27,7 @@ class ImageAdjustments:
             contrast=settings.contrast,
             saturation=settings.saturation,
             temperature=settings.temperature,
+            tint=settings.tint,
         )
 
     @staticmethod
