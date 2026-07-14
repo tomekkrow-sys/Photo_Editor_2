@@ -142,7 +142,7 @@ class ResizeImageDialog(QDialog):
 class AdjustmentsDialog(QDialog):
     """Dialog for brightness and contrast adjustments."""
 
-    values_changed = Signal(int, int, int, int, int, int)
+    values_changed = Signal(int, int, int, int, int, int, int, int)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -153,6 +153,12 @@ class AdjustmentsDialog(QDialog):
 
         self.exposure_slider = self._create_slider()
         self.exposure_value = QLabel("0", self)
+
+        self.gamma_slider = self._create_slider()
+        self.gamma_value = QLabel("0", self)
+
+        self.highlights_slider = self._create_slider()
+        self.highlights_value = QLabel("0", self)
 
         self.brightness_slider = self._create_slider()
         self.brightness_value = QLabel("0", self)
@@ -175,6 +181,22 @@ class AdjustmentsDialog(QDialog):
         )
         exposure_layout.addWidget(
             self.exposure_value
+        )
+
+        gamma_layout = QHBoxLayout()
+        gamma_layout.addWidget(
+            self.gamma_slider
+        )
+        gamma_layout.addWidget(
+            self.gamma_value
+        )
+
+        highlights_layout = QHBoxLayout()
+        highlights_layout.addWidget(
+            self.highlights_slider
+        )
+        highlights_layout.addWidget(
+            self.highlights_value
         )
 
         brightness_layout = QHBoxLayout()
@@ -223,6 +245,14 @@ class AdjustmentsDialog(QDialog):
             exposure_layout,
         )
         form_layout.addRow(
+            "Gamma:",
+            gamma_layout,
+        )
+        form_layout.addRow(
+            "Highlights:",
+            highlights_layout,
+        )
+        form_layout.addRow(
             "Jasność:",
             brightness_layout,
         )
@@ -256,6 +286,14 @@ class AdjustmentsDialog(QDialog):
 
         self.exposure_slider.valueChanged.connect(
             self._update_exposure_value
+        )
+
+        self.gamma_slider.valueChanged.connect(
+            self._update_gamma_value
+        )
+
+        self.highlights_slider.valueChanged.connect(
+            self._update_highlights_value
         )
 
         self.brightness_slider.valueChanged.connect(
@@ -302,6 +340,18 @@ class AdjustmentsDialog(QDialog):
         return self.exposure_slider.value()
 
     @property
+    def gamma(self) -> int:
+        """Return the selected gamma value."""
+
+        return self.gamma_slider.value()
+
+    @property
+    def highlights(self) -> int:
+        """Return the selected highlights value."""
+
+        return self.highlights_slider.value()
+
+    @property
     def brightness(self) -> int:
         """Return the selected brightness value."""
 
@@ -332,6 +382,24 @@ class AdjustmentsDialog(QDialog):
 
         return self.tint_slider.value()
 
+    def _update_gamma_value(
+        self,
+        value: int,
+    ) -> None:
+        """Update the gamma value label."""
+
+        self.gamma_value.setText(str(value))
+        self.values_changed.emit(
+            self.exposure,
+            self.gamma,
+            self.highlights,
+            self.brightness,
+            self.contrast,
+            self.saturation,
+            self.temperature,
+            self.tint,
+        )
+
     def _update_exposure_value(
         self,
         value: int,
@@ -341,6 +409,26 @@ class AdjustmentsDialog(QDialog):
         self.exposure_value.setText(str(value))
         self.values_changed.emit(
             self.exposure,
+            self.gamma,
+            self.highlights,
+            self.brightness,
+            self.contrast,
+            self.saturation,
+            self.temperature,
+            self.tint,
+        )
+
+    def _update_highlights_value(
+        self,
+        value: int,
+    ) -> None:
+        """Update the highlights value label."""
+
+        self.highlights_value.setText(str(value))
+        self.values_changed.emit(
+            self.exposure,
+            self.gamma,
+            self.highlights,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -357,6 +445,8 @@ class AdjustmentsDialog(QDialog):
         self.brightness_value.setText(str(value))
         self.values_changed.emit(
             self.exposure,
+            self.gamma,
+            self.highlights,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -373,6 +463,8 @@ class AdjustmentsDialog(QDialog):
         self.contrast_value.setText(str(value))
         self.values_changed.emit(
             self.exposure,
+            self.gamma,
+            self.highlights,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -389,6 +481,8 @@ class AdjustmentsDialog(QDialog):
         self.saturation_value.setText(str(value))
         self.values_changed.emit(
             self.exposure,
+            self.gamma,
+            self.highlights,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -405,6 +499,8 @@ class AdjustmentsDialog(QDialog):
         self.temperature_value.setText(str(value))
         self.values_changed.emit(
             self.exposure,
+            self.gamma,
+            self.highlights,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -422,6 +518,8 @@ class AdjustmentsDialog(QDialog):
         self.tint_value.setText(str(value))
         self.values_changed.emit(
             self.exposure,
+            self.gamma,
+            self.highlights,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -433,6 +531,8 @@ class AdjustmentsDialog(QDialog):
         """Reset all adjustments to zero."""
 
         self.exposure_slider.setValue(0)
+        self.gamma_slider.setValue(0)
+        self.highlights_slider.setValue(0)
         self.brightness_slider.setValue(0)
         self.contrast_slider.setValue(0)
         self.saturation_slider.setValue(0)

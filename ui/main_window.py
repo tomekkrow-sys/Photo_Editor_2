@@ -313,6 +313,8 @@ class MainWindow(QMainWindow):
         def update_preview() -> None:
             settings = AdjustmentSettings(
                 exposure=dialog.exposure,
+                gamma=dialog.gamma,
+                highlights=dialog.highlights,
                 brightness=dialog.brightness,
                 contrast=dialog.contrast,
                 saturation=dialog.saturation,
@@ -326,10 +328,14 @@ class MainWindow(QMainWindow):
             )
 
         def schedule_preview(
+            exposure: int,
+            gamma: int,
+            highlights: int,
             brightness: int,
             contrast: int,
             saturation: int,
             temperature: int,
+            tint: int,
         ) -> None:
             preview_timer.start()
 
@@ -339,6 +345,8 @@ class MainWindow(QMainWindow):
 
             settings = AdjustmentSettings(
                 exposure=dialog.exposure,
+                gamma=dialog.gamma,
+                highlights=dialog.highlights,
                 brightness=dialog.brightness,
                 contrast=dialog.contrast,
                 saturation=dialog.saturation,

@@ -25,6 +25,8 @@ class ImageAdjustments:
         return ImageAdjustments.apply(
             image=image,
             exposure=settings.exposure,
+            gamma=settings.gamma,
+            highlights=settings.highlights,
             brightness=settings.brightness,
             contrast=settings.contrast,
             saturation=settings.saturation,
@@ -36,6 +38,8 @@ class ImageAdjustments:
     def apply(
         image: QImage,
         exposure: int = 0,
+        gamma: int = 0,
+        highlights: int = 0,
         brightness: int = 0,
         contrast: int = 0,
         saturation: int = 0,
@@ -56,6 +60,8 @@ class ImageAdjustments:
 
         settings = AdjustmentSettings(
             exposure=exposure,
+            gamma=gamma,
+            highlights=highlights,
             brightness=brightness,
             contrast=contrast,
             saturation=saturation,

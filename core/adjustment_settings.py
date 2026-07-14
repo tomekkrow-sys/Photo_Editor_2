@@ -11,6 +11,8 @@ class AdjustmentSettings:
     """Stores all image adjustment parameters."""
 
     exposure: int = 0
+    highlights: int = 0
+    gamma: int = 0
     brightness: int = 0
     contrast: int = 0
     saturation: int = 0
@@ -22,6 +24,8 @@ class AdjustmentSettings:
 
         return (
             self.exposure == 0
+            and self.highlights == 0
+            and self.gamma == 0
             and self.brightness == 0
             and self.contrast == 0
             and self.saturation == 0
@@ -34,6 +38,8 @@ class AdjustmentSettings:
 
         return AdjustmentSettings(
             exposure=self.exposure,
+            highlights=self.highlights,
+            gamma=self.gamma,
             brightness=self.brightness,
             contrast=self.contrast,
             saturation=self.saturation,
