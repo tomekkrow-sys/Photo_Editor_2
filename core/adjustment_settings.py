@@ -14,6 +14,7 @@ class AdjustmentSettings:
     contrast: int = 0
     saturation: int = 0
     temperature: int = 0
+    tint: int = 0
 
     def is_identity(self) -> bool:
         """Return True if no adjustment changes the image."""
@@ -23,6 +24,7 @@ class AdjustmentSettings:
             and self.contrast == 0
             and self.saturation == 0
             and self.temperature == 0
+            and self.tint == 0
         )
 
     def copy(self) -> "AdjustmentSettings":

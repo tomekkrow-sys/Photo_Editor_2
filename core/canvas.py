@@ -213,10 +213,7 @@ class Canvas(QGraphicsView):
     def preview_adjustments(
         self,
         source_image: QImage,
-        brightness: int,
-        contrast: int,
-        saturation: int = 0,
-        temperature: int = 0,
+        settings: AdjustmentSettings,
     ) -> bool:
         """Preview adjustments without changing history."""
 

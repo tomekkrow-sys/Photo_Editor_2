@@ -36,6 +36,7 @@ class ImageAdjustments:
         contrast: int = 0,
         saturation: int = 0,
         temperature: int = 0,
+        tint: int = 0,
     ) -> QImage:
         """Apply image adjustments in a single operation."""
 
@@ -46,6 +47,7 @@ class ImageAdjustments:
         contrast = max(-100, min(100, contrast))
         saturation = max(-100, min(100, saturation))
         temperature = max(-100, min(100, temperature))
+        tint = max(-100, min(100, tint))
 
         result = image.convertToFormat(
             QImage.Format.Format_RGBA8888
@@ -103,6 +105,13 @@ class ImageAdjustments:
             rgb[:, :, 0] += temperature_offset
             rgb[:, :, 2] -= temperature_offset
 
+        if tint != 0:
+            tint_offset = tint * 1.2
+
+            rgb[:, :, 1] += tint_offset
+            rgb[:, :, 0] -= tint_offset * 0.5
+            rgb[:, :, 2] -= tint_offset * 0.5
+
         pixels[:, :, :3] = np.clip(
             rgb,
             0,
@@ -133,6 +142,18 @@ class ImageAdjustments:
         return ImageAdjustments.apply(
             image,
             contrast=value,
+        )
+
+    @staticmethod
+    def tint(
+        image: QImage,
+        value: int,
+    ) -> QImage:
+        """Adjust image tint."""
+
+        return ImageAdjustments.apply(
+            image,
+            tint=value,
         )
 
     @staticmethod

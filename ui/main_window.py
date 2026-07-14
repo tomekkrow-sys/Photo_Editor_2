@@ -320,10 +320,7 @@ class MainWindow(QMainWindow):
 
             self.canvas.preview_adjustments(
                 original_image,
-                settings.brightness,
-                settings.contrast,
-                settings.saturation,
-                settings.temperature,
+                settings,
             )
 
         def schedule_preview(
