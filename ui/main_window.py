@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox
 from config.defaults import DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH
 from config.version import WINDOW_TITLE
 from core.canvas import Canvas
+from core.adjustment_settings import AdjustmentSettings
 from core.image_saver import ImageSaver
 from ui.actions import ActionManager
 from ui.dialogs import AdjustmentsDialog, ResizeImageDialog
@@ -310,12 +311,19 @@ class MainWindow(QMainWindow):
         preview_timer.setInterval(40)
 
         def update_preview() -> None:
+            settings = AdjustmentSettings(
+                brightness=dialog.brightness,
+                contrast=dialog.contrast,
+                saturation=dialog.saturation,
+                temperature=dialog.temperature,
+            )
+
             self.canvas.preview_adjustments(
                 original_image,
-                dialog.brightness,
-                dialog.contrast,
-                dialog.saturation,
-                dialog.temperature,
+                settings.brightness,
+                settings.contrast,
+                settings.saturation,
+                settings.temperature,
             )
 
         def schedule_preview(
@@ -330,11 +338,15 @@ class MainWindow(QMainWindow):
             preview_timer.stop()
             self.canvas._restore_image(original_image)
 
+            settings = AdjustmentSettings(
+                brightness=dialog.brightness,
+                contrast=dialog.contrast,
+                saturation=dialog.saturation,
+                temperature=dialog.temperature,
+            )
+
             self.canvas.apply_adjustments(
-                dialog.brightness,
-                dialog.contrast,
-                dialog.saturation,
-                dialog.temperature,
+                settings,
             )
 
             self.canvas.fit_to_window()

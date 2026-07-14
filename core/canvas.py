@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
 )
 
 from core.adjustments import ImageAdjustments
+from core.adjustment_settings import AdjustmentSettings
 from core.crop_tool import CropTool
 from core.history import ImageHistory
 from core.image_document import ImageDocument
@@ -222,12 +223,10 @@ class Canvas(QGraphicsView):
         if source_image.isNull():
             return False
 
-        image = ImageAdjustments.apply(
+
+        image = ImageAdjustments.apply_settings(
             source_image,
-            brightness=brightness,
-            contrast=contrast,
-            saturation=saturation,
-            temperature=temperature,
+            settings,
         )
 
         self._restore_image(image)
@@ -236,10 +235,7 @@ class Canvas(QGraphicsView):
 
     def apply_adjustments(
         self,
-        brightness: int,
-        contrast: int,
-        saturation: int = 0,
-        temperature: int = 0,
+        settings: AdjustmentSettings,
     ) -> bool:
         """Apply image adjustments."""
 
@@ -249,20 +245,12 @@ class Canvas(QGraphicsView):
         ):
             return False
 
-        image = ImageAdjustments.apply(
+        image = ImageAdjustments.apply_settings(
             self.document.image,
-            brightness=brightness,
-            contrast=contrast,
-            saturation=saturation,
-            temperature=temperature,
+            settings,
         )
 
-        if (
-            brightness == 0
-            and contrast == 0
-            and saturation == 0
-            and temperature == 0
-        ):
+        if settings.is_identity():
             return False
 
         self.history.push(image)

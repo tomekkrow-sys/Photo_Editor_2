@@ -14,6 +14,7 @@ from PySide6.QtGui import QColor, QImage
 from PySide6.QtWidgets import QApplication
 
 from core.adjustments import ImageAdjustments
+from core.adjustment_settings import AdjustmentSettings
 from core.canvas import Canvas
 
 
@@ -182,7 +183,12 @@ class CanvasAdjustmentsTests(unittest.TestCase):
         original = self.canvas.document.image.copy()
 
         self.assertTrue(
-            self.canvas.apply_adjustments(20, 10)
+            self.canvas.apply_adjustments(
+            AdjustmentSettings(
+                brightness=20,
+                contrast=10,
+            )
+        )
         )
 
         self.assertNotEqual(
@@ -192,14 +198,21 @@ class CanvasAdjustmentsTests(unittest.TestCase):
 
     def test_zero_adjustments_return_false(self) -> None:
         self.assertFalse(
-            self.canvas.apply_adjustments(0, 0)
+            self.canvas.apply_adjustments(
+            AdjustmentSettings()
+        )
         )
 
     def test_adjustments_support_undo_redo(self) -> None:
         original = self.canvas.document.image.copy()
 
         self.assertTrue(
-            self.canvas.apply_adjustments(20, 10)
+            self.canvas.apply_adjustments(
+            AdjustmentSettings(
+                brightness=20,
+                contrast=10,
+            )
+        )
         )
 
         adjusted = self.canvas.document.image.copy()

@@ -7,9 +7,27 @@ import numpy as np
 
 from PySide6.QtGui import QImage
 
+from core.adjustment_settings import AdjustmentSettings
+
 
 class ImageAdjustments:
     """Apply fast pixel adjustments using NumPy."""
+
+
+    @staticmethod
+    def apply_settings(
+        image: QImage,
+        settings: AdjustmentSettings,
+    ) -> QImage:
+        """Apply adjustments from AdjustmentSettings."""
+
+        return ImageAdjustments.apply(
+            image=image,
+            brightness=settings.brightness,
+            contrast=settings.contrast,
+            saturation=settings.saturation,
+            temperature=settings.temperature,
+        )
 
     @staticmethod
     def apply(
