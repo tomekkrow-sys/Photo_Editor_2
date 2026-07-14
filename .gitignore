@@ -43,4 +43,5 @@ __pycache__/
 
 cache/
 
-temp/
+temp/error.log
+error.log
