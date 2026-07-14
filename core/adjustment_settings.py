@@ -10,6 +10,7 @@ from dataclasses import dataclass
 class AdjustmentSettings:
     """Stores all image adjustment parameters."""
 
+    exposure: int = 0
     brightness: int = 0
     contrast: int = 0
     saturation: int = 0
@@ -20,7 +21,8 @@ class AdjustmentSettings:
         """Return True if no adjustment changes the image."""
 
         return (
-            self.brightness == 0
+            self.exposure == 0
+            and self.brightness == 0
             and self.contrast == 0
             and self.saturation == 0
             and self.temperature == 0
@@ -31,6 +33,7 @@ class AdjustmentSettings:
         """Return a copy of these settings."""
 
         return AdjustmentSettings(
+            exposure=self.exposure,
             brightness=self.brightness,
             contrast=self.contrast,
             saturation=self.saturation,

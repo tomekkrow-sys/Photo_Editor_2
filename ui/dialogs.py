@@ -142,7 +142,7 @@ class ResizeImageDialog(QDialog):
 class AdjustmentsDialog(QDialog):
     """Dialog for brightness and contrast adjustments."""
 
-    values_changed = Signal(int, int, int, int, int)
+    values_changed = Signal(int, int, int, int, int, int)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -150,6 +150,9 @@ class AdjustmentsDialog(QDialog):
         self.setWindowTitle("Jasność i kontrast")
         self.setModal(False)
         self.setMinimumWidth(420)
+
+        self.exposure_slider = self._create_slider()
+        self.exposure_value = QLabel("0", self)
 
         self.brightness_slider = self._create_slider()
         self.brightness_value = QLabel("0", self)
@@ -165,6 +168,14 @@ class AdjustmentsDialog(QDialog):
 
         self.tint_slider = self._create_slider()
         self.tint_value = QLabel("0", self)
+
+        exposure_layout = QHBoxLayout()
+        exposure_layout.addWidget(
+            self.exposure_slider
+        )
+        exposure_layout.addWidget(
+            self.exposure_value
+        )
 
         brightness_layout = QHBoxLayout()
         brightness_layout.addWidget(
@@ -208,6 +219,10 @@ class AdjustmentsDialog(QDialog):
 
         form_layout = QFormLayout()
         form_layout.addRow(
+            "Ekspozycja:",
+            exposure_layout,
+        )
+        form_layout.addRow(
             "Jasność:",
             brightness_layout,
         )
@@ -238,6 +253,10 @@ class AdjustmentsDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addLayout(form_layout)
         layout.addWidget(buttons)
+
+        self.exposure_slider.valueChanged.connect(
+            self._update_exposure_value
+        )
 
         self.brightness_slider.valueChanged.connect(
             self._update_brightness_value
@@ -277,6 +296,12 @@ class AdjustmentsDialog(QDialog):
         return slider
 
     @property
+    def exposure(self) -> int:
+        """Return the selected exposure value."""
+
+        return self.exposure_slider.value()
+
+    @property
     def brightness(self) -> int:
         """Return the selected brightness value."""
 
@@ -307,6 +332,22 @@ class AdjustmentsDialog(QDialog):
 
         return self.tint_slider.value()
 
+    def _update_exposure_value(
+        self,
+        value: int,
+    ) -> None:
+        """Update the exposure value label."""
+
+        self.exposure_value.setText(str(value))
+        self.values_changed.emit(
+            self.exposure,
+            self.brightness,
+            self.contrast,
+            self.saturation,
+            self.temperature,
+            self.tint,
+        )
+
     def _update_brightness_value(
         self,
         value: int,
@@ -315,6 +356,7 @@ class AdjustmentsDialog(QDialog):
 
         self.brightness_value.setText(str(value))
         self.values_changed.emit(
+            self.exposure,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -330,6 +372,7 @@ class AdjustmentsDialog(QDialog):
 
         self.contrast_value.setText(str(value))
         self.values_changed.emit(
+            self.exposure,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -345,6 +388,7 @@ class AdjustmentsDialog(QDialog):
 
         self.saturation_value.setText(str(value))
         self.values_changed.emit(
+            self.exposure,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -360,6 +404,7 @@ class AdjustmentsDialog(QDialog):
 
         self.temperature_value.setText(str(value))
         self.values_changed.emit(
+            self.exposure,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -376,6 +421,7 @@ class AdjustmentsDialog(QDialog):
 
         self.tint_value.setText(str(value))
         self.values_changed.emit(
+            self.exposure,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -386,6 +432,7 @@ class AdjustmentsDialog(QDialog):
     def reset_values(self) -> None:
         """Reset all adjustments to zero."""
 
+        self.exposure_slider.setValue(0)
         self.brightness_slider.setValue(0)
         self.contrast_slider.setValue(0)
         self.saturation_slider.setValue(0)

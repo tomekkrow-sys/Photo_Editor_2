@@ -312,6 +312,7 @@ class MainWindow(QMainWindow):
 
         def update_preview() -> None:
             settings = AdjustmentSettings(
+                exposure=dialog.exposure,
                 brightness=dialog.brightness,
                 contrast=dialog.contrast,
                 saturation=dialog.saturation,
@@ -337,6 +338,7 @@ class MainWindow(QMainWindow):
             self.canvas._restore_image(original_image)
 
             settings = AdjustmentSettings(
+                exposure=dialog.exposure,
                 brightness=dialog.brightness,
                 contrast=dialog.contrast,
                 saturation=dialog.saturation,

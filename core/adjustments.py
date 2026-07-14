@@ -8,6 +8,7 @@ import numpy as np
 from PySide6.QtGui import QImage
 
 from core.adjustment_settings import AdjustmentSettings
+from core.tone_mapping import ToneMapping
 
 
 class ImageAdjustments:
@@ -23,6 +24,7 @@ class ImageAdjustments:
 
         return ImageAdjustments.apply(
             image=image,
+            exposure=settings.exposure,
             brightness=settings.brightness,
             contrast=settings.contrast,
             saturation=settings.saturation,
@@ -33,6 +35,7 @@ class ImageAdjustments:
     @staticmethod
     def apply(
         image: QImage,
+        exposure: int = 0,
         brightness: int = 0,
         contrast: int = 0,
         saturation: int = 0,
@@ -44,11 +47,21 @@ class ImageAdjustments:
         if image.isNull():
             return QImage()
 
+        exposure = max(-100, min(100, exposure))
         brightness = max(-100, min(100, brightness))
         contrast = max(-100, min(100, contrast))
         saturation = max(-100, min(100, saturation))
         temperature = max(-100, min(100, temperature))
         tint = max(-100, min(100, tint))
+
+        settings = AdjustmentSettings(
+            exposure=exposure,
+            brightness=brightness,
+            contrast=contrast,
+            saturation=saturation,
+            temperature=temperature,
+            tint=tint,
+        )
 
         result = image.convertToFormat(
             QImage.Format.Format_RGBA8888
@@ -75,6 +88,11 @@ class ImageAdjustments:
         )
 
         rgb = pixels[:, :, :3].astype(np.float32)
+
+        rgb = ToneMapping.apply(
+            rgb,
+            settings,
+        )
 
         if brightness != 0:
             rgb += brightness * 2.55
