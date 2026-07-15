@@ -142,7 +142,7 @@ class ResizeImageDialog(QDialog):
 class AdjustmentsDialog(QDialog):
     """Dialog for brightness and contrast adjustments."""
 
-    values_changed = Signal(int, int, int, int, int, int, int, int)
+    values_changed = Signal(int, int, int, int, int, int, int, int, int)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -159,6 +159,9 @@ class AdjustmentsDialog(QDialog):
 
         self.highlights_slider = self._create_slider()
         self.highlights_value = QLabel("0", self)
+
+        self.shadows_slider = self._create_slider()
+        self.shadows_value = QLabel("0", self)
 
         self.brightness_slider = self._create_slider()
         self.brightness_value = QLabel("0", self)
@@ -197,6 +200,14 @@ class AdjustmentsDialog(QDialog):
         )
         highlights_layout.addWidget(
             self.highlights_value
+        )
+
+        shadows_layout = QHBoxLayout()
+        shadows_layout.addWidget(
+            self.shadows_slider
+        )
+        shadows_layout.addWidget(
+            self.shadows_value
         )
 
         brightness_layout = QHBoxLayout()
@@ -253,6 +264,10 @@ class AdjustmentsDialog(QDialog):
             highlights_layout,
         )
         form_layout.addRow(
+            "Shadows:",
+            shadows_layout,
+        )
+        form_layout.addRow(
             "Jasność:",
             brightness_layout,
         )
@@ -294,6 +309,10 @@ class AdjustmentsDialog(QDialog):
 
         self.highlights_slider.valueChanged.connect(
             self._update_highlights_value
+        )
+
+        self.shadows_slider.valueChanged.connect(
+            self._update_shadows_value
         )
 
         self.brightness_slider.valueChanged.connect(
@@ -350,6 +369,12 @@ class AdjustmentsDialog(QDialog):
         """Return the selected highlights value."""
 
         return self.highlights_slider.value()
+
+    @property
+    def shadows(self) -> int:
+        """Return the selected shadows value."""
+
+        return self.shadows_slider.value()
 
     @property
     def brightness(self) -> int:
@@ -429,6 +454,25 @@ class AdjustmentsDialog(QDialog):
             self.exposure,
             self.gamma,
             self.highlights,
+            self.brightness,
+            self.contrast,
+            self.saturation,
+            self.temperature,
+            self.tint,
+        )
+
+    def _update_shadows_value(
+        self,
+        value: int,
+    ) -> None:
+        """Update the shadows value label."""
+
+        self.shadows_value.setText(str(value))
+        self.values_changed.emit(
+            self.exposure,
+            self.gamma,
+            self.highlights,
+            self.shadows,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -533,6 +577,7 @@ class AdjustmentsDialog(QDialog):
         self.exposure_slider.setValue(0)
         self.gamma_slider.setValue(0)
         self.highlights_slider.setValue(0)
+        self.shadows_slider.setValue(0)
         self.brightness_slider.setValue(0)
         self.contrast_slider.setValue(0)
         self.saturation_slider.setValue(0)

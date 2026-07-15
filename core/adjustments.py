@@ -27,6 +27,7 @@ class ImageAdjustments:
             exposure=settings.exposure,
             gamma=settings.gamma,
             highlights=settings.highlights,
+            shadows=settings.shadows,
             brightness=settings.brightness,
             contrast=settings.contrast,
             saturation=settings.saturation,
@@ -40,6 +41,7 @@ class ImageAdjustments:
         exposure: int = 0,
         gamma: int = 0,
         highlights: int = 0,
+        shadows: int = 0,
         brightness: int = 0,
         contrast: int = 0,
         saturation: int = 0,
@@ -52,6 +54,7 @@ class ImageAdjustments:
             return QImage()
 
         exposure = max(-100, min(100, exposure))
+        shadows = max(-100, min(100, shadows))
         brightness = max(-100, min(100, brightness))
         contrast = max(-100, min(100, contrast))
         saturation = max(-100, min(100, saturation))
@@ -62,6 +65,7 @@ class ImageAdjustments:
             exposure=exposure,
             gamma=gamma,
             highlights=highlights,
+            shadows=shadows,
             brightness=brightness,
             contrast=contrast,
             saturation=saturation,

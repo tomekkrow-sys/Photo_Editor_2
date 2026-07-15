@@ -12,6 +12,7 @@ class AdjustmentSettings:
 
     exposure: int = 0
     highlights: int = 0
+    shadows: int = 0
     gamma: int = 0
     brightness: int = 0
     contrast: int = 0
@@ -25,6 +26,7 @@ class AdjustmentSettings:
         return (
             self.exposure == 0
             and self.highlights == 0
+            and self.shadows == 0
             and self.gamma == 0
             and self.brightness == 0
             and self.contrast == 0
