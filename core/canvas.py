@@ -240,7 +240,7 @@ class Canvas(QGraphicsView):
             return False
 
         image = ImageAdjustments.apply_settings(
-            self.document.image,
+            self.document.active_image,
             settings,
         )
 
@@ -300,7 +300,7 @@ class Canvas(QGraphicsView):
 
         if (
             not self.document.is_loaded
-            or self.document.image is None
+            or self.document.active_image is None
         ):
             return False
 
@@ -347,7 +347,7 @@ class Canvas(QGraphicsView):
 
         if (
             not self.document.is_loaded
-            or self.document.image is None
+            or self.document.active_image is None
         ):
             return False
 
