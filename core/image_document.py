@@ -32,14 +32,13 @@ class ImageDocument:
 
     @property
     def is_loaded(self) -> bool:
-        return self.image is not None
+        return self.active_image is not None
 
     def clear(self) -> None:
 
         self.file_path: Path | None = None
         self.file_name: str = ""
 
-        self.image: QImage | None = None
         self.original_image: QImage | None = None
 
         self.modified: bool = False
@@ -59,7 +58,6 @@ class ImageDocument:
         file_path: Path,
     ) -> None:
 
-        self.image = image
         self.layer_stack.add_background(image)
         self.original_image = image.copy()
 
@@ -106,7 +104,6 @@ class ImageDocument:
             return
 
         layer.image = image
-        self.image = image
 
         self.width = image.width()
         self.height = image.height()
