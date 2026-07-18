@@ -14,6 +14,8 @@ from uuid import UUID, uuid4
 
 from PySide6.QtGui import QImage
 
+from core.layer_stack import LayerStack
+
 
 class ImageDocument:
     """
@@ -23,6 +25,7 @@ class ImageDocument:
     def __init__(self) -> None:
 
         self.id: UUID = uuid4()
+        self.layer_stack: LayerStack = LayerStack()
 
         self.clear()
 
@@ -40,6 +43,8 @@ class ImageDocument:
 
         self.modified: bool = False
 
+        self.layer_stack.clear()
+
         self.zoom: float = 100.0
 
         self.format: str = ""
@@ -54,6 +59,7 @@ class ImageDocument:
     ) -> None:
 
         self.image = image
+        self.layer_stack.add_background(image)
         self.original_image = image.copy()
 
         self.file_path = file_path
