@@ -45,3 +45,6 @@ cache/
 
 temp/error.log
 error.log
+*.bak
+crash.log
+blad.txt

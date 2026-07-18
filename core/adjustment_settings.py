@@ -14,6 +14,7 @@ class AdjustmentSettings:
     highlights: int = 0
     shadows: int = 0
     whites: int = 0
+    blacks: int = 0
     gamma: int = 0
     brightness: int = 0
     contrast: int = 0
@@ -29,6 +30,7 @@ class AdjustmentSettings:
             and self.highlights == 0
             and self.shadows == 0
             and self.whites == 0
+            and self.blacks == 0
             and self.gamma == 0
             and self.brightness == 0
             and self.contrast == 0
@@ -37,15 +39,20 @@ class AdjustmentSettings:
             and self.tint == 0
         )
 
-    def copy(self) -> "AdjustmentSettings":
-        """Return a copy of these settings."""
+    
+def copy(self) -> "AdjustmentSettings":
+        """Return a copy of the settings."""
 
         return AdjustmentSettings(
             exposure=self.exposure,
-            highlights=self.highlights,
             gamma=self.gamma,
+            highlights=self.highlights,
+            shadows=self.shadows,
+            whites=self.whites,
+            blacks=self.blacks,
             brightness=self.brightness,
             contrast=self.contrast,
             saturation=self.saturation,
             temperature=self.temperature,
+            tint=self.tint,
         )

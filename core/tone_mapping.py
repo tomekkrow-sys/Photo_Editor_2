@@ -108,6 +108,28 @@ class ToneMapping:
                 * mask[:, :, np.newaxis]
             )
 
+
+        if settings.blacks != 0:
+            amount = settings.blacks / 100.0
+
+            luminance = (
+                rgb[:, :, 0] * 0.2126
+                + rgb[:, :, 1] * 0.7152
+                + rgb[:, :, 2] * 0.0722
+            )
+
+            mask = np.clip(
+                (64.0 - luminance) / 64.0,
+                0.0,
+                1.0,
+            )
+
+            rgb -= (
+                amount
+                * 80.0
+                * mask[:, :, np.newaxis]
+            )
+
         if settings.exposure != 0:
             factor = 2.0 ** (settings.exposure / 100.0)
 

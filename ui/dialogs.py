@@ -142,7 +142,7 @@ class ResizeImageDialog(QDialog):
 class AdjustmentsDialog(QDialog):
     """Dialog for brightness and contrast adjustments."""
 
-    values_changed = Signal(int, int, int, int, int, int, int, int, int, int)
+    values_changed = Signal(int, int, int, int, int, int, int, int, int, int, int)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -165,6 +165,9 @@ class AdjustmentsDialog(QDialog):
 
         self.whites_slider = self._create_slider()
         self.whites_value = QLabel("0", self)
+
+        self.blacks_slider = self._create_slider()
+        self.blacks_value = QLabel("0", self)
 
         self.brightness_slider = self._create_slider()
         self.brightness_value = QLabel("0", self)
@@ -219,6 +222,14 @@ class AdjustmentsDialog(QDialog):
         )
         whites_layout.addWidget(
             self.whites_value
+        )
+
+        blacks_layout = QHBoxLayout()
+        blacks_layout.addWidget(
+            self.blacks_slider
+        )
+        blacks_layout.addWidget(
+            self.blacks_value
         )
 
         brightness_layout = QHBoxLayout()
@@ -283,6 +294,10 @@ class AdjustmentsDialog(QDialog):
             whites_layout,
         )
         form_layout.addRow(
+            "Czernie:",
+            blacks_layout,
+        )
+        form_layout.addRow(
             "Jasność:",
             brightness_layout,
         )
@@ -332,6 +347,10 @@ class AdjustmentsDialog(QDialog):
 
         self.whites_slider.valueChanged.connect(
             self._update_whites_value
+        )
+
+        self.blacks_slider.valueChanged.connect(
+            self._update_blacks_value
         )
 
         self.brightness_slider.valueChanged.connect(
@@ -400,6 +419,11 @@ class AdjustmentsDialog(QDialog):
         """Return the selected whites value."""
 
         return self.whites_slider.value()
+    @property
+    def blacks(self) -> int:
+        """Return the selected blacks value."""
+
+        return self.blacks_slider.value()
 
     @property
     def brightness(self) -> int:
@@ -445,6 +469,7 @@ class AdjustmentsDialog(QDialog):
             self.highlights,
             self.shadows,
             self.whites,
+            self.blacks,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -465,6 +490,7 @@ class AdjustmentsDialog(QDialog):
             self.highlights,
             self.shadows,
             self.whites,
+            self.blacks,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -485,6 +511,7 @@ class AdjustmentsDialog(QDialog):
             self.highlights,
             self.shadows,
             self.whites,
+            self.blacks,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -505,6 +532,7 @@ class AdjustmentsDialog(QDialog):
             self.highlights,
             self.shadows,
             self.whites,
+            self.blacks,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -525,6 +553,28 @@ class AdjustmentsDialog(QDialog):
             self.highlights,
             self.shadows,
             self.whites,
+            self.blacks,
+            self.brightness,
+            self.contrast,
+            self.saturation,
+            self.temperature,
+            self.tint,
+        )
+
+    def _update_blacks_value(
+        self,
+        value: int,
+    ) -> None:
+        """Update the blacks value label."""
+
+        self.blacks_value.setText(str(value))
+        self.values_changed.emit(
+            self.exposure,
+            self.gamma,
+            self.highlights,
+            self.shadows,
+            self.whites,
+            self.blacks,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -545,6 +595,7 @@ class AdjustmentsDialog(QDialog):
             self.highlights,
             self.shadows,
             self.whites,
+            self.blacks,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -565,6 +616,7 @@ class AdjustmentsDialog(QDialog):
             self.highlights,
             self.shadows,
             self.whites,
+            self.blacks,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -585,6 +637,7 @@ class AdjustmentsDialog(QDialog):
             self.highlights,
             self.shadows,
             self.whites,
+            self.blacks,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -605,6 +658,7 @@ class AdjustmentsDialog(QDialog):
             self.highlights,
             self.shadows,
             self.whites,
+            self.blacks,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -626,6 +680,7 @@ class AdjustmentsDialog(QDialog):
             self.highlights,
             self.shadows,
             self.whites,
+            self.blacks,
             self.brightness,
             self.contrast,
             self.saturation,
@@ -641,6 +696,7 @@ class AdjustmentsDialog(QDialog):
         self.highlights_slider.setValue(0)
         self.shadows_slider.setValue(0)
         self.whites_slider.setValue(0)
+        self.blacks_slider.setValue(0)
         self.brightness_slider.setValue(0)
         self.contrast_slider.setValue(0)
         self.saturation_slider.setValue(0)

@@ -29,6 +29,7 @@ class ImageAdjustments:
             highlights=settings.highlights,
             shadows=settings.shadows,
             whites=settings.whites,
+            blacks=settings.blacks,
             brightness=settings.brightness,
             contrast=settings.contrast,
             saturation=settings.saturation,
@@ -44,6 +45,7 @@ class ImageAdjustments:
         highlights: int = 0,
         shadows: int = 0,
         whites: int = 0,
+        blacks: int = 0,
         brightness: int = 0,
         contrast: int = 0,
         saturation: int = 0,
@@ -58,6 +60,7 @@ class ImageAdjustments:
         exposure = max(-100, min(100, exposure))
         shadows = max(-100, min(100, shadows))
         whites = max(-100, min(100, whites))
+        blacks = max(-100, min(100, blacks))
         brightness = max(-100, min(100, brightness))
         contrast = max(-100, min(100, contrast))
         saturation = max(-100, min(100, saturation))
@@ -70,6 +73,7 @@ class ImageAdjustments:
             highlights=highlights,
             shadows=shadows,
             whites=whites,
+            blacks=blacks,
             brightness=brightness,
             contrast=contrast,
             saturation=saturation,

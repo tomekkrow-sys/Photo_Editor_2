@@ -21,6 +21,7 @@ from config.version import (
 )
 
 from ui.main_window import MainWindow
+from core.crash_handler import install_exception_handler
 
 
 # ==========================================================
@@ -92,7 +93,7 @@ def main() -> int:
     app.setApplicationName(APP_NAME)
     app.setApplicationVersion(APP_VERSION)
 
-    sys.excepthook = exception_hook
+    install_exception_handler(APP_VERSION)
 
     window = MainWindow()
 
