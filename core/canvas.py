@@ -177,7 +177,7 @@ class Canvas(QGraphicsView):
         if (
             not self.document.is_loaded
             or not self.crop_tool.has_selection
-            or self.document.image is None
+            or self.document.active_image is None
         ):
             return False
 
@@ -235,7 +235,7 @@ class Canvas(QGraphicsView):
 
         if (
             not self.document.is_loaded
-            or self.document.image is None
+            or self.document.active_image is None
         ):
             return False
 
@@ -268,7 +268,7 @@ class Canvas(QGraphicsView):
         ):
             return False
 
-        resized_image = self.document.image.scaled(
+        resized_image = self.document.active_image.scaled(
             width,
             height,
             Qt.AspectRatioMode.IgnoreAspectRatio,
@@ -307,7 +307,7 @@ class Canvas(QGraphicsView):
         transform = QTransform()
         transform.rotate(angle)
 
-        rotated_image = self.document.image.transformed(
+        rotated_image = self.document.active_image.transformed(
             transform,
             Qt.TransformationMode.SmoothTransformation,
         )
