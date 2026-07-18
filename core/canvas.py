@@ -111,9 +111,9 @@ class Canvas(QGraphicsView):
         self.crop_tool.cancel()
         self.history.clear()
         self.document = document
-        self.history.push(document.image)
+        self.history.push(document.active_image)
 
-        pixmap = QPixmap.fromImage(document.image)
+        pixmap = QPixmap.fromImage(document.active_image)
 
         self.image_item.setPixmap(pixmap)
 
