@@ -298,7 +298,7 @@ class MainWindow(QMainWindow):
 
         if (
             not self.canvas.document.is_loaded
-            or self.canvas.document.image is None
+            or self.canvas.document.active_image is None
         ):
             return
 
