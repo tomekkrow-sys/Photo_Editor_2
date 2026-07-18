@@ -565,9 +565,7 @@ class Canvas(QGraphicsView):
         )
 
     def _restore_image(self, image: QImage) -> None:
-        self.document.image = image
-        self.document.width = image.width()
-        self.document.height = image.height()
+        self.document.set_active_image(image)
 
         self.image_item.setPixmap(QPixmap.fromImage(image))
         self.scene.setSceneRect(self.image_item.boundingRect())
