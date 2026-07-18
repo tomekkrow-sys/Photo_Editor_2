@@ -133,7 +133,7 @@ class Canvas(QGraphicsView):
     ) -> bool:
         """Save the current image to disk."""
 
-        if not self.document.is_loaded or self.document.image is None:
+        if not self.document.is_loaded or self.document.active_image is None:
             return False
 
         path = (
@@ -145,7 +145,7 @@ class Canvas(QGraphicsView):
         if path is None or not ImageSaver.can_save(path):
             return False
 
-        if not ImageSaver.save(self.document.image, path):
+        if not ImageSaver.save(self.document.active_image, path):
             return False
 
         self.document.file_path = path
