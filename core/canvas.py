@@ -189,12 +189,12 @@ class Canvas(QGraphicsView):
         if crop_rect.isEmpty():
             return False
 
-        cropped_image = self.document.image.copy(crop_rect)
+        cropped_image = self.document.active_image.copy(crop_rect)
 
         if cropped_image.isNull():
             return False
 
-        self.history.push(self.document.image)
+        self.history.push(self.document.active_image)
         self.document.set_active_image(cropped_image)
         self.history.push(cropped_image)
 
