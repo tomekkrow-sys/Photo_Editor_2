@@ -55,7 +55,7 @@ class CanvasFlipTests(unittest.TestCase):
 
         self.assertTrue(self.canvas.flip_horizontal())
 
-        image = self.canvas.document.image
+        image = self.canvas.document.active_image
 
         self.assertEqual(
             image.pixelColor(0, 0),
@@ -71,7 +71,7 @@ class CanvasFlipTests(unittest.TestCase):
 
         self.assertTrue(self.canvas.flip_vertical())
 
-        image = self.canvas.document.image
+        image = self.canvas.document.active_image
 
         self.assertEqual(
             image.pixelColor(0, 0),
@@ -85,20 +85,20 @@ class CanvasFlipTests(unittest.TestCase):
     def test_flip_undo_redo(self) -> None:
         self._load_test_image()
 
-        original = self.canvas.document.image.copy()
+        original = self.canvas.document.active_image.copy()
 
         self.assertTrue(self.canvas.flip_horizontal())
-        flipped = self.canvas.document.image.copy()
+        flipped = self.canvas.document.active_image.copy()
 
         self.assertTrue(self.canvas.undo())
         self.assertEqual(
-            self.canvas.document.image,
+            self.canvas.document.active_image,
             original,
         )
 
         self.assertTrue(self.canvas.redo())
         self.assertEqual(
-            self.canvas.document.image,
+            self.canvas.document.active_image,
             flipped,
         )
 
