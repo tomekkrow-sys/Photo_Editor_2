@@ -15,6 +15,7 @@ from uuid import UUID, uuid4
 from PySide6.QtGui import QImage
 
 from core.layer_stack import LayerStack
+from core.renderer import Renderer
 
 
 class ImageDocument:
@@ -73,3 +74,9 @@ class ImageDocument:
         self.zoom = 100.0
 
         self.modified = False
+
+    @property
+    def rendered_image(self) -> QImage | None:
+        """Return the rendered document image."""
+
+        return Renderer.render(self.layer_stack)
