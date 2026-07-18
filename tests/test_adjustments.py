@@ -180,7 +180,7 @@ class CanvasAdjustmentsTests(unittest.TestCase):
         self.app.processEvents()
 
     def test_apply_adjustments_changes_image(self) -> None:
-        original = self.canvas.document.image.copy()
+        original = self.canvas.document.active_image.copy()
 
         self.assertTrue(
             self.canvas.apply_adjustments(
@@ -192,7 +192,7 @@ class CanvasAdjustmentsTests(unittest.TestCase):
         )
 
         self.assertNotEqual(
-            self.canvas.document.image,
+            self.canvas.document.active_image,
             original,
         )
 
@@ -204,7 +204,7 @@ class CanvasAdjustmentsTests(unittest.TestCase):
         )
 
     def test_adjustments_support_undo_redo(self) -> None:
-        original = self.canvas.document.image.copy()
+        original = self.canvas.document.active_image.copy()
 
         self.assertTrue(
             self.canvas.apply_adjustments(
@@ -215,17 +215,17 @@ class CanvasAdjustmentsTests(unittest.TestCase):
         )
         )
 
-        adjusted = self.canvas.document.image.copy()
+        adjusted = self.canvas.document.active_image.copy()
 
         self.assertTrue(self.canvas.undo())
         self.assertEqual(
-            self.canvas.document.image,
+            self.canvas.document.active_image,
             original,
         )
 
         self.assertTrue(self.canvas.redo())
         self.assertEqual(
-            self.canvas.document.image,
+            self.canvas.document.active_image,
             adjusted,
         )
 
