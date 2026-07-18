@@ -262,7 +262,7 @@ class Canvas(QGraphicsView):
 
         if (
             not self.document.is_loaded
-            or self.document.image is None
+            or self.document.active_image is None
             or width <= 0
             or height <= 0
         ):
@@ -351,7 +351,7 @@ class Canvas(QGraphicsView):
         ):
             return False
 
-        flipped_image = self.document.image.mirrored(
+        flipped_image = self.document.active_image.mirrored(
             horizontal,
             vertical,
         )
