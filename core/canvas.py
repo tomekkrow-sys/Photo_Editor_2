@@ -195,10 +195,7 @@ class Canvas(QGraphicsView):
             return False
 
         self.history.push(self.document.image)
-        self.document.image = cropped_image
-        self.document.width = cropped_image.width()
-        self.document.height = cropped_image.height()
-        self.document.modified = True
+        self.document.set_active_image(cropped_image)
         self.history.push(cropped_image)
 
         self.image_item.setPixmap(QPixmap.fromImage(cropped_image))

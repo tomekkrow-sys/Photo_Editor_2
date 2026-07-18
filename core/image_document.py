@@ -80,3 +80,35 @@ class ImageDocument:
         """Return the rendered document image."""
 
         return Renderer.render(self.layer_stack)
+
+
+    @property
+    def active_image(self) -> QImage | None:
+        """Return the image of the active layer."""
+
+        layer = self.layer_stack.active_layer
+
+        if layer is None:
+            return None
+
+        return layer.image
+
+
+    def set_active_image(self, image: QImage) -> None:
+        """
+        Replace the image of the active layer and keep the document
+        state synchronized.
+        """
+
+        layer = self.layer_stack.active_layer
+
+        if layer is None:
+            return
+
+        layer.image = image
+        self.image = image
+
+        self.width = image.width()
+        self.height = image.height()
+
+        self.modified = True
