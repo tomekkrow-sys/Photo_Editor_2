@@ -302,7 +302,7 @@ class MainWindow(QMainWindow):
         ):
             return
 
-        original_image = self.canvas.document.image.copy()
+        original_image = self.canvas.document.active_image.copy()
         dialog = AdjustmentsDialog(self)
         self._adjustments_dialog = dialog
 
