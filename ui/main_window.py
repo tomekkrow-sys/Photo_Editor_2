@@ -16,6 +16,8 @@ from core.adjustment_settings import AdjustmentSettings
 from core.image_saver import ImageSaver
 from ui.actions import ActionManager
 from ui.dialogs import AdjustmentsDialog, ResizeImageDialog
+from ui.layers_panel import LayersPanel
+from ui.dock_widgets import DockWidget
 from ui.menubar import MenuBar
 from ui.statusbar import StatusBar
 from ui.toolbar import ToolBar
@@ -29,6 +31,7 @@ class MainWindow(QMainWindow):
 
         self.actions = ActionManager(self)
         self.canvas = Canvas(self)
+        self.layers_panel = LayersPanel(self)
         self._save_target_created = False
 
         self._build_window()
@@ -48,6 +51,10 @@ class MainWindow(QMainWindow):
         self.setStatusBar(self.status_bar)
 
         self.setCentralWidget(self.canvas)
+        self.addDockWidget(
+            Qt.RightDockWidgetArea,
+            DockWidget("Warstwy", self.layers_panel, self),
+        )
         self.status_bar.set_message("Gotowy")
 
     def _create_connections(self) -> None:

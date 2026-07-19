@@ -72,6 +72,11 @@ class LayerStack:
         elif self._active_index >= len(self._layers):
             self._active_index = len(self._layers) - 1
 
+    def layer_names(self) -> list[str]:
+        """Return layer names in display order."""
+
+        return [layer.name for layer in self._layers]
+
     def set_active(self, index: int) -> None:
         """Select active layer."""
 
