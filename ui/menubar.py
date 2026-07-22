@@ -25,6 +25,7 @@ class MenuBar(QMenuBar):
 
         file_menu.addAction(self.actions.new)
         file_menu.addAction(self.actions.open)
+        file_menu.addAction(self.actions.import_folder)
 
         file_menu.addSeparator()
 
@@ -72,6 +73,12 @@ class MenuBar(QMenuBar):
 
         image_menu.addAction(self.actions.flip_horizontal)
         image_menu.addAction(self.actions.flip_vertical)
+
+        # LAYERS
+
+        layers_menu = self.addMenu("&Warstwa")
+
+        layers_menu.addAction(self.actions.new_layer)
 
         # FILTERS
 

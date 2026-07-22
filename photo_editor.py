@@ -14,6 +14,8 @@ from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QApplication, QMessageBox
+from core.database.catalog_database import CatalogDatabase
+from core.catalog.catalog import Catalog
 
 from config.version import (
     APP_NAME,
@@ -88,6 +90,16 @@ def main() -> int:
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
 
+    data_dir = ROOT_DIR / "data"
+    data_dir.mkdir(exist_ok=True)
+
+    database = CatalogDatabase(
+        data_dir / "catalog.db"
+    )
+    database.initialize()
+
+    catalog = Catalog(database)
+
     app = QApplication(sys.argv)
 
     app.setApplicationName(APP_NAME)
@@ -95,7 +107,7 @@ def main() -> int:
 
     install_exception_handler(APP_VERSION)
 
-    window = MainWindow()
+    window = MainWindow(catalog)
 
     window.show()
 

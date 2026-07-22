@@ -12,8 +12,10 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import UUID, uuid4
 
-from PySide6.QtGui import QImage
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor, QImage
 
+from core.layer import Layer
 from core.layer_stack import LayerStack
 from core.renderer import Renderer
 
@@ -72,6 +74,63 @@ class ImageDocument:
         self.zoom = 100.0
 
         self.modified = False
+
+    def create(
+        self,
+        width: int,
+        height: int,
+        transparent: bool = False,
+    ) -> None:
+        """Create a new empty document."""
+
+        self.clear()
+
+        image = QImage(
+            width,
+            height,
+            QImage.Format.Format_ARGB32,
+        )
+
+        if transparent:
+            image.fill(Qt.GlobalColor.transparent)
+        else:
+            image.fill(QColor("white"))
+
+        self.layer_stack.add_background(image)
+        self.original_image = image.copy()
+
+        self.width = width
+        self.height = height
+
+        self.zoom = 100.0
+        self.modified = False
+
+
+    def add_layer(
+        self,
+        name: str | None = None,
+    ) -> None:
+        """Add a new transparent layer."""
+
+        image = QImage(
+            self.width,
+            self.height,
+            QImage.Format.Format_ARGB32,
+        )
+        image.fill(Qt.GlobalColor.transparent)
+
+        if name is None:
+            name = f"Layer {len(self.layer_stack.layers)}"
+
+        self.layer_stack.add_layer(
+            Layer(
+                name=name,
+                image=image,
+            )
+        )
+
+        self.modified = True
+
 
     @property
     def rendered_image(self) -> QImage | None:

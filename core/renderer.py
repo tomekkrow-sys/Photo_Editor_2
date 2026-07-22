@@ -7,7 +7,8 @@ Renderer
 
 from __future__ import annotations
 
-from PySide6.QtGui import QImage
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QImage, QPainter
 
 from core.layer_stack import LayerStack
 
@@ -17,11 +18,28 @@ class Renderer:
 
     @staticmethod
     def render(layer_stack: LayerStack) -> QImage | None:
-        """Render the current document."""
+        """Render all visible layers."""
 
-        layer = layer_stack.active_layer
-
-        if layer is None:
+        if not layer_stack.layers:
             return None
 
-        return layer.image.copy()
+        base = layer_stack.layers[0].image
+
+        result = QImage(
+            base.size(),
+            QImage.Format.Format_ARGB32,
+        )
+        result.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(result)
+
+        for layer in layer_stack.layers:
+            if not layer.visible:
+                continue
+
+            painter.setOpacity(layer.opacity)
+            painter.drawImage(0, 0, layer.image)
+
+        painter.end()
+
+        return result

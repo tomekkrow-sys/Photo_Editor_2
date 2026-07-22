@@ -47,6 +47,8 @@ class LayerStack:
 
         return layer
 
+
+
     def add_layer(self, layer: Layer) -> None:
         """Add a layer above the active layer."""
 

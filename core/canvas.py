@@ -113,9 +113,7 @@ class Canvas(QGraphicsView):
         self.document = document
         self.history.push(document.active_image)
 
-        pixmap = QPixmap.fromImage(document.active_image)
-
-        self.image_item.setPixmap(pixmap)
+        self._refresh_canvas()
 
         self.scene.setSceneRect(
             self.image_item.boundingRect()
@@ -126,6 +124,37 @@ class Canvas(QGraphicsView):
         self._update_history_state()
 
         return True
+
+
+    def new_image(
+        self,
+        width: int,
+        height: int,
+        transparent: bool = False,
+    ) -> None:
+        """Create and display a new empty document."""
+
+        self.crop_tool.cancel()
+        self.history.clear()
+
+        self.document.clear()
+        self.document.create(
+            width,
+            height,
+            transparent,
+        )
+
+        self.history.push(self.document.active_image)
+
+        self._refresh_canvas()
+
+        self.scene.setSceneRect(
+            self.image_item.boundingRect()
+        )
+
+        self.fit_to_window()
+        self.image_loaded.emit()
+        self._update_history_state()
 
     def save_image(
         self,
@@ -198,7 +227,7 @@ class Canvas(QGraphicsView):
         self.document.set_active_image(cropped_image)
         self.history.push(cropped_image)
 
-        self.image_item.setPixmap(QPixmap.fromImage(cropped_image))
+        self._refresh_canvas()
         self.scene.setSceneRect(self.image_item.boundingRect())
 
         self.crop_tool.cancel()
@@ -564,10 +593,24 @@ class Canvas(QGraphicsView):
             self.history.can_redo,
         )
 
+
+    def _refresh_canvas(self) -> None:
+        """Refresh the canvas from the rendered document."""
+
+        image = self.document.rendered_image
+
+        if image is None:
+            self.image_item.setPixmap(QPixmap())
+            return
+
+        self.image_item.setPixmap(
+            QPixmap.fromImage(image)
+        )
+
     def _restore_image(self, image: QImage) -> None:
         self.document.set_active_image(image)
 
-        self.image_item.setPixmap(QPixmap.fromImage(image))
+        self._refresh_canvas()
         self.scene.setSceneRect(self.image_item.boundingRect())
 
         self.crop_tool.cancel()

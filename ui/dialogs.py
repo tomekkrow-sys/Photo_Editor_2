@@ -139,6 +139,63 @@ class ResizeImageDialog(QDialog):
         self._updating = False
 
 
+class NewDocumentDialog(QDialog):
+    """Dialog for creating a new document."""
+
+    MAX_IMAGE_SIZE = 100_000
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+
+        self.setWindowTitle("Nowy dokument")
+        self.setModal(True)
+
+        self.width_spin = QSpinBox(self)
+        self.width_spin.setRange(1, self.MAX_IMAGE_SIZE)
+        self.width_spin.setValue(1920)
+        self.width_spin.setSuffix(" px")
+
+        self.height_spin = QSpinBox(self)
+        self.height_spin.setRange(1, self.MAX_IMAGE_SIZE)
+        self.height_spin.setValue(1080)
+        self.height_spin.setSuffix(" px")
+
+        self.transparent = QCheckBox(
+            "Przezroczyste tło",
+            self,
+        )
+
+        form = QFormLayout()
+        form.addRow("Szerokość:", self.width_spin)
+        form.addRow("Wysokość:", self.height_spin)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel,
+            parent=self,
+        )
+
+        layout = QVBoxLayout(self)
+        layout.addLayout(form)
+        layout.addWidget(self.transparent)
+        layout.addWidget(buttons)
+
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+    @property
+    def image_width(self) -> int:
+        return self.width_spin.value()
+
+    @property
+    def image_height(self) -> int:
+        return self.height_spin.value()
+
+    @property
+    def transparent_background(self) -> bool:
+        return self.transparent.isChecked()
+
+
 class AdjustmentsDialog(QDialog):
     """Dialog for brightness and contrast adjustments."""
 

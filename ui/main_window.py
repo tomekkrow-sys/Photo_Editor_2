@@ -6,8 +6,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox
+from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QWidget, QVBoxLayout, QTabWidget
 
 from config.defaults import DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH
 from config.version import WINDOW_TITLE
@@ -15,8 +14,14 @@ from core.canvas import Canvas
 from core.adjustment_settings import AdjustmentSettings
 from core.image_saver import ImageSaver
 from ui.actions import ActionManager
-from ui.dialogs import AdjustmentsDialog, ResizeImageDialog
+from ui.dialogs import (
+    AdjustmentsDialog,
+    NewDocumentDialog,
+    ResizeImageDialog,
+)
 from ui.layers_panel import LayersPanel
+from ui.library.library_panel import LibraryPanel
+from ui.library.metadata_panel import MetadataPanel
 from ui.dock_widgets import DockWidget
 from ui.menubar import MenuBar
 from ui.statusbar import StatusBar
@@ -26,16 +31,38 @@ from ui.toolbar import ToolBar
 class MainWindow(QMainWindow):
     """Main application window."""
 
-    def __init__(self) -> None:
+    def __init__(self, catalog) -> None:
         super().__init__()
 
+        self.catalog = catalog
+
         self.actions = ActionManager(self)
+
         self.canvas = Canvas(self)
         self.layers_panel = LayersPanel(self)
+        self.library_panel = LibraryPanel(self)
+        self.metadata_panel = MetadataPanel()
+
+        self.tabs = QTabWidget(self)
+
+        self.library_page = QWidget()
+        self.library_layout = QVBoxLayout(self.library_page)
+        self.library_layout.setContentsMargins(0, 0, 0, 0)
+        self.library_layout.addWidget(self.library_panel)
+
+        self.develop_page = QWidget()
+        self.develop_layout = QVBoxLayout(self.develop_page)
+        self.develop_layout.setContentsMargins(0, 0, 0, 0)
+        self.develop_layout.addWidget(self.canvas)
+
+        self.tabs.addTab(self.library_page, "Library")
+        self.tabs.addTab(self.develop_page, "Develop")
+
         self._save_target_created = False
 
         self._build_window()
         self._create_connections()
+        self._refresh_library()
 
     def _build_window(self) -> None:
         self.setWindowTitle(WINDOW_TITLE)
@@ -50,10 +77,15 @@ class MainWindow(QMainWindow):
         self.status_bar = StatusBar(self)
         self.setStatusBar(self.status_bar)
 
-        self.setCentralWidget(self.canvas)
+        self.setCentralWidget(self.tabs)
         self.addDockWidget(
             Qt.RightDockWidgetArea,
             DockWidget("Warstwy", self.layers_panel, self),
+        )
+
+        self.addDockWidget(
+            Qt.RightDockWidgetArea,
+            DockWidget("Metadane", self.metadata_panel, self),
         )
         self.status_bar.set_message("Gotowy")
 
@@ -63,6 +95,9 @@ class MainWindow(QMainWindow):
         )
         self.actions.open.triggered.connect(
             self._open_image
+        )
+        self.actions.import_folder.triggered.connect(
+            self._import_folder
         )
         self.actions.save.triggered.connect(
             self._save_image
@@ -101,6 +136,10 @@ class MainWindow(QMainWindow):
             self._adjust_image
         )
 
+        self.actions.new_layer.triggered.connect(
+            self._add_layer
+        )
+
         self.actions.rotate_left.triggered.connect(
             self.canvas.rotate_left
         )
@@ -132,6 +171,15 @@ class MainWindow(QMainWindow):
             self._update_history_actions
         )
 
+        self.layers_panel.layer_selected.connect(
+            self._layer_selected
+        )
+
+
+        self.library_panel.photo_selected.connect(
+            self._open_photo_from_library
+        )
+
         self._update_history_actions(False, False)
 
     def _confirm_discard_changes(self) -> bool:
@@ -161,6 +209,41 @@ class MainWindow(QMainWindow):
 
         return False
 
+
+
+    def _layer_selected(self, index: int) -> None:
+        """Set the active layer."""
+
+        document = self.canvas.document
+
+        if not document.is_loaded:
+            return
+
+        document.layer_stack.set_active(index)
+        self.canvas._refresh_canvas()
+
+
+
+    def _open_photo_from_library(self, filename: Path) -> None:
+        """Open a photo selected in the Library."""
+
+        self.canvas.load_image(filename)
+        self.tabs.setCurrentIndex(1)
+
+    def _refresh_library(self) -> None:
+        """Refresh library panel."""
+
+        self.library_panel.load_photos(
+            self.catalog.photos()
+        )
+
+    def _refresh_layers_panel(self) -> None:
+        """Refresh the layers panel."""
+
+        self.layers_panel.set_layers(
+            self.canvas.document.layer_stack.layer_names()
+        )
+
     def _new_document(self) -> None:
         """Clear the current document."""
 
@@ -170,10 +253,16 @@ class MainWindow(QMainWindow):
         self.canvas.crop_tool.cancel()
         self.canvas.set_crop_selection_enabled(False)
         self.canvas.history.clear()
-        self.canvas.document.clear()
-        self.canvas.image_item.setPixmap(QPixmap())
-        self.canvas.scene.setSceneRect(0, 0, 0, 0)
-        self.canvas.resetTransform()
+        dialog = NewDocumentDialog(self)
+
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+
+        self.canvas.new_image(
+            dialog.image_width,
+            dialog.image_height,
+            dialog.transparent_background,
+        )
 
         self._save_target_created = False
 
@@ -181,7 +270,44 @@ class MainWindow(QMainWindow):
         self.status_bar.set_file_name("")
         self.status_bar.set_image_size(0, 0)
         self.status_bar.set_zoom(100.0)
+        self._refresh_layers_panel()
+
         self.status_bar.set_message("Nowy dokument")
+
+
+    def _add_layer(self) -> None:
+        """Add a new layer to the current document."""
+
+        document = self.canvas.document
+
+        if not document.is_loaded:
+            return
+
+        document.add_layer()
+        self._refresh_layers_panel()
+        self.canvas._refresh_canvas()
+
+
+    def _import_folder(self) -> None:
+        """Import a folder into the catalog."""
+
+        folder = QFileDialog.getExistingDirectory(
+            self,
+            "Importuj folder ze zdjęciami",
+        )
+
+        if not folder:
+            return
+
+        count = self.catalog.import_folder(Path(folder))
+
+        self._refresh_library()
+
+        QMessageBox.information(
+            self,
+            "Import zakończony",
+            f"Zaimportowano {count} zdjęć.",
+        )
 
     def _open_image(self) -> None:
         """Open an image after checking for unsaved changes."""

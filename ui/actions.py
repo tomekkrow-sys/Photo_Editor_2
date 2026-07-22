@@ -36,6 +36,11 @@ class ActionManager:
         self.export = QAction("&Eksport", self.parent)
         self.export.setShortcut(shortcuts.EXPORT)
 
+        self.import_folder = QAction(
+            "Importuj folder...",
+            self.parent,
+        )
+
         self.exit = QAction("&Zakończ", self.parent)
         self.exit.setShortcut(shortcuts.EXIT)
 
@@ -104,6 +109,13 @@ class ActionManager:
 
         self.flip_vertical = QAction(
             "Odbij pionowo",
+            self.parent,
+        )
+
+        # LAYERS
+
+        self.new_layer = QAction(
+            "Nowa warstwa",
             self.parent,
         )
 
