@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import (
     QListView,
@@ -12,14 +10,14 @@ from PySide6.QtWidgets import (
 )
 
 from core.catalog.photo import Photo
-from core.catalog.thumbnail_cache import ThumbnailCache
+from core.thumbnails.thumbnail_cache import ThumbnailCache
 from ui.library.photo_list_model import PhotoListModel
 
 
 class LibraryPanel(QWidget):
     """Panel biblioteki zdjęć."""
 
-    photo_selected = Signal(Path)
+    photo_selected = Signal(Photo)
 
     THUMB_WIDTH = 180
     THUMB_HEIGHT = 120
@@ -65,4 +63,4 @@ class LibraryPanel(QWidget):
 
     def _item_activated(self, index) -> None:
         photo = index.data(Qt.UserRole)
-        self.photo_selected.emit(photo.full_path)
+        self.photo_selected.emit(photo)

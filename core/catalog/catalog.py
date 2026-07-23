@@ -22,3 +22,8 @@ class Catalog:
 
     def refresh(self) -> list[Photo]:
         return self.photos()
+
+
+    def folders(self) -> list[Path]:
+        """Return imported folders."""
+        return self._database.list_folders()

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from pathlib import Path
 
 from PySide6.QtWidgets import (
     QWidget,
     QFormLayout,
     QLabel,
 )
+
+from core.metadata.image_metadata import ImageMetadata
 
 
 class MetadataPanel(QWidget):
@@ -20,17 +21,40 @@ class MetadataPanel(QWidget):
         self.filename = QLabel("-")
         self.path = QLabel("-")
         self.size = QLabel("-")
+        self.resolution = QLabel("-")
+        self.filetype = QLabel("-")
+        self.modified = QLabel("-")
 
         layout.addRow("Nazwa:", self.filename)
         layout.addRow("Ścieżka:", self.path)
         layout.addRow("Rozmiar:", self.size)
+        layout.addRow("Rozdzielczość:", self.resolution)
+        layout.addRow("Typ:", self.filetype)
+        layout.addRow("Zmodyfikowano:", self.modified)
 
     def set_photo(self, photo) -> None:
         self.filename.setText(photo.filename)
         self.path.setText(str(photo.full_path))
 
         try:
-            size = Path(photo.full_path).stat().st_size
-            self.size.setText(f"{size/1024/1024:.1f} MB")
-        except OSError:
+            meta = ImageMetadata.from_path(photo.full_path)
+
+            self.size.setText(
+                f"{meta.size_bytes/1024/1024:.1f} MB"
+            )
+
+            self.filetype.setText(meta.filetype)
+
+            self.modified.setText(
+                meta.modified.strftime("%Y-%m-%d %H:%M")
+            )
+
+            self.resolution.setText(
+                f"{meta.width} × {meta.height}"
+            )
+
+        except Exception:
             self.size.setText("-")
+            self.resolution.setText("-")
+            self.filetype.setText("-")
+            self.modified.setText("-")

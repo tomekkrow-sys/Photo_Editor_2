@@ -6,11 +6,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QWidget, QVBoxLayout, QTabWidget
+from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QWidget, QVBoxLayout, QTabWidget, QSplitter
 
 from config.defaults import DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH
 from config.version import WINDOW_TITLE
 from core.canvas import Canvas
+from core.catalog.photo import Photo
 from core.adjustment_settings import AdjustmentSettings
 from core.image_saver import ImageSaver
 from ui.actions import ActionManager
@@ -21,7 +22,10 @@ from ui.dialogs import (
 )
 from ui.layers_panel import LayersPanel
 from ui.library.library_panel import LibraryPanel
+from ui.library.folder_panel import FolderPanel
 from ui.library.metadata_panel import MetadataPanel
+from ui.develop.histogram_widget import HistogramWidget
+from ui.develop.develop_panel import DevelopPanel
 from ui.dock_widgets import DockWidget
 from ui.menubar import MenuBar
 from ui.statusbar import StatusBar
@@ -40,15 +44,27 @@ class MainWindow(QMainWindow):
 
         self.canvas = Canvas(self)
         self.layers_panel = LayersPanel(self)
+        self.folder_panel = FolderPanel(self)
         self.library_panel = LibraryPanel(self)
         self.metadata_panel = MetadataPanel()
+        self.histogram_widget = HistogramWidget()
+        self.develop_panel = DevelopPanel()
 
         self.tabs = QTabWidget(self)
 
         self.library_page = QWidget()
         self.library_layout = QVBoxLayout(self.library_page)
         self.library_layout.setContentsMargins(0, 0, 0, 0)
-        self.library_layout.addWidget(self.library_panel)
+
+        self.library_splitter = QSplitter(Qt.Horizontal)
+
+        self.library_splitter.addWidget(self.folder_panel)
+        self.library_splitter.addWidget(self.library_panel)
+
+        self.library_splitter.setStretchFactor(0, 1)
+        self.library_splitter.setStretchFactor(1, 5)
+
+        self.library_layout.addWidget(self.library_splitter)
 
         self.develop_page = QWidget()
         self.develop_layout = QVBoxLayout(self.develop_page)
@@ -86,6 +102,11 @@ class MainWindow(QMainWindow):
         self.addDockWidget(
             Qt.RightDockWidgetArea,
             DockWidget("Metadane", self.metadata_panel, self),
+        )
+
+        self.addDockWidget(
+            Qt.RightDockWidgetArea,
+            DockWidget("Histogram", self.histogram_widget, self),
         )
         self.status_bar.set_message("Gotowy")
 
@@ -224,14 +245,20 @@ class MainWindow(QMainWindow):
 
 
 
-    def _open_photo_from_library(self, filename: Path) -> None:
+    def _open_photo_from_library(self, photo: Photo) -> None:
         """Open a photo selected in the Library."""
 
-        self.canvas.load_image(filename)
+        self.canvas.load_image(photo.full_path)
+        self.metadata_panel.set_photo(photo)
+        self.develop_panel.load_photo(photo)
         self.tabs.setCurrentIndex(1)
 
     def _refresh_library(self) -> None:
         """Refresh library panel."""
+
+        self.folder_panel.load_folders(
+            self.catalog.folders()
+        )
 
         self.library_panel.load_photos(
             self.catalog.photos()

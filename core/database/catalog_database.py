@@ -65,7 +65,7 @@ class CatalogDatabase:
         return importer.import_folder(folder)
 
 
-    def list_photos(self) -> list[dict]:
+    def list_photos(self) -> list[Photo]:
         """Return all imported photos."""
 
         cursor = self.connection.cursor()
@@ -96,5 +96,24 @@ class CatalogDatabase:
             for row in rows
         ]
 
+    
+    def list_folders(self) -> list[Path]:
+        """Return all imported folders."""
+
+        cursor = self.connection.execute(
+            """
+            SELECT path
+            FROM folders
+            ORDER BY path
+            """
+        )
+
+        return [
+            Path(row[0])
+            for row in cursor.fetchall()
+        ]
+
+
     def close(self) -> None:
+        """Close the database connection."""
         self.connection.close()
