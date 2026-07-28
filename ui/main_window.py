@@ -130,14 +130,31 @@ class MainWindow(QMainWindow):
             rect = self.canvas.get_crop_rect()
             if rect:
                 x1, y1, x2, y2 = rect
-                self._orig = self._orig.crop((x1, y1, x2, y2))
-                preview = prepare_preview(self._orig, max_dim=800)
-                self._preview_arr = pil_to_cv(preview)
-                self._render_now()
-                self.statusBar().showMessage(f"Przycieto: {self._orig.width} x {self._orig.height}")
-                sb = self.statusBar()
-                if hasattr(sb, 'size_label'):
-                    sb.size_label.setText(str(self._orig.width) + " x " + str(self._orig.height))
+                # Przelicz wspolrzedne z podgladu (preview) na oryginal
+                orig_w, orig_h = self._orig.width, self._orig.height
+                preview_h, preview_w = self._preview_arr.shape[:2]
+                scale_x = orig_w / preview_w
+                scale_y = orig_h / preview_h
+                x1 = int(x1 * scale_x)
+                y1 = int(y1 * scale_y)
+                x2 = int(x2 * scale_x)
+                y2 = int(y2 * scale_y)
+                # Clamp do wymiarow oryginalu
+                x1 = max(0, min(x1, orig_w))
+                y1 = max(0, min(y1, orig_h))
+                x2 = max(0, min(x2, orig_w))
+                y2 = max(0, min(y2, orig_h))
+                if x2 - x1 < 2 or y2 - y1 < 2:
+                    self.statusBar().showMessage("Zaznaczenie za male — anulowano.")
+                else:
+                    self._orig = self._orig.crop((x1, y1, x2, y2))
+                    preview = prepare_preview(self._orig, max_dim=800)
+                    self._preview_arr = pil_to_cv(preview)
+                    self._render_now()
+                    self.statusBar().showMessage(f"Przycieto: {self._orig.width} x {self._orig.height}")
+                    sb = self.statusBar()
+                    if hasattr(sb, 'size_label'):
+                        sb.size_label.setText(str(self._orig.width) + " x " + str(self._orig.height))
             self.canvas.cancel_crop()
         else:
             self.canvas.start_crop()
