@@ -1,113 +1,45 @@
 #!/usr/bin/env python3
-"""
-Photo Editor 2.0
-Menu Bar
-"""
-
 from __future__ import annotations
-
 from PySide6.QtWidgets import QMenuBar
 
-
 class MenuBar(QMenuBar):
-    """Main application menu."""
-
     def __init__(self, parent, actions):
         super().__init__(parent)
-
         self.actions = actions
+        self.setStyleSheet("QMenuBar { background: #252526; color: #CCCCCC; border-bottom: 1px solid #333; } QMenuBar::item:selected { background: #4A9EFF; color: white; } QMenu { background: #252526; color: #CCCCCC; border: 1px solid #444; } QMenu::item:selected { background: #4A9EFF; }")
         self._build()
-
     def _build(self):
-        # FILE
-
-        file_menu = self.addMenu("&Plik")
-
-        file_menu.addAction(self.actions.new)
-        file_menu.addAction(self.actions.open)
-        file_menu.addAction(self.actions.import_folder)
-
-        file_menu.addSeparator()
-
-        file_menu.addAction(self.actions.save)
-        file_menu.addAction(self.actions.save_as)
-
-        file_menu.addSeparator()
-
-        file_menu.addAction(self.actions.export)
-
-        file_menu.addSeparator()
-
-        file_menu.addAction(self.actions.exit)
-
-        # EDIT
-
-        edit_menu = self.addMenu("&Edycja")
-
-        edit_menu.addAction(self.actions.undo)
-        edit_menu.addAction(self.actions.redo)
-
-        edit_menu.addSeparator()
-
-        edit_menu.addAction(self.actions.cut)
-        edit_menu.addAction(self.actions.copy)
-        edit_menu.addAction(self.actions.paste)
-
-        edit_menu.addSeparator()
-
-        edit_menu.addAction(self.actions.delete)
-
-        # IMAGE
-
-        image_menu = self.addMenu("&Obraz")
-
-        image_menu.addAction(self.actions.resize_image)
-        image_menu.addAction(self.actions.adjustments)
-
-        image_menu.addSeparator()
-
-        image_menu.addAction(self.actions.rotate_left)
-        image_menu.addAction(self.actions.rotate_right)
-
-        image_menu.addSeparator()
-
-        image_menu.addAction(self.actions.flip_horizontal)
-        image_menu.addAction(self.actions.flip_vertical)
-
-        # LAYERS
-
-        layers_menu = self.addMenu("&Warstwa")
-
-        layers_menu.addAction(self.actions.new_layer)
-
-        # FILTERS
-
+        fm = self.addMenu("&Plik")
+        fm.addAction(self.actions.new)
+        fm.addAction(self.actions.open)
+        fm.addSeparator()
+        fm.addAction(self.actions.save)
+        fm.addAction(self.actions.save_as)
+        fm.addSeparator()
+        fm.addAction(self.actions.export)
+        fm.addSeparator()
+        fm.addAction(self.actions.exit)
+        em = self.addMenu("&Edycja")
+        em.addAction(self.actions.undo)
+        em.addAction(self.actions.redo)
+        em.addSeparator()
+        em.addAction(self.actions.cut)
+        em.addAction(self.actions.copy)
+        em.addAction(self.actions.paste)
+        em.addSeparator()
+        em.addAction(self.actions.delete)
+        self.addMenu("&Obraz")
         self.addMenu("&Filtry")
-
-        # VIEW
-
-        view_menu = self.addMenu("&Widok")
-
-        view_menu.addAction(self.actions.zoom_in)
-        view_menu.addAction(self.actions.zoom_out)
-
-        view_menu.addSeparator()
-
-        view_menu.addAction(self.actions.fit)
-        view_menu.addAction(self.actions.actual_size)
-
-        # TOOLS
-
-        tools_menu = self.addMenu("&Narzędzia")
-
-        tools_menu.addAction(self.actions.move)
-        tools_menu.addAction(self.actions.crop)
-
-        tools_menu.addSeparator()
-
-        tools_menu.addAction(self.actions.rectangle)
-        tools_menu.addAction(self.actions.ellipse)
-
-        # HELP
-
+        vm = self.addMenu("&Widok")
+        vm.addAction(self.actions.zoom_in)
+        vm.addAction(self.actions.zoom_out)
+        vm.addSeparator()
+        vm.addAction(self.actions.fit)
+        vm.addAction(self.actions.actual_size)
+        tm = self.addMenu("&Narzedzia")
+        tm.addAction(self.actions.crop)
+        tm.addAction(self.actions.rotate_left)
+        tm.addAction(self.actions.rotate_right)
+        tm.addAction(self.actions.flip_h)
+        tm.addAction(self.actions.flip_v)
         self.addMenu("&Pomoc")

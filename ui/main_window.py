@@ -1,615 +1,349 @@
 #!/usr/bin/env python3
-"""Photo Editor 2.0 - Main Window."""
-
 from __future__ import annotations
-
 from pathlib import Path
-
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QWidget, QVBoxLayout, QTabWidget, QSplitter
-
+from PIL import Image
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QSplitter, QVBoxLayout, QWidget
 from config.defaults import DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH
 from config.version import WINDOW_TITLE
-from core.canvas import Canvas
-from core.catalog.photo import Photo
-from core.adjustment_settings import AdjustmentSettings
-from core.image_saver import ImageSaver
+from core.adjustments import Adjustments
+from core.image_loader import load_image, SUPPORTED_FORMATS
+from core.pipeline import prepare_preview, pil_to_cv, pil_to_qpixmap, apply_adjustments_arr, arr_to_pil
+from core.preset_manager import save_preset, load_preset, list_presets
+from core.worker import PipelineWorker
 from ui.actions import ActionManager
-from ui.dialogs import (
-    AdjustmentsDialog,
-    NewDocumentDialog,
-    ResizeImageDialog,
-)
-from ui.layers_panel import LayersPanel
-from ui.library.library_panel import LibraryPanel
-from ui.library.folder_panel import FolderPanel
-from ui.library.metadata_panel import MetadataPanel
-from ui.develop.histogram_widget import HistogramWidget
-from ui.develop.develop_panel import DevelopPanel
-from ui.dock_widgets import DockWidget
+from ui.canvas import Canvas
+from ui.batch_dialog import BatchDialog
+from ui.export_dialog import ExportDialog
+from ui.histogram import HistogramWidget
 from ui.menubar import MenuBar
+from ui.panels.right_panel import RightPanel
 from ui.statusbar import StatusBar
 from ui.toolbar import ToolBar
 
-
 class MainWindow(QMainWindow):
-    """Main application window."""
-
-    def __init__(self, catalog) -> None:
+    def __init__(self, catalog=None):
         super().__init__()
-
-        self.catalog = catalog
-
+        self.setStyleSheet("""
+            QMainWindow { background: #1E1E1E; }
+            QSplitter::handle { background: #333333; }
+        """)
         self.actions = ActionManager(self)
+        self._orig = None
+        self._preview_arr = None
+        self._adj = Adjustments()
+        self._worker = PipelineWorker(self)
+        self._worker.finished.connect(self._on_preview_ready)
+        self._ba_active = False
+        self._build_ui()
+        self._connect_actions()
+        self.setAcceptDrops(True)
 
-        self.canvas = Canvas(self)
-        self.layers_panel = LayersPanel(self)
-        self.folder_panel = FolderPanel(self)
-        self.library_panel = LibraryPanel(self)
-        self.metadata_panel = MetadataPanel()
-        self.histogram_widget = HistogramWidget()
-        self.develop_panel = DevelopPanel()
-
-        self.tabs = QTabWidget(self)
-
-        self.library_page = QWidget()
-        self.library_layout = QVBoxLayout(self.library_page)
-        self.library_layout.setContentsMargins(0, 0, 0, 0)
-
-        self.library_splitter = QSplitter(Qt.Horizontal)
-
-        self.library_splitter.addWidget(self.folder_panel)
-        self.library_splitter.addWidget(self.library_panel)
-
-        self.library_splitter.setStretchFactor(0, 1)
-        self.library_splitter.setStretchFactor(1, 5)
-
-        self.library_layout.addWidget(self.library_splitter)
-
-        self.develop_page = QWidget()
-        self.develop_layout = QVBoxLayout(self.develop_page)
-        self.develop_layout.setContentsMargins(0, 0, 0, 0)
-        self.develop_layout.addWidget(self.canvas)
-
-        self.tabs.addTab(self.library_page, "Library")
-        self.tabs.addTab(self.develop_page, "Develop")
-
-        self._save_target_created = False
-
-        self._build_window()
-        self._create_connections()
-        self._refresh_library()
-
-    def _build_window(self) -> None:
+    def _build_ui(self):
         self.setWindowTitle(WINDOW_TITLE)
-        self.resize(
-            DEFAULT_WINDOW_WIDTH,
-            DEFAULT_WINDOW_HEIGHT,
-        )
-
+        self.resize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)
         self.setMenuBar(MenuBar(self, self.actions))
-        self.addToolBar(ToolBar(self, self.actions))
+        self.addToolBar(ToolBar(self, actions=self.actions))
+        self.setStatusBar(StatusBar(self))
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        center = QWidget()
+        center.setStyleSheet("background: #141414;")
+        cl = QVBoxLayout(center)
+        cl.setContentsMargins(0, 0, 0, 0)
+        self.canvas = Canvas(self)
+        cl.addWidget(self.canvas, stretch=1)
+        self.histogram = HistogramWidget(self)
+        cl.addWidget(self.histogram)
+        splitter.addWidget(center)
+        self.right_panel = RightPanel(self)
+        self.right_panel.adjustments_changed.connect(self._on_adj)
+        self.right_panel.reset_requested.connect(self._on_reset)
+        self.right_panel.export_requested.connect(self._on_export)
+        self.right_panel.preset_save_requested.connect(self._on_preset_save)
+        self.right_panel.preset_load_requested.connect(self._on_preset_load)
+        self.right_panel.preset_delete_requested.connect(self._on_preset_delete)
+        splitter.addWidget(self.right_panel)
+        splitter.setSizes([1200, 280])
+        self.setCentralWidget(splitter)
+        self._refresh_presets()
+        self.statusBar().showMessage("Gotowy. Otworz zdjecie (Ctrl+O).")
 
-        self.status_bar = StatusBar(self)
-        self.setStatusBar(self.status_bar)
+    def _connect_actions(self):
+        self.actions.open.triggered.connect(self._on_open)
+        self.actions.exit.triggered.connect(self.close)
+        self.actions.crop.triggered.connect(self._on_crop)
+        self.actions.rotate_left.triggered.connect(lambda: self._on_rotate(90))
+        self.actions.rotate_right.triggered.connect(lambda: self._on_rotate(-90))
+        self.actions.flip_h.triggered.connect(lambda: self._on_flip(True, False))
+        self.actions.flip_v.triggered.connect(lambda: self._on_flip(False, True))
+        self.actions.before_after.triggered.connect(self._on_before_after)
+        self.actions.batch.triggered.connect(self._on_batch_export)
+        self.actions.zoom_in.triggered.connect(self._on_zin)
+        self.actions.zoom_out.triggered.connect(self._on_zout)
+        self.actions.actual_size.triggered.connect(self._on_z100)
+        self.actions.fit.triggered.connect(self._on_fit)
 
-        self.setCentralWidget(self.tabs)
-        self.addDockWidget(
-            Qt.RightDockWidgetArea,
-            DockWidget("Warstwy", self.layers_panel, self),
-        )
+    def _on_open(self):
+        f = "Obrazy (" + " ".join("*" + e for e in SUPPORTED_FORMATS) + ")"
+        p, _ = QFileDialog.getOpenFileName(self, "Otworz obraz", "", f)
+        if p:
+            self._load(Path(p))
 
-        self.addDockWidget(
-            Qt.RightDockWidgetArea,
-            DockWidget("Metadane", self.metadata_panel, self),
-        )
-
-        self.addDockWidget(
-            Qt.RightDockWidgetArea,
-            DockWidget("Histogram", self.histogram_widget, self),
-        )
-        self.status_bar.set_message("Gotowy")
-
-    def _create_connections(self) -> None:
-        self.actions.new.triggered.connect(
-            self._new_document
-        )
-        self.actions.open.triggered.connect(
-            self._open_image
-        )
-        self.actions.import_folder.triggered.connect(
-            self._import_folder
-        )
-        self.actions.save.triggered.connect(
-            self._save_image
-        )
-        self.actions.save_as.triggered.connect(
-            self._save_image_as
-        )
-        self.actions.exit.triggered.connect(
-            self.close
-        )
-
-        self.actions.zoom_in.triggered.connect(
-            self.canvas.zoom_in
-        )
-        self.actions.zoom_out.triggered.connect(
-            self.canvas.zoom_out
-        )
-        self.actions.fit.triggered.connect(
-            self.canvas.fit_to_window
-        )
-        self.actions.actual_size.triggered.connect(
-            self.canvas.actual_size
-        )
-
-        self.actions.undo.triggered.connect(
-            self.canvas.undo
-        )
-        self.actions.redo.triggered.connect(
-            self.canvas.redo
-        )
-
-        self.actions.resize_image.triggered.connect(
-            self._resize_image
-        )
-        self.actions.adjustments.triggered.connect(
-            self._adjust_image
-        )
-
-        self.actions.new_layer.triggered.connect(
-            self._add_layer
-        )
-
-        self.actions.rotate_left.triggered.connect(
-            self.canvas.rotate_left
-        )
-        self.actions.rotate_right.triggered.connect(
-            self.canvas.rotate_right
-        )
-
-        self.actions.flip_horizontal.triggered.connect(
-            self.canvas.flip_horizontal
-        )
-        self.actions.flip_vertical.triggered.connect(
-            self.canvas.flip_vertical
-        )
-
-        self.actions.crop.toggled.connect(
-            self._handle_crop_action_toggled
-        )
-
-        self.canvas.image_loaded.connect(
-            self._handle_image_loaded
-        )
-        self.canvas.zoom_changed.connect(
-            self.status_bar.set_zoom
-        )
-        self.canvas.crop_mode_changed.connect(
-            self.actions.crop.setChecked
-        )
-        self.canvas.history_state_changed.connect(
-            self._update_history_actions
-        )
-
-        self.layers_panel.layer_selected.connect(
-            self._layer_selected
-        )
-
-
-        self.library_panel.photo_selected.connect(
-            self._open_photo_from_library
-        )
-
-        self._update_history_actions(False, False)
-
-    def _confirm_discard_changes(self) -> bool:
-        """Ask what to do with unsaved changes."""
-
-        if not self.canvas.document.modified:
-            return True
-
-        answer = QMessageBox.warning(
-            self,
-            "Niezapisane zmiany",
-            (
-                "Obraz został zmodyfikowany.\n\n"
-                "Czy chcesz zapisać zmiany?"
-            ),
-            QMessageBox.StandardButton.Save
-            | QMessageBox.StandardButton.Discard
-            | QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Save,
-        )
-
-        if answer == QMessageBox.StandardButton.Save:
-            return self._save_image()
-
-        if answer == QMessageBox.StandardButton.Discard:
-            return True
-
-        return False
-
-
-
-    def _layer_selected(self, index: int) -> None:
-        """Set the active layer."""
-
-        document = self.canvas.document
-
-        if not document.is_loaded:
+    def _load(self, path):
+        try:
+            # RAW files - PIL opens embedded thumbnail safely
+            if path.suffix.lower() in (".nef", ".cr2", ".arw", ".dng"):
+                self._orig = Image.open(path)
+                # RAW thumbnails may be small; convert to RGB
+                if self._orig.mode != "RGB":
+                    self._orig = self._orig.convert("RGB")
+            else:
+                self._orig = Image.open(path)
+                if self._orig.mode in ("RGBA", "P"):
+                    self._orig = self._orig.convert("RGBA")
+                else:
+                    self._orig = self._orig.convert("RGB")
+        except Exception as e:
+            print(f"Blad otwierania: {e}")
+            QMessageBox.critical(self, "Blad", "Nie mozna otworzyc: " + path.name)
             return
+        preview = prepare_preview(self._orig, max_dim=800)
+        self._preview_arr = pil_to_cv(preview)
+        self._adj.reset()
+        self.right_panel._reset_all()
+        self._ba_active = False
+        self._render_now()
+        self.statusBar().showMessage("Otwarto: " + path.name)
+        sb = self.statusBar()
+        if hasattr(sb, 'size_label'):
+            sb.size_label.setText(str(self._orig.width) + " x " + str(self._orig.height))
+        if hasattr(sb, 'format_label'):
+            sb.format_label.setText(path.suffix.upper().replace(".", ""))
 
-        document.layer_stack.set_active(index)
-        self.canvas._refresh_canvas()
-
-
-
-    def _open_photo_from_library(self, photo: Photo) -> None:
-        """Open a photo selected in the Library."""
-
-        self.canvas.load_image(photo.full_path)
-        self.metadata_panel.set_photo(photo)
-        self.develop_panel.load_photo(photo)
-        self.tabs.setCurrentIndex(1)
-
-    def _refresh_library(self) -> None:
-        """Refresh library panel."""
-
-        self.folder_panel.load_folders(
-            self.catalog.folders()
-        )
-
-        self.library_panel.load_photos(
-            self.catalog.photos()
-        )
-
-    def _refresh_layers_panel(self) -> None:
-        """Refresh the layers panel."""
-
-        self.layers_panel.set_layers(
-            self.canvas.document.layer_stack.layer_names()
-        )
-
-    def _new_document(self) -> None:
-        """Clear the current document."""
-
-        if not self._confirm_discard_changes():
+    def _on_crop(self):
+        if self._orig is None:
+            QMessageBox.warning(self, "Kadrowanie", "Najpierw otworz zdjecie.")
             return
+        if self._ba_active:
+            self._on_before_after()
+        if self.canvas._crop_mode:
+            rect = self.canvas.get_crop_rect()
+            if rect:
+                x1, y1, x2, y2 = rect
+                self._orig = self._orig.crop((x1, y1, x2, y2))
+                preview = prepare_preview(self._orig, max_dim=800)
+                self._preview_arr = pil_to_cv(preview)
+                self._render_now()
+                self.statusBar().showMessage(f"Przycieto: {self._orig.width} x {self._orig.height}")
+                sb = self.statusBar()
+                if hasattr(sb, 'size_label'):
+                    sb.size_label.setText(str(self._orig.width) + " x " + str(self._orig.height))
+            self.canvas.cancel_crop()
+        else:
+            self.canvas.start_crop()
+            self.statusBar().showMessage("Tryb kadrowania: zaznacz prostokat, potem kliknij Kadruj.")
 
-        self.canvas.crop_tool.cancel()
-        self.canvas.set_crop_selection_enabled(False)
-        self.canvas.history.clear()
-        dialog = NewDocumentDialog(self)
-
-        if dialog.exec() != dialog.DialogCode.Accepted:
+    def _on_rotate(self, angle):
+        if self._orig is None:
             return
+        self._orig = self._orig.rotate(angle, expand=True)
+        preview = prepare_preview(self._orig, max_dim=800)
+        self._preview_arr = pil_to_cv(preview)
+        self._render_now()
+        self.statusBar().showMessage(f"Obrocono: {self._orig.width} x {self._orig.height}")
 
-        self.canvas.new_image(
-            dialog.image_width,
-            dialog.image_height,
-            dialog.transparent_background,
-        )
-
-        self._save_target_created = False
-
-        self._update_history_actions(False, False)
-        self.status_bar.set_file_name("")
-        self.status_bar.set_image_size(0, 0)
-        self.status_bar.set_zoom(100.0)
-        self._refresh_layers_panel()
-
-        self.status_bar.set_message("Nowy dokument")
-
-
-    def _add_layer(self) -> None:
-        """Add a new layer to the current document."""
-
-        document = self.canvas.document
-
-        if not document.is_loaded:
+    def _on_flip(self, h, v):
+        if self._orig is None:
             return
+        if h:
+            self._orig = self._orig.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+        if v:
+            self._orig = self._orig.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+        preview = prepare_preview(self._orig, max_dim=800)
+        self._preview_arr = pil_to_cv(preview)
+        self._render_now()
+        self.statusBar().showMessage("Odbito obraz.")
 
-        document.add_layer()
-        self._refresh_layers_panel()
-        self.canvas._refresh_canvas()
-
-
-    def _import_folder(self) -> None:
-        """Import a folder into the catalog."""
-
-        folder = QFileDialog.getExistingDirectory(
-            self,
-            "Importuj folder ze zdjęciami",
-        )
-
-        if not folder:
+    def _on_before_after(self):
+        if self._orig is None:
+            QMessageBox.warning(self, "Przed/Po", "Najpierw otworz zdjecie.")
             return
+        if self._ba_active:
+            self._ba_active = False
+            self.canvas.cancel_before_after()
+            self._render_now()
+            self.statusBar().showMessage("Tryb normalny")
+        else:
+            self._ba_active = True
+            self.canvas.cancel_crop()
+            before = arr_to_pil(apply_adjustments_arr(self._preview_arr, Adjustments()))
+            after = arr_to_pil(apply_adjustments_arr(self._preview_arr, self._adj))
+            self.canvas.set_before_after(pil_to_qpixmap(before), pil_to_qpixmap(after))
+            self.statusBar().showMessage("Przed/Po: przeciagaj linie podzialu")
 
-        count = self.catalog.import_folder(Path(folder))
-
-        self._refresh_library()
-
-        QMessageBox.information(
-            self,
-            "Import zakończony",
-            f"Zaimportowano {count} zdjęć.",
-        )
-
-    def _open_image(self) -> None:
-        """Open an image after checking for unsaved changes."""
-
-        if not self._confirm_discard_changes():
+    def _on_batch_export(self):
+        import numpy as np
+        from ui.batch_dialog import BatchDialog
+        dlg = BatchDialog(self)
+        if dlg.exec() != BatchDialog.DialogCode.Accepted:
             return
-
-        filename, _ = QFileDialog.getOpenFileName(
-            self,
-            "Otwórz obraz",
-            "",
-            (
-                "Obrazy (*.jpg *.jpeg *.png *.webp *.bmp "
-                "*.tif *.tiff *.nef *.cr2 *.cr3 *.arw "
-                "*.dng *.orf *.rw2 *.raf *.pef);;"
-                "Wszystkie pliki (*)"
-            ),
-        )
-
-        if filename:
-            self.canvas.load_image(filename)
-
-    def _save_image(self) -> bool:
-        """Save safely without overwriting the original image."""
-
-        document = self.canvas.document
-
-        if not document.is_loaded:
-            return False
-
-        if (
-            not self._save_target_created
-            or document.file_path is None
-            or not ImageSaver.can_save(document.file_path)
-        ):
-            return self._save_image_as()
-
-        if self.canvas.save_image():
-            self._update_status_bar()
-            self.status_bar.set_message("Obraz zapisany")
-            return True
-
-        QMessageBox.warning(
-            self,
-            "Photo Editor 2.0",
-            "Nie udało się zapisać obrazu.",
-        )
-        return False
-
-    def _save_image_as(self) -> bool:
-        """Save the current image under a new file name."""
-
-        document = self.canvas.document
-
-        if not document.is_loaded:
-            return False
-
-        suggested_path = self._suggest_save_path()
-
-        filename, _ = QFileDialog.getSaveFileName(
-            self,
-            "Zapisz obraz jako",
-            str(suggested_path),
-            ImageSaver.file_dialog_filter(),
-        )
-
-        if not filename:
-            return False
-
-        if not ImageSaver.can_save(filename):
-            QMessageBox.warning(
-                self,
-                "Nieobsługiwany format",
-                (
-                    "Nie można zapisać obrazu w tym formacie.\n\n"
-                    "Formaty RAW, takie jak NEF, są tylko do odczytu.\n"
-                    "Wybierz JPG, PNG, WebP, BMP lub TIFF."
-                ),
-            )
-            return False
-
-        if self.canvas.save_image(filename):
-            self._save_target_created = True
-            self._update_status_bar()
-            self.status_bar.set_message("Obraz zapisany")
-            return True
-
-        QMessageBox.warning(
-            self,
-            "Photo Editor 2.0",
-            "Nie udało się zapisać obrazu.",
-        )
-        return False
-
-    def _suggest_save_path(self) -> Path:
-        """Suggest a safe edited copy name."""
-
-        document = self.canvas.document
-
-        if document.file_path is None:
-            return Path("image_edited.jpg")
-
-        source = Path(document.file_path)
-        suffix = source.suffix.lower()
-
-        if not ImageSaver.can_save(source):
-            suffix = ".jpg"
-
-        return source.with_name(
-            f"{source.stem}_edited{suffix}"
-        )
-
-    def _handle_image_loaded(self) -> None:
-        """Reset safe-save state after loading an original image."""
-
-        self._save_target_created = False
-        self._update_status_bar()
-
-    def _adjust_image(self) -> None:
-        """Open adjustments dialog with live preview."""
-
-        if (
-            not self.canvas.document.is_loaded
-            or self.canvas.document.active_image is None
-        ):
+        in_dir = Path(dlg.get_input_dir())
+        out_dir = Path(dlg.get_output_dir())
+        if not in_dir.exists() or not out_dir.exists():
+            QMessageBox.warning(self, "Batch", "Wybierz poprawne foldery.")
             return
-
-        original_image = self.canvas.document.active_image.copy()
-        dialog = AdjustmentsDialog(self)
-        self._adjustments_dialog = dialog
-
-        preview_timer = QTimer(dialog)
-        preview_timer.setSingleShot(True)
-        preview_timer.setInterval(40)
-
-        def update_preview() -> None:
-            settings = AdjustmentSettings(
-                exposure=dialog.exposure,
-                gamma=dialog.gamma,
-                highlights=dialog.highlights,
-                shadows=dialog.shadows,
-                whites=dialog.whites,
-                blacks=dialog.blacks,
-                brightness=dialog.brightness,
-                contrast=dialog.contrast,
-                saturation=dialog.saturation,
-                temperature=dialog.temperature,
-                tint=dialog.tint,
-            )
-
-            self.canvas.preview_adjustments(
-                original_image,
-                settings,
-            )
-
-        def schedule_preview(
-            exposure: int,
-            gamma: int,
-            highlights: int,
-            shadows: int,
-            whites: int,
-            blacks: int,
-            brightness: int,
-            contrast: int,
-            saturation: int,
-            temperature: int,
-            tint: int,
-        ) -> None:
-            preview_timer.start()
-
-        def accept_adjustments() -> None:
-            preview_timer.stop()
-            self.canvas._restore_image(original_image)
-
-            settings = AdjustmentSettings(
-                exposure=dialog.exposure,
-                gamma=dialog.gamma,
-                highlights=dialog.highlights,
-                shadows=dialog.shadows,
-                whites=dialog.whites,
-                blacks=dialog.blacks,
-                brightness=dialog.brightness,
-                contrast=dialog.contrast,
-                saturation=dialog.saturation,
-                temperature=dialog.temperature,
-                tint=dialog.tint,
-            )
-
-            self.canvas.apply_adjustments(
-                settings,
-            )
-
-            self.canvas.fit_to_window()
-            self._adjustments_dialog = None
-
-        def cancel_adjustments() -> None:
-            preview_timer.stop()
-            self.canvas._restore_image(original_image)
-            self.canvas.fit_to_window()
-            self._adjustments_dialog = None
-
-        dialog.values_changed.connect(schedule_preview)
-        preview_timer.timeout.connect(update_preview)
-        dialog.accepted.connect(accept_adjustments)
-        dialog.rejected.connect(cancel_adjustments)
-
-        dialog.show()
-
-    def _resize_image(self) -> None:
-        """Open the image resize dialog and resize the image."""
-
-        document = self.canvas.document
-
-        if not document.is_loaded:
+        exts = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp", ".gif", ".nef", ".cr2", ".arw", ".dng"}
+        files = [f for f in in_dir.iterdir() if f.suffix.lower() in exts]
+        if not files:
+            QMessageBox.warning(self, "Batch", "Brak zdjec w folderze wejsciowym.")
             return
+        fmt = dlg.get_format()
+        quality = dlg.get_quality()
+        scale = dlg.get_scale()
+        suffix = dlg.get_suffix()
+        total = len(files)
+        for i, f in enumerate(files, 1):
+            try:
+                dlg.set_progress(i, total)
+                img = Image.open(f)
+                if img.mode in ("RGBA", "P"):
+                    img = img.convert("RGBA")
+                else:
+                    img = img.convert("RGB")
+                arr = np.array(img, dtype=np.float32) / 255.0
+                out_arr = apply_adjustments_arr(arr, self._adj)
+                out_pil = arr_to_pil(out_arr)
+                if scale != 1.0:
+                    new_w = int(out_pil.width * scale)
+                    new_h = int(out_pil.height * scale)
+                    out_pil = out_pil.resize((new_w, new_h), Image.Resampling.LANCZOS)
+                ext = {"JPEG": ".jpg", "PNG": ".png", "TIFF": ".tiff"}[fmt]
+                out_path = out_dir / (f.stem + suffix + ext)
+                if fmt == "JPEG":
+                    out_pil = out_pil.convert("RGB")
+                    out_pil.save(str(out_path), "JPEG", quality=quality, optimize=True)
+                elif fmt == "PNG":
+                    out_pil.save(str(out_path), "PNG")
+                else:
+                    out_pil.save(str(out_path), "TIFF")
+            except Exception as e:
+                print(f"Blad {f.name}: {e}")
+        self.statusBar().showMessage(f"Batch zakonczony: {total} plikow.")
+        QMessageBox.information(self, "Batch", f"Wyeksportowano {total} zdjec.")
 
-        dialog = ResizeImageDialog(
-            document.width,
-            document.height,
-            self,
-        )
-
-        if not dialog.exec():
+    def _on_adj(self, adj):
+        self._adj = adj
+        if self._ba_active:
+            after = arr_to_pil(apply_adjustments_arr(self._preview_arr, self._adj))
+            before = arr_to_pil(apply_adjustments_arr(self._preview_arr, Adjustments()))
+            self.canvas.set_before_after(pil_to_qpixmap(before), pil_to_qpixmap(after))
             return
+        if self._worker.isRunning():
+            self._worker.wait(10)
+        self._worker.set_job(self._preview_arr, self._adj.copy())
+        self._worker.start()
 
-        if self.canvas.resize_image(
-            dialog.image_width,
-            dialog.image_height,
-        ):
-            self._update_status_bar()
-
-    def _handle_crop_action_toggled(
-        self,
-        enabled: bool,
-    ) -> None:
-        if enabled:
-            self.canvas.set_crop_selection_enabled(True)
+    def _on_preview_ready(self, pil_img):
+        if pil_img is None:
             return
+        self.histogram.set_image(pil_img)
+        self.canvas.set_pixmap(pil_to_qpixmap(pil_img))
 
-        if (
-            self.canvas.crop_selection_enabled
-            and self.canvas.crop_tool.has_selection
-        ):
-            if self.canvas.apply_crop():
-                return
-
-        self.canvas.set_crop_selection_enabled(False)
-
-    def _update_status_bar(self) -> None:
-        document = self.canvas.document
-
-        self.status_bar.set_file_name(
-            document.file_name
-        )
-        self.status_bar.set_image_size(
-            document.width,
-            document.height,
-        )
-        self.status_bar.set_message(
-            "Obraz załadowany"
-        )
-
-    def _update_history_actions(
-        self,
-        can_undo: bool,
-        can_redo: bool,
-    ) -> None:
-        self.actions.undo.setEnabled(can_undo)
-        self.actions.redo.setEnabled(can_redo)
-
-    def closeEvent(self, event) -> None:
-        """Handle application closing."""
-
-        if not self._confirm_discard_changes():
-            event.ignore()
+    def _render_now(self):
+        if self._preview_arr is None:
             return
+        self._worker.set_job(self._preview_arr, self._adj.copy())
+        self._worker.start()
 
-        event.accept()
+    def _on_reset(self):
+        self._adj.reset()
+        self._render_now()
+
+    def _on_export(self):
+        if self._orig is None:
+            QMessageBox.warning(self, "Eksport", "Najpierw otworz zdjecie.")
+            return
+        dlg = ExportDialog(self, self._orig.width, self._orig.height)
+        if dlg.exec() != ExportDialog.DialogCode.Accepted:
+            return
+        path = dlg.get_path()
+        if not path:
+            return
+        fmt = dlg.get_format()
+        quality = dlg.get_quality()
+        scale = dlg.get_scale()
+        try:
+            full = pil_to_cv(self._orig)
+            out = apply_adjustments_arr(full, self._adj)
+            pil_out = arr_to_pil(out)
+            if scale != 1.0:
+                new_w = int(pil_out.width * scale)
+                new_h = int(pil_out.height * scale)
+                pil_out = pil_out.resize((new_w, new_h), Image.Resampling.LANCZOS)
+            if fmt == "PNG":
+                pil_out.save(path, "PNG")
+            elif fmt == "JPEG":
+                pil_out = pil_out.convert("RGB")
+                pil_out.save(path, "JPEG", quality=quality, optimize=True)
+            elif fmt == "TIFF":
+                pil_out.save(path, "TIFF")
+            self.statusBar().showMessage("Wyeksportowano: " + Path(path).name)
+        except Exception as e:
+            QMessageBox.critical(self, "Blad eksportu", str(e))
+
+    def _on_preset_save(self, name, adj):
+        save_preset(name, adj)
+        self._refresh_presets()
+        self.statusBar().showMessage("Zapisano preset: " + name)
+
+    def _on_preset_load(self, name):
+        adj = load_preset(name)
+        if adj:
+            self.right_panel.set_adjustments(adj)
+            self._adj = adj.copy()
+            self._render_now()
+            self.statusBar().showMessage("Wczytano preset: " + name)
+
+    def _on_preset_delete(self, name):
+        import os
+        p = Path(__file__).resolve().parent.parent / "presets" / (name + ".json")
+        if p.exists():
+            os.remove(p)
+            self._refresh_presets()
+            self.statusBar().showMessage("Usunieto preset: " + name)
+
+    def _refresh_presets(self):
+        self.right_panel.set_preset_list(list_presets())
+
+    def _on_zin(self):
+        self.canvas._zoom = min(self.canvas._zoom * 1.25, 32.0)
+        self.canvas.update()
+        self.statusBar().showMessage("Zoom: " + str(int(self.canvas._zoom * 100)) + "%")
+
+    def _on_zout(self):
+        self.canvas._zoom = max(self.canvas._zoom / 1.25, 0.05)
+        self.canvas.update()
+        self.statusBar().showMessage("Zoom: " + str(int(self.canvas._zoom * 100)) + "%")
+
+    def _on_z100(self):
+        self.canvas._zoom = 1.0
+        self.canvas.update()
+        self.statusBar().showMessage("Zoom: 100%")
+
+    def _on_fit(self):
+        if self.canvas._pixmap and not self.canvas._pixmap.isNull():
+            sw = self.canvas.width() / self.canvas._pixmap.width()
+            sh = self.canvas.height() / self.canvas._pixmap.height()
+            self.canvas._zoom = min(sw, sh) * 0.95
+            self.canvas.update()
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            p = Path(url.toLocalFile())
+            if p.suffix.lower() in SUPPORTED_FORMATS:
+                self._load(p)
+                break

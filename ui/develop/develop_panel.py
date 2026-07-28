@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 
 from ui.develop.histogram_widget import HistogramWidget
 from ui.view.image_view import ImageView
-from core.models.photo import Photo
+from core.catalog.photo import Photo
 
 
 class DevelopPanel(QWidget):
