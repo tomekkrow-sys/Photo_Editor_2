@@ -49,3 +49,4 @@ class ActionManager:
         self.flip_h = QAction("Flip H", self.parent)
         self.flip_v = QAction("Flip V", self.parent)
         self.before_after = QAction("Przed/Po", self.parent)
+        self.pencil = QAction("Olowek", self.parent)

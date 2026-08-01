@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QSplitter, 
 from config.defaults import DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH
 from config.version import WINDOW_TITLE
 from core.adjustments import Adjustments
+from core.filters import pencil_sketch
 from core.image_loader import SUPPORTED_FORMATS
 from core.pipeline import prepare_preview, pil_to_cv, pil_to_qpixmap, apply_adjustments_arr, arr_to_pil
 from core.preset_manager import save_preset, load_preset, list_presets
@@ -30,6 +31,7 @@ class MainWindow(QMainWindow):
         """)
         self.actions = ActionManager(self)
         self._orig = None
+        self._path = None
         self._preview_arr = None
         self._adj = Adjustments()
         self._worker = PipelineWorker(self)
@@ -77,6 +79,7 @@ class MainWindow(QMainWindow):
         self.actions.flip_h.triggered.connect(lambda: self._on_flip(True, False))
         self.actions.flip_v.triggered.connect(lambda: self._on_flip(False, True))
         self.actions.before_after.triggered.connect(self._on_before_after)
+        self.actions.pencil.triggered.connect(self._on_pencil)
         self.actions.batch.triggered.connect(self._on_batch_export)
         self.actions.zoom_in.triggered.connect(self._on_zin)
         self.actions.zoom_out.triggered.connect(self._on_zout)
@@ -132,6 +135,7 @@ class MainWindow(QMainWindow):
             return
         preview = prepare_preview(self._orig, max_dim=800)
         self._preview_arr = pil_to_cv(preview)
+        self._path = path
         self._adj.reset()
         self.right_panel._reset_all()
         self._ba_active = False
@@ -223,6 +227,43 @@ class MainWindow(QMainWindow):
             after = arr_to_pil(apply_adjustments_arr(self._preview_arr, self._adj))
             self.canvas.set_before_after(pil_to_qpixmap(before), pil_to_qpixmap(after))
             self.statusBar().showMessage("Przed/Po: przeciagaj linie podzialu")
+
+    def _on_pencil(self):
+        if self._orig is None:
+            QMessageBox.warning(self, "Olowek", "Najpierw otworz zdjecie.")
+            return
+        if self._ba_active:
+            self._on_before_after()
+        self.canvas.cancel_crop()
+        sketch = pencil_sketch(self._orig)
+        preview = prepare_preview(sketch, max_dim=800)
+        self.canvas.set_pixmap(pil_to_qpixmap(preview))
+        self.statusBar().showMessage("Podglad: wersja olowkowa")
+        answer = QMessageBox.question(
+            self,
+            "Olowek",
+            "Zapisac wersje olowkowa jako nowy plik?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if answer == QMessageBox.StandardButton.Yes:
+            suggested = "olowek.png"
+            if self._path is not None:
+                suggested = str(self._path.with_name(self._path.stem + "_olowek.png"))
+            p, _ = QFileDialog.getSaveFileName(
+                self,
+                "Zapisz wersje olowkowa",
+                suggested,
+                "PNG (*.png);;JPEG (*.jpg *.jpeg)",
+            )
+            if p:
+                try:
+                    sketch.save(p)
+                    self.statusBar().showMessage("Zapisano: " + Path(p).name)
+                except Exception as e:
+                    print(f"Blad zapisu olowka: {e}")
+                    QMessageBox.critical(self, "Blad", "Nie mozna zapisac pliku.")
+        self._render_now()
 
     def _on_batch_export(self):
         import numpy as np

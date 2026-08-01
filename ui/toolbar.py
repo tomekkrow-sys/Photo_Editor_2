@@ -32,6 +32,8 @@ class ToolBar(QToolBar):
         self.addSeparator()
         self.addAction(self.actions.before_after)
         self.addSeparator()
+        self.addAction(self.actions.pencil)
+        self.addSeparator()
         self.addAction(self.actions.batch)
         self.addSeparator()
         self.addAction(self.actions.zoom_in)
