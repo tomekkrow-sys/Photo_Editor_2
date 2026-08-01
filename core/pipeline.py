@@ -79,6 +79,10 @@ def arr_to_pil(arr):
     return cv_to_pil(arr)
 
 def pil_to_qpixmap(pil_img):
+    if pil_img.mode in ("LA", "P"):
+        pil_img = pil_img.convert("RGBA")
+    elif pil_img.mode not in ("RGB", "RGBA"):
+        pil_img = pil_img.convert("RGB")
     if pil_img.mode == "RGBA":
         data = pil_img.tobytes("raw", "RGBA")
         qimg = QImage(data, pil_img.width, pil_img.height, pil_img.width * 4, QImage.Format.Format_RGBA8888)
