@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 from PySide6.QtCore import QThread, Signal
-from core.pipeline import apply_adjustments_arr, arr_to_pil, pil_to_cv
-from core.adjustments import Adjustments
+from core.pipeline import apply_adjustments_arr, arr_to_pil
 
 class PipelineWorker(QThread):
     finished = Signal(object)

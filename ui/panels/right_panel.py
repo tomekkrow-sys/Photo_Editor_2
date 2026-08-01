@@ -90,7 +90,9 @@ class RightPanel(QScrollArea):
         sb.clicked.connect(self._on_preset_save)
         lb.clicked.connect(self._on_preset_load)
         db.clicked.connect(self._on_preset_delete)
-        rl.addWidget(sb); rl.addWidget(lb); rl.addWidget(db)
+        rl.addWidget(sb)
+        rl.addWidget(lb)
+        rl.addWidget(db)
         pl.addWidget(row)
         lay.addWidget(pres)
 
@@ -99,7 +101,8 @@ class RightPanel(QScrollArea):
         bl.setSpacing(4)
         self.exp = self._mk("Ekspozycja", "exposure", -5.0, 5.0, 0.0, 0.1)
         self.con = self._mk("Kontrast", "contrast", -100, 100, 0, 1)
-        bl.addRow(self.exp); bl.addRow(self.con)
+        bl.addRow(self.exp)
+        bl.addRow(self.con)
         lay.addWidget(basic)
 
         tone = QGroupBox("Tona")
@@ -109,7 +112,10 @@ class RightPanel(QScrollArea):
         self.sh = self._mk("Cienie", "shadows", -100, 100, 0, 1)
         self.wh = self._mk("Biel", "whites", -100, 100, 0, 1)
         self.bl = self._mk("Czerń", "blacks", -100, 100, 0, 1)
-        tl.addRow(self.hi); tl.addRow(self.sh); tl.addRow(self.wh); tl.addRow(self.bl)
+        tl.addRow(self.hi)
+        tl.addRow(self.sh)
+        tl.addRow(self.wh)
+        tl.addRow(self.bl)
         lay.addWidget(tone)
 
         col = QGroupBox("Kolor")
@@ -119,7 +125,10 @@ class RightPanel(QScrollArea):
         self.tnt = self._mk("Odcień", "tint", -100, 100, 0, 1)
         self.sat = self._mk("Nasycenie", "saturation", -100, 100, 0, 1)
         self.vib = self._mk("Żywość", "vibrance", -100, 100, 0, 1)
-        cl.addRow(self.tmp); cl.addRow(self.tnt); cl.addRow(self.sat); cl.addRow(self.vib)
+        cl.addRow(self.tmp)
+        cl.addRow(self.tnt)
+        cl.addRow(self.sat)
+        cl.addRow(self.vib)
         lay.addWidget(col)
 
         det = QGroupBox("Detal")
@@ -127,7 +136,8 @@ class RightPanel(QScrollArea):
         dl.setSpacing(4)
         self.shp = self._mk("Ostrość", "sharpness", 0, 150, 0, 1)
         self.clr = self._mk("Klarowność", "clarity", -100, 100, 0, 1)
-        dl.addRow(self.shp); dl.addRow(self.clr)
+        dl.addRow(self.shp)
+        dl.addRow(self.clr)
         lay.addWidget(det)
 
         rb = QPushButton("Resetuj wszystko")
@@ -148,7 +158,8 @@ class RightPanel(QScrollArea):
         return r
 
     def _on_val(self, key, val):
-        if self._blk: return
+        if self._blk:
+            return
         setattr(self._adj, key, val)
         self.adjustments_changed.emit(self._adj.copy())
 
@@ -167,20 +178,24 @@ class RightPanel(QScrollArea):
 
     def _on_preset_save(self):
         n = self.preset_name.text().strip()
-        if n: self.preset_save_requested.emit(n, self._adj.copy())
+        if n:
+            self.preset_save_requested.emit(n, self._adj.copy())
 
     def _on_preset_load(self):
         n = self.preset_combo.currentText()
-        if n and n != "-- wybierz --": self.preset_load_requested.emit(n)
+        if n and n != "-- wybierz --":
+            self.preset_load_requested.emit(n)
 
     def _on_preset_delete(self):
         n = self.preset_combo.currentText()
-        if n and n != "-- wybierz --": self.preset_delete_requested.emit(n)
+        if n and n != "-- wybierz --":
+            self.preset_delete_requested.emit(n)
 
     def set_preset_list(self, names):
         self.preset_combo.clear()
         self.preset_combo.addItem("-- wybierz --")
-        for n in names: self.preset_combo.addItem(n)
+        for n in names:
+            self.preset_combo.addItem(n)
 
     def set_adjustments(self, adj):
         self._block(True)

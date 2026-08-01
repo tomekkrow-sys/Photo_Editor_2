@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 
 from PySide6.QtCore import QPointF, Qt
-from PySide6.QtGui import QImage, QPainter, QRadialGradient
+from PySide6.QtGui import QColor, QImage, QPainter, QRadialGradient
 
 
 class SpotMode(Enum):

@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 import numpy as np
-from PIL import Image
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QPainter, QPen, QPolygonF, QPolygonF
+from PySide6.QtGui import QColor, QPainter, QPen, QPolygonF
 from PySide6.QtCore import QPointF
 from PySide6.QtWidgets import QWidget
 

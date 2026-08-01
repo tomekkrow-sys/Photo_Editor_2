@@ -39,8 +39,7 @@ class AdjustmentSettings:
             and self.tint == 0
         )
 
-    
-def copy(self) -> "AdjustmentSettings":
+    def copy(self) -> "AdjustmentSettings":
         """Return a copy of the settings."""
 
         return AdjustmentSettings(

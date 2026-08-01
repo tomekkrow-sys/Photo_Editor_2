@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+import rawpy
 from pathlib import Path
 from PIL import Image
 from PySide6.QtCore import Qt
@@ -7,13 +8,12 @@ from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QSplitter, 
 from config.defaults import DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH
 from config.version import WINDOW_TITLE
 from core.adjustments import Adjustments
-from core.image_loader import load_image, SUPPORTED_FORMATS
+from core.image_loader import SUPPORTED_FORMATS
 from core.pipeline import prepare_preview, pil_to_cv, pil_to_qpixmap, apply_adjustments_arr, arr_to_pil
 from core.preset_manager import save_preset, load_preset, list_presets
 from core.worker import PipelineWorker
 from ui.actions import ActionManager
 from ui.canvas import Canvas
-from ui.batch_dialog import BatchDialog
 from ui.export_dialog import ExportDialog
 from ui.histogram import HistogramWidget
 from ui.menubar import MenuBar
@@ -91,18 +91,41 @@ class MainWindow(QMainWindow):
 
     def _load(self, path):
         try:
-            # RAW files - PIL opens embedded thumbnail safely
-            if path.suffix.lower() in (".nef", ".cr2", ".arw", ".dng"):
-                self._orig = Image.open(path)
-                # RAW thumbnails may be small; convert to RGB
-                if self._orig.mode != "RGB":
-                    self._orig = self._orig.convert("RGB")
+            ext = path.suffix.lower()
+            raw_exts = {".nef", ".cr2", ".cr3", ".arw", ".dng", ".orf", ".rw2", ".raf", ".pef"}
+            
+            # Pobierz EXIF orientation z pliku (dziala dla RAW i JPG)
+            orientation = 1
+            try:
+                with Image.open(path) as tmp:
+                    exif = tmp.getexif()
+                    if exif:
+                        orientation = exif.get(274, 1)
+            except Exception:
+                pass
+            
+            if ext in raw_exts:
+                with rawpy.imread(str(path)) as raw:
+                    rgb = raw.postprocess(use_camera_wb=True, no_auto_bright=False, output_bps=8)
+                    self._orig = Image.fromarray(rgb)
             else:
                 self._orig = Image.open(path)
-                if self._orig.mode in ("RGBA", "P"):
-                    self._orig = self._orig.convert("RGBA")
-                else:
-                    self._orig = self._orig.convert("RGB")
+            
+            # Zastosuj EXIF orientation
+            if orientation == 3:
+                self._orig = self._orig.rotate(180, expand=True)
+            elif orientation == 6:
+                self._orig = self._orig.rotate(270, expand=True)
+            elif orientation == 8:
+                self._orig = self._orig.rotate(90, expand=True)
+            
+            # Konwertuj do RGB
+            if self._orig.mode in ("RGBA", "P"):
+                self._orig = self._orig.convert("RGBA")
+                self._orig = self._orig.convert("RGB")
+            elif self._orig.mode != "RGB":
+                self._orig = self._orig.convert("RGB")
+                
         except Exception as e:
             print(f"Blad otwierania: {e}")
             QMessageBox.critical(self, "Blad", "Nie mozna otworzyc: " + path.name)
@@ -161,6 +184,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Tryb kadrowania: zaznacz prostokat, potem kliknij Kadruj.")
 
     def _on_rotate(self, angle):
+        print(f"ROTATE called: {angle}")
         if self._orig is None:
             return
         self._orig = self._orig.rotate(angle, expand=True)
@@ -168,6 +192,8 @@ class MainWindow(QMainWindow):
         self._preview_arr = pil_to_cv(preview)
         self._render_now()
         self.statusBar().showMessage(f"Obrocono: {self._orig.width} x {self._orig.height}")
+        if hasattr(self, 'canvas'):
+            self.canvas.update()
 
     def _on_flip(self, h, v):
         if self._orig is None:

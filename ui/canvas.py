@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 from PySide6.QtCore import Qt, QRectF
-from PySide6.QtGui import QColor, QPainter, QPen, QPixmap
+from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
 class Canvas(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._pixmap = None
+        self.update()
         self._pixmap_before = None
+        self.update()
         self._pixmap_after = None
+        self.update()
         self._zoom = 1.0
         self._offset_x = 0.0
         self._offset_y = 0.0
@@ -27,6 +30,7 @@ class Canvas(QWidget):
 
     def set_pixmap(self, pixmap):
         self._pixmap = pixmap
+        self.update()
         self._offset_x = 0.0
         self._offset_y = 0.0
         self._zoom = 1.0
@@ -38,7 +42,9 @@ class Canvas(QWidget):
 
     def set_before_after(self, before, after):
         self._pixmap_before = before
+        self.update()
         self._pixmap_after = after
+        self.update()
         self._offset_x = 0.0
         self._offset_y = 0.0
         self._zoom = 1.0
@@ -76,7 +82,9 @@ class Canvas(QWidget):
         x2 = max(self._crop_start.x(), self._crop_end.x())
         y2 = max(self._crop_start.y(), self._crop_end.y())
         iw = self._pixmap.width() * self._zoom
+        self.update()
         ih = self._pixmap.height() * self._zoom
+        self.update()
         cx = (self.width() - iw) / 2 + self._offset_x
         cy = (self.height() - ih) / 2 + self._offset_y
         x1 = (x1 - cx) / self._zoom
@@ -84,9 +92,13 @@ class Canvas(QWidget):
         x2 = (x2 - cx) / self._zoom
         y2 = (y2 - cy) / self._zoom
         x1 = max(0, min(x1, self._pixmap.width()))
+        self.update()
         y1 = max(0, min(y1, self._pixmap.height()))
+        self.update()
         x2 = max(0, min(x2, self._pixmap.width()))
+        self.update()
         y2 = max(0, min(y2, self._pixmap.height()))
+        self.update()
         if x2 - x1 < 10 or y2 - y1 < 10:
             return None
         return (int(x1), int(y1), int(x2), int(y2))
@@ -94,8 +106,10 @@ class Canvas(QWidget):
     def _img_rect(self):
         if self._ba_mode and self._pixmap_after:
             pm = self._pixmap_after
+            self.update()
         elif self._pixmap:
             pm = self._pixmap
+            self.update()
         else:
             return None
         iw = pm.width() * self._zoom
@@ -115,10 +129,12 @@ class Canvas(QWidget):
                 split_x = x + iw * self._ba_split
                 # Before (left)
                 src_before = QRectF(0, 0, self._pixmap_before.width() * self._ba_split, self._pixmap_before.height())
+                self.update()
                 dst_before = QRectF(x, y, iw * self._ba_split, ih)
                 painter.drawPixmap(dst_before, self._pixmap_before, src_before)
                 # After (right)
                 src_after = QRectF(self._pixmap_after.width() * self._ba_split, 0, self._pixmap_after.width() * (1 - self._ba_split), self._pixmap_after.height())
+                self.update()
                 dst_after = QRectF(split_x, y, iw * (1 - self._ba_split), ih)
                 painter.drawPixmap(dst_after, self._pixmap_after, src_after)
                 # Divider line
@@ -211,13 +227,17 @@ class Canvas(QWidget):
         mx = event.position().x()
         my = event.position().y()
         old_iw = self._pixmap.width() * old_zoom
+        self.update()
         old_ih = self._pixmap.height() * old_zoom
+        self.update()
         old_x = (self.width() - old_iw) / 2 + self._offset_x
         old_y = (self.height() - old_ih) / 2 + self._offset_y
         rel_x = (mx - old_x) / old_zoom
         rel_y = (my - old_y) / old_zoom
         new_iw = self._pixmap.width() * self._zoom
+        self.update()
         new_ih = self._pixmap.height() * self._zoom
+        self.update()
         new_x = mx - rel_x * self._zoom
         new_y = my - rel_y * self._zoom
         self._offset_x = new_x - (self.width() - new_iw) / 2

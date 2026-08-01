@@ -4,9 +4,8 @@ import cv2
 import numpy as np
 from PIL import Image
 from PySide6.QtGui import QImage, QPixmap
-from core.adjustments import Adjustments
 
-def prepare_preview(pil_img, max_dim=800):
+def prepare_preview(pil_img, max_dim=2400):
     w, h = pil_img.size
     if max(w, h) > max_dim:
         r = max_dim / max(w, h)
@@ -82,8 +81,8 @@ def arr_to_pil(arr):
 def pil_to_qpixmap(pil_img):
     if pil_img.mode == "RGBA":
         data = pil_img.tobytes("raw", "RGBA")
-        qimg = QImage(data, pil_img.width, pil_img.height, QImage.Format.Format_RGBA8888)
+        qimg = QImage(data, pil_img.width, pil_img.height, pil_img.width * 4, QImage.Format.Format_RGBA8888)
     else:
         data = pil_img.tobytes("raw", "RGB")
-        qimg = QImage(data, pil_img.width, pil_img.height, QImage.Format.Format_RGB888)
+        qimg = QImage(data, pil_img.width, pil_img.height, pil_img.width * 3, QImage.Format.Format_RGB888)
     return QPixmap.fromImage(qimg)
