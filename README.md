@@ -58,7 +58,7 @@ Version 0.1.0 — the project is under active development. New features and fixe
 
 ## Author
 
-**Tomasz Krówczyński** — [mucho.pl](https://mucho.pl)
+**Tomasz Krówczyński**
 
 ## License
 
@@ -68,4 +68,4 @@ See [LICENSE](LICENSE).
 
 ## PL — krótko
 
-**Photo Editor 2.0** to mój autorski, samodzielnie rozwijany edytor zdjęć na Linuksa, napisany w Pythonie z interfejsem w Qt (PySide6). Obsługuje pliki RAW (m.in. NEF), podstawową korekcję (ekspozycja, kontrast, światła, cienie, temperatura barwowa), kadrowanie, presety, histogram, filtry, przetwarzanie wsadowe oraz katalog zdjęć z bazą danych. Więcej o projekcie: [mucho.pl/praktyka](https://mucho.pl/praktyka/).
+**Photo Editor 2.0** to mój autorski, samodzielnie rozwijany edytor zdjęć na Linuksa, napisany w Pythonie z interfejsem w Qt (PySide6). Obsługuje pliki RAW (m.in. NEF), podstawową korekcję (ekspozycja, kontrast, światła, cienie, temperatura barwowa), kadrowanie, presety, histogram, filtry, przetwarzanie wsadowe oraz katalog zdjęć z bazą danych.
