@@ -14,6 +14,7 @@ from core.adjustments import Adjustments
 from core.filters import (
     auto_enhance,
     black_and_white,
+    composite,
     frame,
     negative,
     pencil_sketch,
@@ -118,6 +119,7 @@ class MainWindow(QMainWindow):
         self.actions.frame.triggered.connect(self._on_frame)
         self.actions.info.triggered.connect(self._on_info)
         self.actions.compare.triggered.connect(self._on_compare)
+        self.actions.overlay.triggered.connect(self._on_overlay)
         self.actions.rotate_left.triggered.connect(lambda: self._on_rotate(90))
         self.actions.rotate_right.triggered.connect(lambda: self._on_rotate(-90))
         self.actions.flip_h.triggered.connect(lambda: self._on_flip(True, False))
@@ -506,6 +508,37 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 logging.debug("Brak EXIF dla %s: %s", self._path, e)
         return "\n".join(lines)
+
+    def _on_overlay(self):
+        if self._orig is None:
+            QMessageBox.warning(self, "Warstwa", "Najpierw otworz zdjecie.")
+            return
+        f = "Obrazy (" + " ".join("*" + e for e in SUPPORTED_FORMATS) + ")"
+        p, _ = QFileDialog.getOpenFileName(self, "Naloz warstwe z pliku", "", f)
+        if not p:
+            return
+        layer = self._open_image(Path(p))
+        if layer is None:
+            QMessageBox.critical(self, "Blad", "Nie mozna otworzyc: " + Path(p).name)
+            return
+        from ui.overlay_dialog import OverlayDialog
+        dlg = OverlayDialog(self, Path(p).name)
+        if dlg.exec() != OverlayDialog.DialogCode.Accepted:
+            return
+        self.apply_overlay(layer, dlg.get_opacity(), dlg.get_mode())
+
+    def apply_overlay(self, layer, opacity: float, mode: str) -> bool:
+        """Composite an overlay layer onto the current image (undoable)."""
+
+        if self._orig is None or layer is None:
+            return False
+        self._history.push(self._orig)
+        self._orig = composite(self._orig, layer, opacity, mode)
+        self._refresh_after_edit()
+        self.statusBar().showMessage(
+            f"Nalozono warstwe ({mode}, {int(opacity * 100)}%)."
+        )
+        return True
 
     def _on_compare(self):
         if self._orig is None:

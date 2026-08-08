@@ -10,6 +10,7 @@ from PIL import Image
 from core.filters import (
     auto_enhance,
     black_and_white,
+    composite,
     frame,
     negative,
     pencil_sketch,
@@ -195,6 +196,46 @@ class FrameTests(unittest.TestCase):
         result = frame(img)
 
         self.assertGreater(result.width, 100)
+
+
+class CompositeTests(unittest.TestCase):
+    """Verify layer compositing (opacity and blend modes)."""
+
+    def test_normal_mode_replaces_at_full_opacity(self) -> None:
+        base = Image.new("RGB", (20, 20), (50, 50, 50))
+        overlay = Image.new("RGB", (40, 40), (200, 100, 50))
+
+        result = composite(base, overlay, opacity=1.0, mode="Normalny")
+
+        self.assertEqual(result.size, (20, 20))
+        self.assertEqual(result.getpixel((10, 10)), (200, 100, 50))
+
+    def test_zero_opacity_keeps_base(self) -> None:
+        base = Image.new("RGB", (10, 10), (50, 60, 70))
+        overlay = Image.new("RGB", (10, 10), (250, 250, 250))
+
+        result = composite(base, overlay, opacity=0.0)
+
+        self.assertEqual(result.getpixel((5, 5)), (50, 60, 70))
+
+    def test_multiply_darkens_screen_brightens(self) -> None:
+        base = Image.new("RGB", (10, 10), (128, 128, 128))
+        overlay = Image.new("RGB", (10, 10), (128, 128, 128))
+
+        dark = composite(base, overlay, mode="Pomnoz")
+        light = composite(base, overlay, mode="Ekran")
+
+        self.assertLess(dark.getpixel((5, 5))[0], 128)
+        self.assertGreater(light.getpixel((5, 5))[0], 128)
+
+    def test_overlay_is_resized_to_base(self) -> None:
+        base = Image.new("RGB", (100, 50), (0, 0, 0))
+        overlay = Image.new("RGB", (500, 500), (255, 255, 255))
+
+        result = composite(base, overlay)
+
+        self.assertEqual(result.size, (100, 50))
+        self.assertEqual(result.getpixel((50, 25)), (255, 255, 255))
 
 
 if __name__ == "__main__":

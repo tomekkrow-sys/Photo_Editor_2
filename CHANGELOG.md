@@ -30,6 +30,17 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/).
   jako nowy plik
 - **Porównaj z plikiem** (menu Widok): bieżące zdjęcie obok innego
   z dysku z przeciąganą linią podziału
+- **Nałóż warstwę z pliku** (menu Obraz): inne zdjęcie jako warstwa
+  z suwakiem krycia i trybami mieszania (Normalny, Pomnóż, Naładka,
+  Ekran), z obsługą Cofnij
+- Workflow GitHub Actions budujący `Photo_Editor_2.exe` dla Windows
+  (artefakt do pobrania po kazdym pushu)
+- Pelne polskie etykiety przyciskow (Obroc w lewo/prawo,
+  Odbij poziomo/pionowo, Przybliz, Oddal)
+
+### Usuniete
+- Przestarzale testy starej architektury MainWindow (pokrycie zapewnia
+  test_main_window_ops.py)
 
 ### Zmienione
 - „Batch" przemianowany na **Konwerter folderu** (przycisk, okno,

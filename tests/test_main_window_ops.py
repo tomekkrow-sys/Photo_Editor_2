@@ -330,6 +330,15 @@ class MainWindowBrushAndRecentTests(unittest.TestCase):
         self.assertIn("120 x 80", text)
         self.assertIn("photo.png", text)
 
+    def test_overlay_layer_applies_and_supports_undo(self) -> None:
+        layer = Image.new("RGB", (300, 300), (255, 255, 255))
+
+        self.assertTrue(self.window.apply_overlay(layer, 1.0, "Normalny"))
+        self.assertEqual(self.window._orig.getpixel((60, 40)), (255, 255, 255))
+
+        self.window._on_undo()
+        self.assertEqual(self.window._orig.getpixel((60, 40)), (128, 128, 128))
+
 
 if __name__ == "__main__":
     unittest.main()

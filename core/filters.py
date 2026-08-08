@@ -104,6 +104,40 @@ def frame(img: Image.Image, border: int | None = None, color=(255, 255, 255)) ->
     return ImageOps.expand(img.convert("RGB"), border=border, fill=color)
 
 
+BLEND_MODES = ("Normalny", "Pomnoz", "Nakladka", "Ekran")
+
+
+def composite(
+    base: Image.Image,
+    overlay: Image.Image,
+    opacity: float = 1.0,
+    mode: str = "Normalny",
+) -> Image.Image:
+    """Composite an overlay image onto base with opacity and blend mode.
+
+    The overlay is resized to the base size. Returns a new RGB image.
+    """
+
+    b = np.asarray(base.convert("RGB"), dtype=np.float32) / 255.0
+    o = overlay.convert("RGB").resize(base.size, Image.Resampling.LANCZOS)
+    o = np.asarray(o, dtype=np.float32) / 255.0
+
+    if mode == "Pomnoz":
+        mixed = b * o
+    elif mode == "Nakladka":
+        mixed = np.where(b < 0.5, 2.0 * b * o, 1.0 - 2.0 * (1.0 - b) * (1.0 - o))
+    elif mode == "Ekran":
+        mixed = 1.0 - (1.0 - b) * (1.0 - o)
+    else:
+        mixed = o
+
+    out = b * (1.0 - opacity) + mixed * opacity
+    return Image.fromarray(
+        np.clip(out * 255.0, 0, 255).astype(np.uint8),
+        mode="RGB",
+    )
+
+
 def auto_enhance(img: Image.Image) -> Image.Image:
     """One-click enhancement: gray-world white balance + contrast stretch.
 
