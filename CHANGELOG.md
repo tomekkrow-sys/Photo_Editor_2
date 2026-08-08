@@ -42,6 +42,14 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/).
   z obsluga Cofnij
 - **Znak wodny** (menu Obraz): tekst na zdjeciu z wyborem pozycji
   (5 miejsc), krycia i konturem dla czytelnosci, z obsluga Cofnij
+- Pakiet **.deb dla Debiana** (`build_deb.sh`): instaluje do /opt,
+  wpis w menu aplikacji, komenda `photo-editor-2`; CI buduje
+  artefakt `Photo_Editor_2-debian`
+- Ikona aplikacji (resources/icons/photo_editor_2.png)
+
+### Naprawione
+- Logi i katalog danych zapisuja sie w katalogu uzytkownika,
+  gdy lokalizacja programu jest tylko-do-odczytu (instalacja /opt)
 
 ### Usuniete
 - Przestarzale testy starej architektury MainWindow (pokrycie zapewnia

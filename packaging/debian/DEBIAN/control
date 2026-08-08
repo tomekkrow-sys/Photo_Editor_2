@@ -1,0 +1,11 @@
+Package: photo-editor-2
+Version: 0.1.0
+Section: graphics
+Priority: optional
+Architecture: amd64
+Maintainer: tomekkrow-sys <tomekkrow@gmail.com>
+Depends: libc6
+Description: Photo Editor 2 - edytor zdjec z obsluga RAW
+ Edytor zdjec z korekta (ekspozycja, kontrast, temperatura...),
+ filtrami (olowek, cz-b, sepia...), retuszem, historia zmian,
+ eksportem i konwerterem folderu. Obsluguje RAW (nef/cr2/arw/dng).

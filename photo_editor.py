@@ -32,9 +32,25 @@ from core.crash_handler import install_exception_handler
 
 ROOT_DIR = Path(__file__).resolve().parent
 
-LOG_DIR = ROOT_DIR / "logs"
 
-LOG_DIR.mkdir(exist_ok=True)
+def _writable_dir(primary: Path, fallback_name: str) -> Path:
+    """Return a writable directory (falls back to user data dir)."""
+
+    try:
+        primary.mkdir(parents=True, exist_ok=True)
+        probe = primary / ".write_test"
+        probe.touch()
+        probe.unlink()
+        return primary
+    except OSError:
+        fallback = (
+            Path.home() / ".local" / "share" / "Photo_Editor_2" / fallback_name
+        )
+        fallback.mkdir(parents=True, exist_ok=True)
+        return fallback
+
+
+LOG_DIR = _writable_dir(ROOT_DIR / "logs", "logs")
 
 LOG_FILE = LOG_DIR / "photo_editor.log"
 
@@ -90,8 +106,7 @@ def main() -> int:
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
 
-    data_dir = ROOT_DIR / "data"
-    data_dir.mkdir(exist_ok=True)
+    data_dir = _writable_dir(ROOT_DIR / "data", "data")
 
     database = CatalogDatabase(
         data_dir / "catalog.db"

@@ -33,6 +33,10 @@ Thumbs.db
 
 *.tar.gz
 *.zip
+*.deb
+*.spec
+packaging/debian/opt/
+packaging/debian/usr/
 
 logs/*.log
 

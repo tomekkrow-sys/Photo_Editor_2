@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import unittest
+from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -61,6 +62,29 @@ class PilQImageRoundtripTests(unittest.TestCase):
         self.assertEqual(result.mode, "RGB")
         self.assertEqual(result.size, (8, 6))
         self.assertEqual(result.getpixel((3, 2)), (10, 200, 90))
+
+
+class WritableDirTests(unittest.TestCase):
+    """Verify writable-dir fallback for read-only install locations."""
+
+    def test_falls_back_to_user_dir_when_primary_readonly(self) -> None:
+        from photo_editor import _writable_dir
+
+        result = _writable_dir(Path("/proc/photo_editor_test"), "logs")
+
+        self.assertNotEqual(result, Path("/proc/photo_editor_test"))
+        self.assertIn(".local", str(result))
+        self.assertTrue(result.is_dir())
+
+    def test_writable_primary_is_used(self) -> None:
+        import tempfile
+
+        from photo_editor import _writable_dir
+
+        with tempfile.TemporaryDirectory() as tmp:
+            primary = Path(tmp) / "sub"
+            self.assertEqual(_writable_dir(primary, "x"), primary)
+            self.assertTrue(primary.is_dir())
 
 
 if __name__ == "__main__":

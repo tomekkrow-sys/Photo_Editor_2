@@ -1,4 +1,4 @@
-name: Build Windows EXE + macOS APP
+name: Build Windows EXE + macOS APP + Debian DEB
 
 on:
   push:
@@ -33,6 +33,30 @@ jobs:
         with:
           name: Photo_Editor_2-windows
           path: dist/Photo_Editor_2/
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build DEB
+        run: ./build_deb.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Photo_Editor_2-debian
+          path: photo-editor-2_*_amd64.deb
 
   build-macos:
     runs-on: macos-latest
