@@ -53,10 +53,10 @@ class PencilSketchTests(unittest.TestCase):
 
         result = np.asarray(pencil_sketch(img))
 
-        # natural look: bright paper, visible but never black strokes
-        self.assertGreater(float(result.mean()), 200.0)
+        # natural look: bright paper, visible dark-gray (never black) strokes
+        self.assertGreater(float(result.mean()), 180.0)
         self.assertLess(int(result.min()), int(result.mean()))
-        self.assertGreater(int(result.min()), 150)
+        self.assertGreater(int(result.min()), 90)
 
     def test_blank_white_image_stays_white(self) -> None:
         img = Image.new("RGB", (200, 200), (255, 255, 255))

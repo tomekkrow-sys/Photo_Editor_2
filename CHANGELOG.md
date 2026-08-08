@@ -58,6 +58,8 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/).
   szare kreski (nigdy czarne), cienie podniesione i czytelne,
   wstepne wygladzenie tlumace ziarno zdjecia; parametry mozna stroic
   (shading, stroke_strength, lift)
+- Ołówek v4: balans miedzy widoczna faktura kresek (tekstura OpenCV
+  zlagodzona x0.65) a tonalnoscia (shading=0.35, lift=0.15)
 
 ### Usuniete
 - Przestarzale testy starej architektury MainWindow (pokrycie zapewnia
