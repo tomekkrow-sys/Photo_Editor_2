@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import time
+
 from PySide6.QtGui import QImage
 
 class History:
@@ -91,6 +93,7 @@ class EditHistory:
         self._limit = limit
         self._undo: list = []
         self._redo: list = []
+        self.last_change: float = 0.0
 
     @property
     def can_undo(self) -> bool:
@@ -103,6 +106,7 @@ class EditHistory:
     def clear(self) -> None:
         self._undo.clear()
         self._redo.clear()
+        self.last_change = 0.0
 
     def push(self, current) -> None:
         """Store a copy of the current state; call BEFORE mutating."""
@@ -111,6 +115,7 @@ class EditHistory:
         if len(self._undo) > self._limit:
             self._undo.pop(0)
         self._redo.clear()
+        self.last_change = time.monotonic()
 
     def undo(self, current):
         """Return the previous state (or None) and move current to redo."""
@@ -118,6 +123,7 @@ class EditHistory:
         if not self._undo:
             return None
         self._redo.append(current)
+        self.last_change = time.monotonic()
         return self._undo.pop()
 
     def redo(self, current):
@@ -126,4 +132,5 @@ class EditHistory:
         if not self._redo:
             return None
         self._undo.append(current)
+        self.last_change = time.monotonic()
         return self._redo.pop()

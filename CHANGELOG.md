@@ -18,6 +18,8 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/).
   klik na element usuwa go z próbką z sąsiedniego obszaru,
   kółko myszy zmienia rozmiar pędzla, obsługa Cofnij
 - `pil_to_qimage` / `qimage_to_pil` w core/pipeline
+- **Cofnij/Ponów obejmuje suwaki korekty** — Ctrl+Z cofa edycje obrazu
+  i zmiany korekt (sesje suwaka grupowane), nowsza akcja wygrywa
 
 ### Zmienione
 - „Batch" przemianowany na **Konwerter folderu** (przycisk, okno,

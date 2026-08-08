@@ -191,5 +191,78 @@ class MainWindowOpsTests(unittest.TestCase):
         self.assertEqual(self.window._orig.getpixel((60, 40)), (0, 0, 0))
 
 
+class MainWindowAdjUndoTests(unittest.TestCase):
+    """Verify undo/redo covers slider adjustments."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.app = QApplication.instance() or QApplication([])
+
+    def setUp(self) -> None:
+        self.window = MainWindow()
+        self.tmp = tempfile.TemporaryDirectory()
+        self.image_path = Path(self.tmp.name) / "photo.png"
+        Image.new("RGB", (120, 80), (200, 120, 60)).save(self.image_path)
+        self.window._load(self.image_path)
+
+    def tearDown(self) -> None:
+        self.window._worker.wait(2000)
+        self.window.close()
+        self.window.deleteLater()
+        self.app.processEvents()
+        self.tmp.cleanup()
+
+    def test_slider_change_is_undoable(self) -> None:
+        from core.adjustments import Adjustments
+
+        adj = Adjustments()
+        adj.exposure = 2.5
+        self.window._on_adj(adj)
+
+        self.window._on_undo()
+        self.assertEqual(self.window._adj.exposure, 0.0)
+
+        self.window._on_redo()
+        self.assertEqual(self.window._adj.exposure, 2.5)
+
+    def test_rapid_slider_ticks_form_one_session(self) -> None:
+        from core.adjustments import Adjustments
+
+        for value in (0.5, 1.0, 1.5):
+            adj = Adjustments()
+            adj.exposure = value
+            self.window._on_adj(adj)
+
+        self.window._on_undo()
+        self.assertEqual(self.window._adj.exposure, 0.0)
+        self.assertFalse(self.window._adj_history.can_undo)
+
+    def test_newest_action_wins_on_undo(self) -> None:
+        from core.adjustments import Adjustments
+
+        self.window._on_rotate(90)
+        adj = Adjustments()
+        adj.contrast = 40.0
+        self.window._on_adj(adj)
+
+        self.window._on_undo()
+        self.assertEqual(self.window._adj.contrast, 0.0)
+        self.assertEqual(self.window._orig.size, (80, 120))
+
+        self.window._on_undo()
+        self.assertEqual(self.window._orig.size, (120, 80))
+
+    def test_load_clears_adjustment_history(self) -> None:
+        from core.adjustments import Adjustments
+
+        adj = Adjustments()
+        adj.exposure = 1.0
+        self.window._on_adj(adj)
+        self.assertTrue(self.window._adj_history.can_undo)
+
+        self.window._load(self.image_path)
+        self.assertFalse(self.window._adj_history.can_undo)
+
+
 if __name__ == "__main__":
     unittest.main()

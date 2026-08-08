@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 import logging
+import time
 import rawpy
 from pathlib import Path
 from PIL import Image
@@ -46,6 +47,9 @@ class MainWindow(QMainWindow):
         self._orig = None
         self._path = None
         self._history = EditHistory()
+        self._adj_history = EditHistory(limit=30)
+        self._adj_last_push = 0.0
+        self._suppress_adj_push = False
         self._spot = SpotTool()
         self._spot_size = None
         self._preview_arr = None
@@ -181,8 +185,7 @@ class MainWindow(QMainWindow):
         self._path = path
         self._history.clear()
         self._spot_size = None
-        self._adj.reset()
-        self.right_panel._reset_all()
+        self._reset_adjustment_state()
         self._ba_active = False
         self._render_now()
         self.statusBar().showMessage("Otwarto: " + path.name)
@@ -464,7 +467,22 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Konwersja zakonczona: {total} plikow.")
         QMessageBox.information(self, "Konwerter folderu", f"Wyeksportowano {total} zdjec.")
 
+    def _reset_adjustment_state(self):
+        """Reset adjustments and their history without a history push."""
+
+        self._adj.reset()
+        self._adj_history.clear()
+        self._adj_last_push = 0.0
+        self._suppress_adj_push = True
+        self.right_panel._reset_all()
+        self._suppress_adj_push = False
+
     def _on_adj(self, adj):
+        now = time.monotonic()
+        if not self._suppress_adj_push and now - self._adj_last_push > 0.8:
+            self._adj_history.push(self._adj)
+        if not self._suppress_adj_push:
+            self._adj_last_push = now
         self._adj = adj
         if self._ba_active:
             after = arr_to_pil(apply_adjustments_arr(self._preview_arr, self._adj))
@@ -496,8 +514,7 @@ class MainWindow(QMainWindow):
         self._orig = Image.new("RGB", (1920, 1080), (255, 255, 255))
         self._path = None
         self._history.clear()
-        self._adj.reset()
-        self.right_panel._reset_all()
+        self._reset_adjustment_state()
         preview = prepare_preview(self._orig, max_dim=800)
         self._preview_arr = pil_to_cv(preview)
         self._render_now()
@@ -561,6 +578,22 @@ class MainWindow(QMainWindow):
     def _on_undo(self):
         if self._orig is None:
             return
+        img_ok = self._history.can_undo
+        adj_ok = self._adj_history.can_undo
+        if not img_ok and not adj_ok:
+            self.statusBar().showMessage("Nic do cofniecia.")
+            return
+        if adj_ok and (
+            not img_ok
+            or self._adj_history.last_change > self._history.last_change
+        ):
+            prev = self._adj_history.undo(self._adj)
+            if prev is not None:
+                self._adj = prev
+                self.right_panel.set_adjustments(prev)
+                self._render_now()
+                self.statusBar().showMessage("Cofnieto korekte.")
+            return
         prev = self._history.undo(self._orig)
         if prev is None:
             self.statusBar().showMessage("Nic do cofniecia.")
@@ -571,6 +604,22 @@ class MainWindow(QMainWindow):
 
     def _on_redo(self):
         if self._orig is None:
+            return
+        img_ok = self._history.can_redo
+        adj_ok = self._adj_history.can_redo
+        if not img_ok and not adj_ok:
+            self.statusBar().showMessage("Nic do ponowienia.")
+            return
+        if adj_ok and (
+            not img_ok
+            or self._adj_history.last_change > self._history.last_change
+        ):
+            nxt = self._adj_history.redo(self._adj)
+            if nxt is not None:
+                self._adj = nxt
+                self.right_panel.set_adjustments(nxt)
+                self._render_now()
+                self.statusBar().showMessage("Ponowiono korekte.")
             return
         nxt = self._history.redo(self._orig)
         if nxt is None:
@@ -607,8 +656,7 @@ class MainWindow(QMainWindow):
         self._orig = qimage_to_pil(img)
         self._path = None
         self._history.clear()
-        self._adj.reset()
-        self.right_panel._reset_all()
+        self._reset_adjustment_state()
         preview = prepare_preview(self._orig, max_dim=800)
         self._preview_arr = pil_to_cv(preview)
         self._render_now()
