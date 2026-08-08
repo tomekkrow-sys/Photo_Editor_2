@@ -1,4 +1,4 @@
-name: Build Windows EXE
+name: Build Windows EXE + macOS APP
 
 on:
   push:
@@ -33,3 +33,31 @@ jobs:
         with:
           name: Photo_Editor_2-windows
           path: dist/Photo_Editor_2/
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build APP (PyInstaller)
+        run: >
+          pyinstaller --noconfirm --windowed
+          --name Photo_Editor_2
+          --collect-all rawpy
+          photo_editor.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Photo_Editor_2-macos
+          path: dist/Photo_Editor_2.app/
