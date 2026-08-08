@@ -3,7 +3,11 @@ name: Build Windows EXE + macOS APP + Debian DEB
 on:
   push:
     branches: [develop, main]
+    tags: ["v*"]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -28,11 +32,14 @@ jobs:
           --collect-all rawpy
           photo_editor.py
 
+      - name: Zip package
+        run: Compress-Archive -Path dist/Photo_Editor_2 -DestinationPath Photo_Editor_2-windows.zip
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: Photo_Editor_2-windows
-          path: dist/Photo_Editor_2/
+          path: Photo_Editor_2-windows.zip
 
   build-linux:
     runs-on: ubuntu-latest
@@ -80,8 +87,29 @@ jobs:
           --collect-all rawpy
           photo_editor.py
 
+      - name: Zip package
+        run: ditto -c -k --sequesterRsrc --keepParent dist/Photo_Editor_2.app Photo_Editor_2-macos.zip
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: Photo_Editor_2-macos
-          path: dist/Photo_Editor_2.app/
+          path: Photo_Editor_2-macos.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/Photo_Editor_2-windows/Photo_Editor_2-windows.zip
+            artifacts/Photo_Editor_2-debian/photo-editor-2_*_amd64.deb
+            artifacts/Photo_Editor_2-macos/Photo_Editor_2-macos.zip
+          generate_release_notes: true
