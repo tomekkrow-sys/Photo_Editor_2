@@ -49,5 +49,3 @@ error.log
 *.bak.*
 crash.log
 blad.txt
-ui/export_dialog.py
-ui/batch_dialog.py

@@ -92,7 +92,12 @@ class SpotTool:
         self._last_paint_point = None
 
     def _stamp(self, point: QPointF, target: QImage) -> None:
-        if target.isNull() or self._sample_image is None or self._sample_image.isNull():
+        if (
+            target.isNull()
+            or self._sample_image is None
+            or self._sample_image.isNull()
+            or self._source_point is None
+        ):
             return
         r = self.settings.size / 2
         stamp_rect = target.rect().intersected(

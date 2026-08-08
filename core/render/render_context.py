@@ -47,7 +47,7 @@ class RenderContext:
     apply_noise_reduction: bool = False
 
     # Optional crop rect (None = full image)
-    crop_rect = None
+    crop_rect: tuple[int, int, int, int] | None = None
 
     # Zoom level for UI preview (1.0 = 100%)
     preview_zoom: float = 1.0

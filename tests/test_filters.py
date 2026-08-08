@@ -30,10 +30,15 @@ class PencilSketchTests(unittest.TestCase):
         np.testing.assert_array_equal(np.asarray(img), before)
 
     def test_edges_produce_dark_strokes_on_white_paper(self) -> None:
-        img = Image.new("RGB", (100, 100), 255)
-        for x in range(50):
-            for y in range(100):
-                img.putpixel((x, y), (0, 0, 0))
+        from PIL import ImageDraw, ImageFilter
+
+        img = Image.new("RGB", (300, 200))
+        draw = ImageDraw.Draw(img)
+        for x in range(300):
+            value = int(255 * x / 300)
+            draw.line([(x, 0), (x, 200)], fill=(value, value, value))
+        draw.ellipse([60, 40, 160, 160], fill=(30, 30, 40))
+        img = img.filter(ImageFilter.GaussianBlur(2))
 
         result = np.asarray(pencil_sketch(img))
 
@@ -54,6 +59,19 @@ class PencilSketchTests(unittest.TestCase):
 
         self.assertEqual(result.mode, "L")
         self.assertEqual(result.size, (50, 40))
+
+    def test_smooth_gradient_keeps_tonal_gradation(self) -> None:
+        img = Image.new("RGB", (256, 40))
+        for x in range(256):
+            for y in range(40):
+                img.putpixel((x, y), (x, x, x))
+
+        result = np.asarray(pencil_sketch(img), dtype=np.int16)
+
+        left_mean = int(result[:, :20].mean())
+        right_mean = int(result[:, -20:].mean())
+        self.assertLess(left_mean, right_mean - 30)
+        self.assertGreater(int(result.max()) - int(result.min()), 60)
 
 
 if __name__ == "__main__":

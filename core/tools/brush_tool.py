@@ -127,7 +127,8 @@ class BrushTool:
             BrushMode.ERASE: QPainter.CompositionMode.CompositionMode_DestinationOut,
             BrushMode.DODGE: QPainter.CompositionMode.CompositionMode_Plus,
             BrushMode.BURN: QPainter.CompositionMode.CompositionMode_Multiply,
-            BrushMode.SATURATE: QPainter.CompositionMode.CompositionMode_Saturation,
+            # Qt6 removed CompositionMode_Saturation - approximate with Overlay
+            BrushMode.SATURATE: QPainter.CompositionMode.CompositionMode_Overlay,
             BrushMode.DESATURATE: QPainter.CompositionMode.CompositionMode_ColorDodge,
         }
         return mapping.get(mode, QPainter.CompositionMode.CompositionMode_SourceOver)

@@ -9,7 +9,7 @@ from PySide6.QtCore import QObject, Signal
 from PySide6.QtGui import QImage
 
 from core.image_saver import ImageSaver
-from core.image_processor import ImageProcessor
+from core.image.image_processor import ImageProcessor
 
 from .export_job import ExportFormat, ExportJob, ExportState
 

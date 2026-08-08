@@ -25,8 +25,8 @@ class CrashDialog(QDialog):
         self.editor.setReadOnly(True)
         self.editor.setPlainText(report)
         self.editor.setTextInteractionFlags(
-            Qt.TextSelectableByMouse |
-            Qt.TextSelectableByKeyboard
+            Qt.TextInteractionFlag.TextSelectableByMouse
+            | Qt.TextInteractionFlag.TextSelectableByKeyboard
         )
 
         copy_button = QPushButton("Kopiuj raport")

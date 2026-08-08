@@ -20,14 +20,14 @@ class MetadataPanel(QWidget):
 
         self.filename = QLabel("-")
         self.path = QLabel("-")
-        self.size = QLabel("-")
+        self.size_label = QLabel("-")
         self.resolution = QLabel("-")
         self.filetype = QLabel("-")
         self.modified = QLabel("-")
 
         layout.addRow("Nazwa:", self.filename)
         layout.addRow("Ścieżka:", self.path)
-        layout.addRow("Rozmiar:", self.size)
+        layout.addRow("Rozmiar:", self.size_label)
         layout.addRow("Rozdzielczość:", self.resolution)
         layout.addRow("Typ:", self.filetype)
         layout.addRow("Zmodyfikowano:", self.modified)
@@ -39,7 +39,7 @@ class MetadataPanel(QWidget):
         try:
             meta = ImageMetadata.from_path(photo.full_path)
 
-            self.size.setText(
+            self.size_label.setText(
                 f"{meta.size_bytes/1024/1024:.1f} MB"
             )
 
@@ -54,7 +54,7 @@ class MetadataPanel(QWidget):
             )
 
         except Exception:
-            self.size.setText("-")
+            self.size_label.setText("-")
             self.resolution.setText("-")
             self.filetype.setText("-")
             self.modified.setText("-")

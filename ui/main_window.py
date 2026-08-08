@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+import logging
 import rawpy
 from pathlib import Path
 from PIL import Image
@@ -130,7 +131,7 @@ class MainWindow(QMainWindow):
                 self._orig = self._orig.convert("RGB")
                 
         except Exception as e:
-            print(f"Blad otwierania: {e}")
+            logging.error("Blad otwierania %s: %s", path, e)
             QMessageBox.critical(self, "Blad", "Nie mozna otworzyc: " + path.name)
             return
         preview = prepare_preview(self._orig, max_dim=800)
@@ -188,7 +189,6 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Tryb kadrowania: zaznacz prostokat, potem kliknij Kadruj.")
 
     def _on_rotate(self, angle):
-        print(f"ROTATE called: {angle}")
         if self._orig is None:
             return
         self._orig = self._orig.rotate(angle, expand=True)
@@ -261,7 +261,7 @@ class MainWindow(QMainWindow):
                     sketch.save(p)
                     self.statusBar().showMessage("Zapisano: " + Path(p).name)
                 except Exception as e:
-                    print(f"Blad zapisu olowka: {e}")
+                    logging.error("Blad zapisu olowka: %s", e)
                     QMessageBox.critical(self, "Blad", "Nie mozna zapisac pliku.")
         self._render_now()
 
@@ -311,7 +311,7 @@ class MainWindow(QMainWindow):
                 else:
                     out_pil.save(str(out_path), "TIFF")
             except Exception as e:
-                print(f"Blad {f.name}: {e}")
+                logging.error("Blad %s: %s", f.name, e)
         self.statusBar().showMessage(f"Batch zakonczony: {total} plikow.")
         QMessageBox.information(self, "Batch", f"Wyeksportowano {total} zdjec.")
 
