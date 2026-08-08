@@ -6,7 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum, auto
 
-from PySide6.QtCore import QPointF, Qt
+from PySide6.QtCore import QPointF, QRect, Qt
 from PySide6.QtGui import QColor, QImage, QPainter, QRadialGradient
 
 
@@ -100,29 +100,28 @@ class SpotTool:
         ):
             return
         r = self.settings.size / 2
-        stamp_rect = target.rect().intersected(
-            target.rect().adjusted(
-                int(point.x() - r), int(point.y() - r),
-                int(point.x() + r), int(point.y() + r),
-            )
-        )
-        if stamp_rect.isEmpty():
-            return
-        if self.settings.aligned:
+        d = int(r) + 1
+        if self.settings.aligned and self._last_paint_point is not None:
             src_point = QPointF(
                 point.x() + (self._source_point.x() - self._last_paint_point.x()),
                 point.y() + (self._source_point.y() - self._last_paint_point.y()),
-            ) if self._last_paint_point else self._source_point
+            )
+        elif self.settings.aligned:
+            src_point = self._source_point
         else:
             src_point = QPointF(point.x() + self._offset.x(), point.y() + self._offset.y())
-        src_rect = self._sample_image.rect().intersected(
-            self._sample_image.rect().adjusted(
-                int(src_point.x() - r), int(src_point.y() - r),
-                int(src_point.x() + r), int(src_point.y() + r),
-            )
-        )
-        if src_rect.isEmpty():
+        stamp_rect = QRect(
+            int(point.x()) - d, int(point.y()) - d, 2 * d, 2 * d
+        ).intersected(target.rect())
+        src_rect = QRect(
+            int(src_point.x()) - d, int(src_point.y()) - d, 2 * d, 2 * d
+        ).intersected(self._sample_image.rect())
+        if stamp_rect.isEmpty() or src_rect.isEmpty():
             return
+        w = min(stamp_rect.width(), src_rect.width())
+        h = min(stamp_rect.height(), src_rect.height())
+        stamp_rect = QRect(stamp_rect.x(), stamp_rect.y(), w, h)
+        src_rect = QRect(src_rect.x(), src_rect.y(), w, h)
         patch = self._sample_image.copy(src_rect)
         if self.settings.mode == SpotMode.HEAL:
             dest_patch = target.copy(stamp_rect)
@@ -157,7 +156,7 @@ class SpotTool:
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRect(mask.rect())
         painter.end()
-        result = image.copy()
+        result = image.copy().convertToFormat(QImage.Format.Format_ARGB32)
         mask_painter = QPainter(result)
         mask_painter.setCompositionMode(
             QPainter.CompositionMode.CompositionMode_DestinationIn

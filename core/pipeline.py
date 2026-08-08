@@ -90,3 +90,16 @@ def pil_to_qpixmap(pil_img):
         data = pil_img.tobytes("raw", "RGB")
         qimg = QImage(data, pil_img.width, pil_img.height, pil_img.width * 3, QImage.Format.Format_RGB888)
     return QPixmap.fromImage(qimg)
+
+def pil_to_qimage(pil_img):
+    """Convert PIL image to QImage (owns a copy of the data)."""
+    return pil_to_qpixmap(pil_img).toImage()
+
+def qimage_to_pil(qimg):
+    """Convert QImage to RGB PIL image (copies the data)."""
+    img = qimg.convertToFormat(QImage.Format.Format_RGBA8888)
+    w, h = img.width(), img.height()
+    arr = np.frombuffer(
+        img.bits(), dtype=np.uint8
+    ).reshape(h, img.bytesPerLine())[:, : w * 4].reshape(h, w, 4).copy()
+    return Image.fromarray(arr, "RGBA").convert("RGB")

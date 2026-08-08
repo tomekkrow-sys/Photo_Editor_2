@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-from PySide6.QtCore import Qt, QRectF
+from PySide6.QtCore import Qt, QRectF, QPointF, Signal
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
 class Canvas(QWidget):
+    spot_clicked = Signal(object)
+    spot_wheel = Signal(int)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._pixmap = None
@@ -36,6 +39,8 @@ class Canvas(QWidget):
         self._zoom = 1.0
         self._crop_mode = False
         self._ba_mode = False
+        self._spot_mode = False
+        self._spot_mode = False
         self._crop_start = None
         self._crop_end = None
         self.update()
@@ -71,6 +76,16 @@ class Canvas(QWidget):
         self._crop_mode = False
         self._crop_start = None
         self._crop_end = None
+        self.setCursor(Qt.OpenHandCursor)
+        self.update()
+
+    def start_spot(self):
+        self._spot_mode = True
+        self.setCursor(Qt.CrossCursor)
+        self.update()
+
+    def cancel_spot(self):
+        self._spot_mode = False
         self.setCursor(Qt.OpenHandCursor)
         self.update()
 
@@ -163,6 +178,15 @@ class Canvas(QWidget):
         painter.end()
 
     def mousePressEvent(self, event):
+        if self._spot_mode:
+            r = self._img_rect()
+            if r and self._pixmap and not self._pixmap.isNull():
+                x, y, iw, ih = r
+                px = (event.pos().x() - x) / self._zoom
+                py = (event.pos().y() - y) / self._zoom
+                if 0 <= px < self._pixmap.width() and 0 <= py < self._pixmap.height():
+                    self.spot_clicked.emit(QPointF(px, py))
+            return
         if self._ba_mode:
             r = self._img_rect()
             if r:
@@ -181,6 +205,8 @@ class Canvas(QWidget):
             self.setCursor(Qt.ClosedHandCursor)
 
     def mouseMoveEvent(self, event):
+        if self._spot_mode:
+            return
         if self._ba_mode and self._ba_drag:
             r = self._img_rect()
             if r:
@@ -202,6 +228,8 @@ class Canvas(QWidget):
             self.update()
 
     def mouseReleaseEvent(self, event):
+        if self._spot_mode:
+            return
         if self._ba_mode:
             self._ba_drag = False
             return
@@ -215,6 +243,9 @@ class Canvas(QWidget):
 
     def wheelEvent(self, event):
         if self._ba_mode:
+            return
+        if self._spot_mode:
+            self.spot_wheel.emit(event.angleDelta().y())
             return
         if self._pixmap is None or self._pixmap.isNull():
             return

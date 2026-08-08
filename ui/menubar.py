@@ -45,6 +45,7 @@ class MenuBar(QMenuBar):
         vm.addAction(self.actions.actual_size)
         tm = self.addMenu("&Narzedzia")
         tm.addAction(self.actions.crop)
+        tm.addAction(self.actions.spot)
         tm.addAction(self.actions.rotate_left)
         tm.addAction(self.actions.rotate_right)
         tm.addAction(self.actions.flip_h)

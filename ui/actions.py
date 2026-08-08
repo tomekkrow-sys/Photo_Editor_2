@@ -44,6 +44,7 @@ class ActionManager:
         self.actual_size.setShortcut(shortcuts.ACTUAL_SIZE)
         self.crop = QAction("Kadruj", self.parent)
         self.crop.setShortcut(shortcuts.CROP)
+        self.spot = QAction("Usun obiekt", self.parent)
         self.rotate_left = QAction("Obrot L", self.parent)
         self.rotate_right = QAction("Obrot P", self.parent)
         self.flip_h = QAction("Flip H", self.parent)

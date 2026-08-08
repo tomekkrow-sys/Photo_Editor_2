@@ -4,8 +4,8 @@ import logging
 import rawpy
 from pathlib import Path
 from PIL import Image
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QGuiApplication, QImage, QPixmap
+from PySide6.QtCore import Qt, QPointF
+from PySide6.QtGui import QGuiApplication, QPixmap
 from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QSplitter, QVBoxLayout, QWidget
 from config.defaults import DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH
 from config.version import WINDOW_TITLE
@@ -20,8 +20,9 @@ from core.filters import (
 )
 from core.history import EditHistory
 from core.image_loader import SUPPORTED_FORMATS
-from core.pipeline import prepare_preview, pil_to_cv, pil_to_qpixmap, apply_adjustments_arr, arr_to_pil
+from core.pipeline import prepare_preview, pil_to_cv, pil_to_qpixmap, pil_to_qimage, qimage_to_pil, apply_adjustments_arr, arr_to_pil
 from core.preset_manager import save_preset, load_preset, list_presets
+from core.tools.spot_tool import SpotTool
 from core.worker import PipelineWorker
 from ui.actions import ActionManager
 from ui.canvas import Canvas
@@ -45,6 +46,8 @@ class MainWindow(QMainWindow):
         self._orig = None
         self._path = None
         self._history = EditHistory()
+        self._spot = SpotTool()
+        self._spot_size = None
         self._preview_arr = None
         self._adj = Adjustments()
         self._worker = PipelineWorker(self)
@@ -97,6 +100,9 @@ class MainWindow(QMainWindow):
         self.actions.delete.triggered.connect(self._on_delete)
         self.actions.exit.triggered.connect(self.close)
         self.actions.crop.triggered.connect(self._on_crop)
+        self.actions.spot.triggered.connect(self._on_spot_toggle)
+        self.canvas.spot_clicked.connect(self._on_spot_click)
+        self.canvas.spot_wheel.connect(self._on_spot_wheel)
         self.actions.rotate_left.triggered.connect(lambda: self._on_rotate(90))
         self.actions.rotate_right.triggered.connect(lambda: self._on_rotate(-90))
         self.actions.flip_h.triggered.connect(lambda: self._on_flip(True, False))
@@ -121,12 +127,13 @@ class MainWindow(QMainWindow):
         if p:
             self._load(Path(p))
 
-    def _load(self, path):
-        try:
-            ext = path.suffix.lower()
-            raw_exts = RAW_EXTS
+    def _open_image(self, path):
+        """Open an image file (including RAW) as an RGB PIL image.
 
-            # Pobierz EXIF orientation z pliku (dziala dla RAW i JPG)
+        Applies EXIF orientation. Returns None on failure.
+        """
+
+        try:
             orientation = 1
             try:
                 with Image.open(path) as tmp:
@@ -135,37 +142,45 @@ class MainWindow(QMainWindow):
                         orientation = exif.get(274, 1)
             except Exception:
                 pass
-            
-            if ext in raw_exts:
+
+            if path.suffix.lower() in RAW_EXTS:
                 with rawpy.imread(str(path)) as raw:
-                    rgb = raw.postprocess(use_camera_wb=True, no_auto_bright=False, output_bps=8)
-                    self._orig = Image.fromarray(rgb)
+                    rgb = raw.postprocess(
+                        use_camera_wb=True,
+                        no_auto_bright=False,
+                        output_bps=8,
+                    )
+                img = Image.fromarray(rgb)
             else:
-                self._orig = Image.open(path)
-            
-            # Zastosuj EXIF orientation
+                img = Image.open(path)
+                img.load()
+
             if orientation == 3:
-                self._orig = self._orig.rotate(180, expand=True)
+                img = img.rotate(180, expand=True)
             elif orientation == 6:
-                self._orig = self._orig.rotate(270, expand=True)
+                img = img.rotate(270, expand=True)
             elif orientation == 8:
-                self._orig = self._orig.rotate(90, expand=True)
-            
-            # Konwertuj do RGB
-            if self._orig.mode in ("RGBA", "P"):
-                self._orig = self._orig.convert("RGBA")
-                self._orig = self._orig.convert("RGB")
-            elif self._orig.mode != "RGB":
-                self._orig = self._orig.convert("RGB")
-                
+                img = img.rotate(90, expand=True)
+
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGBA").convert("RGB")
+            elif img.mode != "RGB":
+                img = img.convert("RGB")
+            return img
         except Exception as e:
             logging.error("Blad otwierania %s: %s", path, e)
+            return None
+
+    def _load(self, path):
+        self._orig = self._open_image(path)
+        if self._orig is None:
             QMessageBox.critical(self, "Blad", "Nie mozna otworzyc: " + path.name)
             return
         preview = prepare_preview(self._orig, max_dim=800)
         self._preview_arr = pil_to_cv(preview)
         self._path = path
         self._history.clear()
+        self._spot_size = None
         self._adj.reset()
         self.right_panel._reset_all()
         self._ba_active = False
@@ -183,6 +198,7 @@ class MainWindow(QMainWindow):
             return
         if self._ba_active:
             self._on_before_after()
+        self.canvas.cancel_spot()
         if self.canvas._crop_mode:
             rect = self.canvas.get_crop_rect()
             if rect:
@@ -217,6 +233,61 @@ class MainWindow(QMainWindow):
         else:
             self.canvas.start_crop()
             self.statusBar().showMessage("Tryb kadrowania: zaznacz prostokat, potem kliknij Kadruj.")
+
+    def _on_spot_toggle(self):
+        if self._orig is None:
+            QMessageBox.warning(self, "Usun obiekt", "Najpierw otworz zdjecie.")
+            return
+        if self._ba_active:
+            self._on_before_after()
+        if self.canvas._spot_mode:
+            self.canvas.cancel_spot()
+            self.statusBar().showMessage("Tryb retuszu wylaczony.")
+        else:
+            self.canvas.cancel_crop()
+            self.canvas.start_spot()
+            self.statusBar().showMessage(
+                "Retusz: kliknij element do usuniecia. "
+                "Kolko myszy zmienia rozmiar. "
+                "Ponowne klikniecie przycisku wylacza tryb."
+            )
+
+    def _spot_auto_size(self) -> int:
+        return max(24, min(300, max(self._orig.width, self._orig.height) // 20))
+
+    def _on_spot_wheel(self, delta: int):
+        if self._orig is None:
+            return
+        if self._spot_size is None:
+            self._spot_size = self._spot_auto_size()
+        factor = 1.2 if delta > 0 else 1 / 1.2
+        self._spot_size = int(max(8, min(500, self._spot_size * factor)))
+        self.statusBar().showMessage(f"Retusz: rozmiar {self._spot_size}px")
+
+    def _on_spot_click(self, preview_pos):
+        if self._orig is None or self._preview_arr is None:
+            return
+        preview_h, preview_w = self._preview_arr.shape[:2]
+        scale_x = self._orig.width / preview_w
+        scale_y = self._orig.height / preview_h
+        x = preview_pos.x() * scale_x
+        y = preview_pos.y() * scale_y
+        size = self._spot_size if self._spot_size is not None else self._spot_auto_size()
+        r = size / 2
+        qimg = pil_to_qimage(self._orig)
+        sx = x + size * 2
+        if sx + r > qimg.width():
+            sx = x - size * 2
+        sx = max(r, min(sx, qimg.width() - r))
+        sy = max(r, min(y, qimg.height() - r))
+        self._spot.settings.size = size
+        self._spot.set_sample_source(QPointF(sx, sy), qimg)
+        self._spot.begin_paint(QPointF(x, y), qimg)
+        self._spot.finish_paint()
+        self._history.push(self._orig)
+        self._orig = qimage_to_pil(qimg)
+        self._refresh_after_edit()
+        self.statusBar().showMessage("Usunieto element (Ctrl+Z cofa).")
 
     def _on_rotate(self, angle):
         if self._orig is None:
@@ -357,8 +428,7 @@ class MainWindow(QMainWindow):
         if not in_dir.exists() or not out_dir.exists():
             QMessageBox.warning(self, "Konwerter folderu", "Wybierz poprawne foldery.")
             return
-        exts = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp", ".gif", ".nef", ".cr2", ".arw", ".dng"}
-        files = [f for f in in_dir.iterdir() if f.suffix.lower() in exts]
+        files = [f for f in in_dir.iterdir() if f.suffix.lower() in SUPPORTED_FORMATS]
         if not files:
             QMessageBox.warning(self, "Konwerter folderu", "Brak zdjec w folderze wejsciowym.")
             return
@@ -370,11 +440,9 @@ class MainWindow(QMainWindow):
         for i, f in enumerate(files, 1):
             try:
                 dlg.set_progress(i, total)
-                img = Image.open(f)
-                if img.mode in ("RGBA", "P"):
-                    img = img.convert("RGBA")
-                else:
-                    img = img.convert("RGB")
+                img = self._open_image(f)
+                if img is None:
+                    continue
                 arr = np.array(img, dtype=np.float32) / 255.0
                 out_arr = apply_adjustments_arr(arr, self._adj)
                 out_pil = arr_to_pil(out_arr)
@@ -535,13 +603,8 @@ class MainWindow(QMainWindow):
         if img.isNull():
             self.statusBar().showMessage("Schowek nie zawiera obrazu.")
             return
-        import numpy as np
-        img = img.convertToFormat(QImage.Format.Format_RGBA8888)
         w, h = img.width(), img.height()
-        arr = np.frombuffer(img.bits(), dtype=np.uint8).reshape(
-            h, img.bytesPerLine()
-        )[:, : w * 4].reshape(h, w, 4)
-        self._orig = Image.fromarray(arr, "RGBA").convert("RGB")
+        self._orig = qimage_to_pil(img)
         self._path = None
         self._history.clear()
         self._adj.reset()

@@ -14,10 +14,21 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/).
   gray-world + rozciągnięcie kontrastu, z obsługą Cofnij
 - **Zmień rozmiar** (menu Obraz): dialog z blokadą proporcji,
   z obsługą Cofnij
+- **Usuń obiekt** (Narzędzia / pasek): retusz punktowy (heal/clone),
+  klik na element usuwa go z próbką z sąsiedniego obszaru,
+  kółko myszy zmienia rozmiar pędzla, obsługa Cofnij
+- `pil_to_qimage` / `qimage_to_pil` w core/pipeline
 
 ### Zmienione
 - „Batch" przemianowany na **Konwerter folderu** (przycisk, okno,
   komunikaty)
+
+### Naprawione
+- Konwerter folderu: pliki RAW (.nef, .cr2, .arw...) były pomijane —
+  teraz dekodowane przez rawpy jak przy normalnym otwieraniu,
+  z uwzględnieniem orientacji EXIF
+- spot_tool: błędna geometria prostokątów w `_stamp` (nic nie
+  malowało) oraz czarna ramka przy stemplu (brak kanału alfa)
 
 ## [0.1.0] - 2026-08-08
 

@@ -173,6 +173,23 @@ class MainWindowOpsTests(unittest.TestCase):
             list(before.getdata()),
         )
 
+    def test_spot_removal_heals_dot_and_supports_undo(self) -> None:
+        from PySide6.QtCore import QPointF
+
+        for dx in range(-4, 5):
+            for dy in range(-4, 5):
+                self.window._orig.putpixel((60 + dx, 40 + dy), (0, 0, 0))
+        preview = self.window._preview_arr
+        self.assertIsNotNone(preview)
+
+        self.window._on_spot_click(QPointF(60.0, 40.0))
+
+        healed = self.window._orig.getpixel((60, 40))
+        self.assertGreater(healed[0], 150)
+
+        self.window._on_undo()
+        self.assertEqual(self.window._orig.getpixel((60, 40)), (0, 0, 0))
+
 
 if __name__ == "__main__":
     unittest.main()
