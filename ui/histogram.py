@@ -27,7 +27,7 @@ class HistogramWidget(QWidget):
         self._hist_r = np.histogram(arr[:, :, 0], bins=256, range=(0, 256))[0]
         self._hist_g = np.histogram(arr[:, :, 1], bins=256, range=(0, 256))[0]
         self._hist_b = np.histogram(arr[:, :, 2], bins=256, range=(0, 256))[0]
-        gray = np.mean(arr, axis=2, dtype=np.uint8)
+        gray = np.mean(arr.astype(np.float32), axis=2).astype(np.uint8)
         self._hist_l = np.histogram(gray, bins=256, range=(0, 256))[0]
         # Clipping detection
         total = arr.shape[0] * arr.shape[1]

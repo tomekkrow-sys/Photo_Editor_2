@@ -50,6 +50,10 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/).
 ### Naprawione
 - Logi i katalog danych zapisuja sie w katalogu uzytkownika,
   gdy lokalizacja programu jest tylko-do-odczytu (instalacja /opt)
+- Wczytywanie presetow wywalalo sie (brak `Adjustments.from_dict`)
+- `pil_to_cv` crashowal na obrazach w trybach L/LA/P
+- Histogram szarosci: przepełnienie uint8 (200 raportowane jako 29)
+- core/canvas: identity-check przed kosztownym apply_settings
 
 ### Usuniete
 - Przestarzale testy starej architektury MainWindow (pokrycie zapewnia

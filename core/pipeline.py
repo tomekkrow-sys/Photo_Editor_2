@@ -13,11 +13,12 @@ def prepare_preview(pil_img, max_dim=2400):
     return pil_img.copy()
 
 def pil_to_cv(pil_img):
-    arr = np.array(pil_img)
-    if arr.shape[2] == 4:
-        arr = cv2.cvtColor(arr, cv2.COLOR_RGBA2BGR)
+    if pil_img.mode == "RGBA":
+        arr = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGBA2BGR)
     else:
-        arr = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
+        arr = cv2.cvtColor(
+            np.array(pil_img.convert("RGB")), cv2.COLOR_RGB2BGR
+        )
     return arr.astype(np.float32) / 255.0
 
 def cv_to_pil(arr):

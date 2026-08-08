@@ -11,7 +11,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PIL import Image
 from PySide6.QtWidgets import QApplication
 
-from core.pipeline import pil_to_qimage, pil_to_qpixmap, qimage_to_pil
+from core.pipeline import pil_to_cv, pil_to_qimage, pil_to_qpixmap, qimage_to_pil
 
 
 class PilToQPixmapTests(unittest.TestCase):
@@ -44,6 +44,34 @@ class PilToQPixmapTests(unittest.TestCase):
 
     def test_palette(self) -> None:
         self._check("P")
+
+
+class PilToCvModesTests(unittest.TestCase):
+    """Verify pil_to_cv handles all PIL modes (regression: L/P/LA crash)."""
+
+    def _check(self, mode: str) -> None:
+        img = Image.new(mode, (8, 6))
+
+        arr = pil_to_cv(img)
+
+        self.assertEqual(arr.shape, (6, 8, 3))
+
+    def test_l_mode(self) -> None:
+        self._check("L")
+
+    def test_p_mode(self) -> None:
+        self._check("P")
+
+    def test_la_mode(self) -> None:
+        self._check("LA")
+
+    def test_rgb_value_range(self) -> None:
+        img = Image.new("RGB", (4, 4), (255, 0, 0))
+
+        arr = pil_to_cv(img)
+
+        self.assertLessEqual(float(arr.max()), 1.0)
+        self.assertAlmostEqual(float(arr[0, 0, 2]), 1.0)
 
 
 class PilQImageRoundtripTests(unittest.TestCase):

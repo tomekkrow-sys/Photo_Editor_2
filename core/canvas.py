@@ -265,6 +265,7 @@ class Canvas(QGraphicsView):
         if (
             not self.document.is_loaded
             or self.document.active_image is None
+            or settings.is_identity()
         ):
             return False
 
@@ -272,9 +273,6 @@ class Canvas(QGraphicsView):
             self.document.active_image,
             settings,
         )
-
-        if settings.is_identity():
-            return False
 
         self.history.push(image)
         self._restore_image(image)

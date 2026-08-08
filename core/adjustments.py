@@ -27,6 +27,15 @@ class Adjustments:
     def copy(self):
         return Adjustments(**self.to_dict())
 
+    @classmethod
+    def from_dict(cls, data):
+        """Build Adjustments from a dict, ignoring unknown keys."""
+
+        known = {
+            k: v for k, v in data.items() if k in cls.__dataclass_fields__
+        }
+        return cls(**known)
+
     def to_dict(self):
         return {
             "exposure": self.exposure, "contrast": self.contrast,
