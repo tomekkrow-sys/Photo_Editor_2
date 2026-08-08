@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 from PIL import Image
 
-from core.filters import pencil_sketch
+from core.filters import black_and_white, pencil_sketch
 
 
 class PencilSketchTests(unittest.TestCase):
@@ -72,6 +72,47 @@ class PencilSketchTests(unittest.TestCase):
         right_mean = int(result[:, -20:].mean())
         self.assertLess(left_mean, right_mean - 30)
         self.assertGreater(int(result.max()) - int(result.min()), 60)
+
+
+class BlackAndWhiteTests(unittest.TestCase):
+    """Verify black & white conversion behavior."""
+
+    def test_returns_grayscale_image_of_same_size(self) -> None:
+        img = Image.new("RGB", (120, 80), (200, 120, 60))
+
+        result = black_and_white(img)
+
+        self.assertEqual(result.mode, "L")
+        self.assertEqual(result.size, img.size)
+
+    def test_does_not_modify_original(self) -> None:
+        img = Image.new("RGB", (64, 64), (10, 200, 90))
+        before = np.asarray(img).copy()
+
+        black_and_white(img)
+
+        np.testing.assert_array_equal(np.asarray(img), before)
+
+    def test_uniform_image_stays_uniform(self) -> None:
+        img = Image.new("RGB", (60, 60), (128, 128, 128))
+
+        result = np.asarray(black_and_white(img))
+
+        self.assertEqual(int(result.min()), int(result.max()))
+
+    def test_contrast_curve_increases_spread(self) -> None:
+        img = Image.new("RGB", (256, 10))
+        for x in range(256):
+            for y in range(10):
+                img.putpixel((x, y), (x, x, x))
+
+        plain = np.asarray(black_and_white(img, contrast=0.0))
+        curved = np.asarray(black_and_white(img, contrast=0.8))
+
+        mid = 128
+        self.assertLess(int(curved[0, 64]), int(plain[0, 64]))
+        self.assertGreater(int(curved[0, 192]), int(plain[0, 192]))
+        self.assertEqual(int(curved[0, mid]), mid)
 
 
 if __name__ == "__main__":

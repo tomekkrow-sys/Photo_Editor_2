@@ -31,6 +31,7 @@ class MenuBar(QMenuBar):
         self.addMenu("&Obraz")
         film = self.addMenu("&Filtry")
         film.addAction(self.actions.pencil)
+        film.addAction(self.actions.black_white)
         vm = self.addMenu("&Widok")
         vm.addAction(self.actions.zoom_in)
         vm.addAction(self.actions.zoom_out)

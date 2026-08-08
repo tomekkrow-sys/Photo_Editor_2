@@ -35,3 +35,22 @@ def pencil_sketch(img: Image.Image, shading: float = 0.35) -> Image.Image:
         np.clip(result, 0, 255).astype(np.uint8),
         mode="L",
     )
+
+
+def black_and_white(img: Image.Image, contrast: float = 0.5) -> Image.Image:
+    """Convert a photo to black & white with a gentle S-curve.
+
+    Weighted luminance keeps natural tones; the S-curve deepens shadows
+    and lifts highlights a bit. Returns a new "L" mode image.
+    """
+
+    rgb = np.asarray(img.convert("RGB"), dtype=np.float32)
+    lum = rgb[..., 0] * 0.299 + rgb[..., 1] * 0.587 + rgb[..., 2] * 0.114
+
+    x = lum / 255.0
+    y = x + contrast * x * (1.0 - x) * (x - 0.5) * 4.0
+
+    return Image.fromarray(
+        np.clip(y * 255.0, 0, 255).astype(np.uint8),
+        mode="L",
+    )
