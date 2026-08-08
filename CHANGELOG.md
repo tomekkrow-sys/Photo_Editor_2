@@ -9,6 +9,11 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/).
 ### Dodane
 - Filtr **Czarno-biały** (menu Filtry / pasek narzędzi): naturalne tony,
   łagodna krzywa S, podgląd i zapis jako nowy plik
+- Filtry **Sepia**, **Negatyw**, **Winieta** (menu Filtry)
+- **Auto-korekta** jednym kliknięciem (menu Obraz): balans bieli
+  gray-world + rozciągnięcie kontrastu, z obsługą Cofnij
+- **Zmień rozmiar** (menu Obraz): dialog z blokadą proporcji,
+  z obsługą Cofnij
 
 ## [0.1.0] - 2026-08-08
 

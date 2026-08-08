@@ -51,3 +51,8 @@ class ActionManager:
         self.before_after = QAction("Przed/Po", self.parent)
         self.pencil = QAction("Olowek", self.parent)
         self.black_white = QAction("Czarno-biale", self.parent)
+        self.sepia = QAction("Sepia", self.parent)
+        self.negative = QAction("Negatyw", self.parent)
+        self.vignette = QAction("Winieta", self.parent)
+        self.auto_enhance = QAction("Auto-korekta", self.parent)
+        self.resize_image = QAction("Zmien rozmiar...", self.parent)

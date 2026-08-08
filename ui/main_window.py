@@ -10,7 +10,14 @@ from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QSplitter, 
 from config.defaults import DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH
 from config.version import WINDOW_TITLE
 from core.adjustments import Adjustments
-from core.filters import black_and_white, pencil_sketch
+from core.filters import (
+    auto_enhance,
+    black_and_white,
+    negative,
+    pencil_sketch,
+    sepia,
+    vignette,
+)
 from core.history import EditHistory
 from core.image_loader import SUPPORTED_FORMATS
 from core.pipeline import prepare_preview, pil_to_cv, pil_to_qpixmap, apply_adjustments_arr, arr_to_pil
@@ -97,6 +104,11 @@ class MainWindow(QMainWindow):
         self.actions.before_after.triggered.connect(self._on_before_after)
         self.actions.pencil.triggered.connect(self._on_pencil)
         self.actions.black_white.triggered.connect(self._on_black_white)
+        self.actions.sepia.triggered.connect(self._on_sepia)
+        self.actions.negative.triggered.connect(self._on_negative)
+        self.actions.vignette.triggered.connect(self._on_vignette)
+        self.actions.auto_enhance.triggered.connect(self._on_auto_enhance)
+        self.actions.resize_image.triggered.connect(self._on_resize)
         self.actions.batch.triggered.connect(self._on_batch_export)
         self.actions.zoom_in.triggered.connect(self._on_zin)
         self.actions.zoom_out.triggered.connect(self._on_zout)
@@ -253,6 +265,46 @@ class MainWindow(QMainWindow):
 
     def _on_black_white(self):
         self._run_filter(black_and_white, "Czarno-biale", "_bw.png")
+
+    def _on_sepia(self):
+        self._run_filter(sepia, "Sepia", "_sepia.png")
+
+    def _on_negative(self):
+        self._run_filter(negative, "Negatyw", "_negatyw.png")
+
+    def _on_vignette(self):
+        self._run_filter(vignette, "Winieta", "_winieta.png")
+
+    def _on_auto_enhance(self):
+        if self._orig is None:
+            QMessageBox.warning(self, "Auto-korekta", "Najpierw otworz zdjecie.")
+            return
+        self._history.push(self._orig)
+        self._orig = auto_enhance(self._orig)
+        self._refresh_after_edit()
+        self.statusBar().showMessage("Zastosowano auto-korekte (Ctrl+Z cofa).")
+
+    def _on_resize(self):
+        if self._orig is None:
+            QMessageBox.warning(self, "Zmien rozmiar", "Najpierw otworz zdjecie.")
+            return
+        from ui.resize_dialog import ResizeDialog
+        dlg = ResizeDialog(self, self._orig.width, self._orig.height)
+        if dlg.exec() != ResizeDialog.DialogCode.Accepted:
+            return
+        w, h = dlg.get_size()
+        self._resize_image(w, h)
+
+    def _resize_image(self, width: int, height: int) -> bool:
+        if self._orig is None or width <= 0 or height <= 0:
+            return False
+        self._history.push(self._orig)
+        self._orig = self._orig.resize(
+            (width, height), Image.Resampling.LANCZOS
+        )
+        self._refresh_after_edit()
+        self.statusBar().showMessage(f"Zmieniono rozmiar: {width} x {height}")
+        return True
 
     def _run_filter(self, func, name, suffix):
         """Preview a filter on the full image, offer save-as-new-file."""

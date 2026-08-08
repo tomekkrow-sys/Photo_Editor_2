@@ -7,7 +7,14 @@ import unittest
 import numpy as np
 from PIL import Image
 
-from core.filters import black_and_white, pencil_sketch
+from core.filters import (
+    auto_enhance,
+    black_and_white,
+    negative,
+    pencil_sketch,
+    sepia,
+    vignette,
+)
 
 
 class PencilSketchTests(unittest.TestCase):
@@ -113,6 +120,60 @@ class BlackAndWhiteTests(unittest.TestCase):
         self.assertLess(int(curved[0, 64]), int(plain[0, 64]))
         self.assertGreater(int(curved[0, 192]), int(plain[0, 192]))
         self.assertEqual(int(curved[0, mid]), mid)
+
+
+class SimpleFiltersTests(unittest.TestCase):
+    """Verify sepia, negative, vignette and auto-enhance behavior."""
+
+    def test_sepia_warms_image(self) -> None:
+        img = Image.new("RGB", (40, 30), (100, 100, 100))
+
+        result = sepia(img)
+
+        self.assertEqual(result.mode, "RGB")
+        self.assertEqual(result.size, img.size)
+        r, g, b = result.getpixel((0, 0))
+        self.assertGreater(r, g)
+        self.assertGreater(g, b)
+
+    def test_negative_inverts_colors(self) -> None:
+        img = Image.new("RGB", (10, 10), (10, 200, 90))
+
+        result = negative(img)
+
+        self.assertEqual(result.getpixel((0, 0)), (245, 55, 165))
+        self.assertEqual(result.mode, "RGB")
+
+    def test_vignette_darkens_corners_not_center(self) -> None:
+        img = Image.new("RGB", (100, 100), (200, 200, 200))
+
+        result = vignette(img, strength=0.6)
+
+        center = result.getpixel((50, 50))[0]
+        corner = result.getpixel((2, 2))[0]
+        self.assertGreater(center, corner)
+        self.assertEqual(center, 200)
+
+    def test_auto_enhance_stretches_contrast(self) -> None:
+        img = Image.new("RGB", (100, 10))
+        for x in range(100):
+            value = 100 + x  # narrow tonal range 100..199
+            for y in range(10):
+                img.putpixel((x, y), (value, value, value))
+
+        result = np.asarray(auto_enhance(img))
+
+        self.assertGreater(
+            float(result.max()) - float(result.min()), 150.0
+        )
+
+    def test_auto_enhance_does_not_modify_original(self) -> None:
+        img = Image.new("RGB", (30, 30), (120, 60, 180))
+        before = np.asarray(img).copy()
+
+        auto_enhance(img)
+
+        np.testing.assert_array_equal(np.asarray(img), before)
 
 
 if __name__ == "__main__":

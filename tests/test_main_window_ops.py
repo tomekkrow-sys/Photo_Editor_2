@@ -150,6 +150,29 @@ class MainWindowOpsTests(unittest.TestCase):
 
         self.assertEqual(self.window._orig.size, (120, 80))
 
+    def test_resize_image_supports_undo(self) -> None:
+        self.assertTrue(self.window._resize_image(60, 40))
+        self.assertEqual(self.window._orig.size, (60, 40))
+
+        self.window._on_undo()
+        self.assertEqual(self.window._orig.size, (120, 80))
+
+    def test_resize_image_rejects_invalid_size(self) -> None:
+        self.assertFalse(self.window._resize_image(0, 40))
+        self.assertEqual(self.window._orig.size, (120, 80))
+
+    def test_auto_enhance_is_undoable(self) -> None:
+        before = self.window._orig.copy()
+
+        self.window._on_auto_enhance()
+        self.assertTrue(self.window._history.can_undo)
+
+        self.window._on_undo()
+        self.assertEqual(
+            list(self.window._orig.getdata()),
+            list(before.getdata()),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
