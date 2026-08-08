@@ -40,7 +40,7 @@ class PencilSketchTests(unittest.TestCase):
 
         np.testing.assert_array_equal(np.asarray(img), before)
 
-    def test_edges_produce_dark_strokes_on_white_paper(self) -> None:
+    def test_edges_produce_soft_strokes_on_bright_paper(self) -> None:
         from PIL import ImageDraw, ImageFilter
 
         img = Image.new("RGB", (300, 200))
@@ -53,8 +53,10 @@ class PencilSketchTests(unittest.TestCase):
 
         result = np.asarray(pencil_sketch(img))
 
-        self.assertLess(int(result.min()), 128)
+        # natural look: bright paper, visible but never black strokes
         self.assertGreater(float(result.mean()), 200.0)
+        self.assertLess(int(result.min()), int(result.mean()))
+        self.assertGreater(int(result.min()), 150)
 
     def test_blank_white_image_stays_white(self) -> None:
         img = Image.new("RGB", (200, 200), (255, 255, 255))
@@ -82,7 +84,7 @@ class PencilSketchTests(unittest.TestCase):
         left_mean = int(result[:, :20].mean())
         right_mean = int(result[:, -20:].mean())
         self.assertLess(left_mean, right_mean - 30)
-        self.assertGreater(int(result.max()) - int(result.min()), 60)
+        self.assertGreater(int(result.max()) - int(result.min()), 40)
 
 
 class BlackAndWhiteTests(unittest.TestCase):

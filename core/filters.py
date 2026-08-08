@@ -3,34 +3,57 @@
 
 from __future__ import annotations
 
-import cv2
 import numpy as np
-from PIL import Image, ImageOps
+from PIL import Image, ImageFilter, ImageOps
 
 
-def pencil_sketch(img: Image.Image, shading: float = 0.35) -> Image.Image:
+def pencil_sketch(
+    img: Image.Image,
+    shading: float = 0.28,
+    stroke_strength: float = 0.8,
+    lift: float = 0.22,
+) -> Image.Image:
     """Convert a photo to a natural pencil-sketch look.
 
-    Combines cv2 pencil strokes with a soft tonal layer so highlights,
-    shadows and their transitions stay visible (white paper is kept).
+    Fine dodge-blend strokes (noise is pre-smoothed, strokes are
+    lightened so they never go pure black) combined with a tonal layer
+    whose shadows are lifted, so highlights stay white, shadows stay
+    readable and transitions smooth.
 
     Returns a new "L" mode image; the input image is not modified.
     """
 
-    rgb = np.asarray(img.convert("RGB"))
-    gray = np.asarray(img.convert("L"), dtype=np.float32)
+    gray = img.convert("L")
+    g = np.asarray(gray, dtype=np.float32)
 
-    bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
-    strokes, _ = cv2.pencilSketch(
-        bgr,
-        sigma_s=60,
-        sigma_r=0.07,
-        shade_factor=0.06,
+    # suppress photo noise/grain before edge detection (avoids blobs)
+    smooth = np.asarray(
+        gray.filter(ImageFilter.GaussianBlur(1.2)), dtype=np.float32
+    )
+    radius = max(2.0, max(gray.size) / 150.0)
+    blurred = np.asarray(
+        ImageOps.invert(gray)
+        .filter(ImageFilter.GaussianBlur(1.2))
+        .filter(ImageFilter.GaussianBlur(radius)),
+        dtype=np.float32,
+    )
+    dodge = np.clip(
+        np.divide(
+            smooth * 255.0,
+            255.0 - blurred,
+            out=np.full_like(smooth, 255.0),
+            where=blurred < 255.0,
+        ),
+        0,
+        255,
     )
 
-    tone = 255.0 - (255.0 - gray) * shading
-    result = np.minimum(strokes.astype(np.float32), tone)
+    strokes = 255.0 - (255.0 - dodge) * stroke_strength
 
+    lifted = g * (1.0 - lift) + 255.0 * lift
+    tone = 255.0 - (255.0 - lifted) * shading
+
+    result = np.minimum(strokes, tone)
     return Image.fromarray(
         np.clip(result, 0, 255).astype(np.uint8),
         mode="L",

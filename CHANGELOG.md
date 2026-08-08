@@ -54,6 +54,10 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/).
 - `pil_to_cv` crashowal na obrazach w trybach L/LA/P
 - Histogram szarosci: przepełnienie uint8 (200 raportowane jako 29)
 - core/canvas: identity-check przed kosztownym apply_settings
+- Filtr **Ołówek**: przerobiony na naturalny — jasny papier, miekkie
+  szare kreski (nigdy czarne), cienie podniesione i czytelne,
+  wstepne wygladzenie tlumace ziarno zdjecia; parametry mozna stroic
+  (shading, stroke_strength, lift)
 
 ### Usuniete
 - Przestarzale testy starej architektury MainWindow (pokrycie zapewnia
