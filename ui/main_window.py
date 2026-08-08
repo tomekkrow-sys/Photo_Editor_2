@@ -355,12 +355,12 @@ class MainWindow(QMainWindow):
         in_dir = Path(dlg.get_input_dir())
         out_dir = Path(dlg.get_output_dir())
         if not in_dir.exists() or not out_dir.exists():
-            QMessageBox.warning(self, "Batch", "Wybierz poprawne foldery.")
+            QMessageBox.warning(self, "Konwerter folderu", "Wybierz poprawne foldery.")
             return
         exts = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp", ".gif", ".nef", ".cr2", ".arw", ".dng"}
         files = [f for f in in_dir.iterdir() if f.suffix.lower() in exts]
         if not files:
-            QMessageBox.warning(self, "Batch", "Brak zdjec w folderze wejsciowym.")
+            QMessageBox.warning(self, "Konwerter folderu", "Brak zdjec w folderze wejsciowym.")
             return
         fmt = dlg.get_format()
         quality = dlg.get_quality()
@@ -393,8 +393,8 @@ class MainWindow(QMainWindow):
                     out_pil.save(str(out_path), "TIFF")
             except Exception as e:
                 logging.error("Blad %s: %s", f.name, e)
-        self.statusBar().showMessage(f"Batch zakonczony: {total} plikow.")
-        QMessageBox.information(self, "Batch", f"Wyeksportowano {total} zdjec.")
+        self.statusBar().showMessage(f"Konwersja zakonczona: {total} plikow.")
+        QMessageBox.information(self, "Konwerter folderu", f"Wyeksportowano {total} zdjec.")
 
     def _on_adj(self, adj):
         self._adj = adj

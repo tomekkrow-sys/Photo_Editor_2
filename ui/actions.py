@@ -19,7 +19,7 @@ class ActionManager:
         self.save_as.setShortcut(shortcuts.SAVE_AS)
         self.export = QAction("&Eksport", self.parent)
         self.export.setShortcut(shortcuts.EXPORT)
-        self.batch = QAction("Batch", self.parent)
+        self.batch = QAction("Konwerter folderu", self.parent)
         self.exit = QAction("&Zakoncz", self.parent)
         self.exit.setShortcut(shortcuts.EXIT)
         self.undo = QAction("&Cofnij", self.parent)

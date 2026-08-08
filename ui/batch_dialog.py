@@ -27,7 +27,7 @@ QProgressBar::chunk { background: #4A9EFF; }
 class BatchDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Batch Export")
+        self.setWindowTitle("Konwerter folderu")
         self.setMinimumWidth(450)
         self.setStyleSheet(DARK_STYLE)
         self._build_ui()

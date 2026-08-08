@@ -15,6 +15,10 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/).
 - **Zmień rozmiar** (menu Obraz): dialog z blokadą proporcji,
   z obsługą Cofnij
 
+### Zmienione
+- „Batch" przemianowany na **Konwerter folderu** (przycisk, okno,
+  komunikaty)
+
 ## [0.1.0] - 2026-08-08
 
 ### Dodane
