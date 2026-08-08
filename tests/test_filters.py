@@ -10,6 +10,7 @@ from PIL import Image
 from core.filters import (
     auto_enhance,
     black_and_white,
+    frame,
     negative,
     pencil_sketch,
     sepia,
@@ -174,6 +175,26 @@ class SimpleFiltersTests(unittest.TestCase):
         auto_enhance(img)
 
         np.testing.assert_array_equal(np.asarray(img), before)
+
+
+class FrameTests(unittest.TestCase):
+    """Verify the frame filter."""
+
+    def test_frame_enlarges_by_border(self) -> None:
+        img = Image.new("RGB", (100, 60), (10, 20, 30))
+
+        result = frame(img, border=10)
+
+        self.assertEqual(result.size, (120, 80))
+        self.assertEqual(result.getpixel((0, 0)), (255, 255, 255))
+        self.assertEqual(result.getpixel((60, 40)), (10, 20, 30))
+
+    def test_frame_default_border(self) -> None:
+        img = Image.new("RGB", (100, 100))
+
+        result = frame(img)
+
+        self.assertGreater(result.width, 100)
 
 
 if __name__ == "__main__":

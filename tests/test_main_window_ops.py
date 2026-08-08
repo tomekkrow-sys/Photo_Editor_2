@@ -264,5 +264,72 @@ class MainWindowAdjUndoTests(unittest.TestCase):
         self.assertFalse(self.window._adj_history.can_undo)
 
 
+class MainWindowBrushAndRecentTests(unittest.TestCase):
+    """Verify dodge/burn brush, recent files and info text."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.app = QApplication.instance() or QApplication([])
+
+    def setUp(self) -> None:
+        from PySide6.QtCore import QSettings
+
+        QSettings.setPath(
+            QSettings.Format.IniFormat,
+            QSettings.Scope.UserScope,
+            tempfile.mkdtemp(),
+        )
+        self.window = MainWindow()
+        self.tmp = tempfile.TemporaryDirectory()
+        self.image_path = Path(self.tmp.name) / "photo.png"
+        Image.new("RGB", (120, 80), (128, 128, 128)).save(self.image_path)
+        self.window._load(self.image_path)
+
+    def tearDown(self) -> None:
+        self.window._worker.wait(2000)
+        self.window.close()
+        self.window.deleteLater()
+        self.app.processEvents()
+        self.tmp.cleanup()
+
+    def test_brush_dodge_brightens_stroke_with_undo(self) -> None:
+        from PySide6.QtCore import QPointF, Qt
+
+        points = [QPointF(30.0 + i, 40.0) for i in range(20)]
+        self.window._on_brush_stroke(points, Qt.MouseButton.LeftButton)
+
+        self.assertGreater(self.window._orig.getpixel((40, 40))[0], 128)
+
+        self.window._on_undo()
+        self.assertEqual(self.window._orig.getpixel((40, 40))[0], 128)
+
+    def test_brush_burn_darkens_stroke(self) -> None:
+        from PySide6.QtCore import QPointF, Qt
+
+        points = [QPointF(30.0 + i, 40.0) for i in range(20)]
+        self.window._on_brush_stroke(points, Qt.MouseButton.RightButton)
+
+        self.assertLess(self.window._orig.getpixel((40, 40))[0], 128)
+
+    def test_recent_files_updated_on_load(self) -> None:
+        entries = self.window._recent_list()
+
+        self.assertIn(str(self.image_path), entries)
+        self.assertEqual(entries[0], str(self.image_path))
+
+    def test_open_recent_missing_file_shows_status(self) -> None:
+        self.window._open_recent("/nie/istnieje/zdjecie.png")
+
+        self.assertNotIn(
+            "/nie/istnieje/zdjecie.png", self.window._recent_list()
+        )
+
+    def test_info_text_contains_dimensions_and_filename(self) -> None:
+        text = self.window._build_info_text()
+
+        self.assertIn("120 x 80", text)
+        self.assertIn("photo.png", text)
+
+
 if __name__ == "__main__":
     unittest.main()

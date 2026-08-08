@@ -20,6 +20,16 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/).
 - `pil_to_qimage` / `qimage_to_pil` w core/pipeline
 - **Cofnij/Ponów obejmuje suwaki korekty** — Ctrl+Z cofa edycje obrazu
   i zmiany korekt (sesje suwaka grupowane), nowsza akcja wygrywa
+- **Pędzel korekt** (Narzędzia / pasek): lewy przycisk rozjaśnia,
+  prawy przyciemnia, kółko myszy zmienia rozmiar; obsługa Cofnij
+- **Informacje o zdjęciu** (menu Obraz): wymiary, rozmiar pliku
+  i dane EXIF (aparat, obiektyw, ISO, czas, przysłona, ogniskowa, data)
+- **Ostatnio otwierane** (menu Plik): 8 ostatnich zdjęć,
+  zapamiętywane między uruchomieniami
+- Filtr **Ramka** (menu Filtry): biała obwódka, podgląd i zapis
+  jako nowy plik
+- **Porównaj z plikiem** (menu Widok): bieżące zdjęcie obok innego
+  z dysku z przeciąganą linią podziału
 
 ### Zmienione
 - „Batch" przemianowany na **Konwerter folderu** (przycisk, okno,

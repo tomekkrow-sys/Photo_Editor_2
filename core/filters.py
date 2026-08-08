@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import cv2
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 
 
 def pencil_sketch(img: Image.Image, shading: float = 0.35) -> Image.Image:
@@ -94,6 +94,14 @@ def vignette(img: Image.Image, strength: float = 0.6) -> Image.Image:
 
     out = rgb * mask[..., None]
     return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8), mode="RGB")
+
+
+def frame(img: Image.Image, border: int | None = None, color=(255, 255, 255)) -> Image.Image:
+    """Add a solid border around the photo; returns a new RGB image."""
+
+    if border is None:
+        border = max(4, min(img.size) // 25)
+    return ImageOps.expand(img.convert("RGB"), border=border, fill=color)
 
 
 def auto_enhance(img: Image.Image) -> Image.Image:

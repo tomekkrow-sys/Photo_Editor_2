@@ -5,8 +5,8 @@ import time
 import rawpy
 from pathlib import Path
 from PIL import Image
-from PySide6.QtCore import Qt, QPointF
-from PySide6.QtGui import QGuiApplication, QPixmap
+from PySide6.QtCore import Qt, QPointF, QSettings
+from PySide6.QtGui import QColor, QGuiApplication, QPixmap
 from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QSplitter, QVBoxLayout, QWidget
 from config.defaults import DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH
 from config.version import WINDOW_TITLE
@@ -14,6 +14,7 @@ from core.adjustments import Adjustments
 from core.filters import (
     auto_enhance,
     black_and_white,
+    frame,
     negative,
     pencil_sketch,
     sepia,
@@ -23,6 +24,7 @@ from core.history import EditHistory
 from core.image_loader import SUPPORTED_FORMATS
 from core.pipeline import prepare_preview, pil_to_cv, pil_to_qpixmap, pil_to_qimage, qimage_to_pil, apply_adjustments_arr, arr_to_pil
 from core.preset_manager import save_preset, load_preset, list_presets
+from core.tools.brush_tool import BrushMode, BrushTool
 from core.tools.spot_tool import SpotTool
 from core.worker import PipelineWorker
 from ui.actions import ActionManager
@@ -52,6 +54,8 @@ class MainWindow(QMainWindow):
         self._suppress_adj_push = False
         self._spot = SpotTool()
         self._spot_size = None
+        self._brush = BrushTool()
+        self._brush_size = None
         self._preview_arr = None
         self._adj = Adjustments()
         self._worker = PipelineWorker(self)
@@ -88,6 +92,7 @@ class MainWindow(QMainWindow):
         splitter.setSizes([1200, 280])
         self.setCentralWidget(splitter)
         self._refresh_presets()
+        self._refresh_recent_menu()
         self.statusBar().showMessage("Gotowy. Otworz zdjecie (Ctrl+O).")
 
     def _connect_actions(self):
@@ -107,6 +112,12 @@ class MainWindow(QMainWindow):
         self.actions.spot.triggered.connect(self._on_spot_toggle)
         self.canvas.spot_clicked.connect(self._on_spot_click)
         self.canvas.spot_wheel.connect(self._on_spot_wheel)
+        self.actions.brush.triggered.connect(self._on_brush_toggle)
+        self.canvas.brush_stroke.connect(self._on_brush_stroke)
+        self.canvas.brush_wheel.connect(self._on_brush_wheel)
+        self.actions.frame.triggered.connect(self._on_frame)
+        self.actions.info.triggered.connect(self._on_info)
+        self.actions.compare.triggered.connect(self._on_compare)
         self.actions.rotate_left.triggered.connect(lambda: self._on_rotate(90))
         self.actions.rotate_right.triggered.connect(lambda: self._on_rotate(-90))
         self.actions.flip_h.triggered.connect(lambda: self._on_flip(True, False))
@@ -130,6 +141,55 @@ class MainWindow(QMainWindow):
         p, _ = QFileDialog.getOpenFileName(self, "Otworz obraz", "", f)
         if p:
             self._load(Path(p))
+
+    def _recent_list(self) -> list:
+        value = QSettings("PhotoEditor2", "PhotoEditor2").value(
+            "recentFiles", []
+        )
+        if isinstance(value, str):
+            return [value] if value else []
+        return list(value or [])
+
+    def _add_recent(self, path) -> None:
+        entries = self._recent_list()
+        p = str(path)
+        if p in entries:
+            entries.remove(p)
+        entries.insert(0, p)
+        QSettings("PhotoEditor2", "PhotoEditor2").setValue(
+            "recentFiles", entries[:8]
+        )
+        self._refresh_recent_menu()
+
+    def _refresh_recent_menu(self) -> None:
+        menu = getattr(self.menuBar(), "recent_menu", None)
+        if menu is None:
+            return
+        menu.clear()
+        entries = self._recent_list()
+        if not entries:
+            menu.addAction("(pusto)").setEnabled(False)
+            return
+        for p in entries:
+            action = menu.addAction(Path(p).name)
+            action.setToolTip(p)
+            action.triggered.connect(
+                lambda checked=False, path=p: self._open_recent(path)
+            )
+
+    def _open_recent(self, path_str: str) -> None:
+        path = Path(path_str)
+        if path.is_file():
+            self._load(path)
+        else:
+            entries = self._recent_list()
+            if path_str in entries:
+                entries.remove(path_str)
+                QSettings("PhotoEditor2", "PhotoEditor2").setValue(
+                    "recentFiles", entries
+                )
+            self._refresh_recent_menu()
+            self.statusBar().showMessage("Plik nie istnieje: " + path.name)
 
     def _open_image(self, path):
         """Open an image file (including RAW) as an RGB PIL image.
@@ -185,9 +245,11 @@ class MainWindow(QMainWindow):
         self._path = path
         self._history.clear()
         self._spot_size = None
+        self._brush_size = None
         self._reset_adjustment_state()
         self._ba_active = False
         self._render_now()
+        self._add_recent(path)
         self.statusBar().showMessage("Otwarto: " + path.name)
         sb = self.statusBar()
         if hasattr(sb, 'size_label'):
@@ -202,6 +264,7 @@ class MainWindow(QMainWindow):
         if self._ba_active:
             self._on_before_after()
         self.canvas.cancel_spot()
+        self.canvas.cancel_brush()
         if self.canvas._crop_mode:
             rect = self.canvas.get_crop_rect()
             if rect:
@@ -248,6 +311,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Tryb retuszu wylaczony.")
         else:
             self.canvas.cancel_crop()
+            self.canvas.cancel_brush()
             self.canvas.start_spot()
             self.statusBar().showMessage(
                 "Retusz: kliknij element do usuniecia. "
@@ -348,6 +412,127 @@ class MainWindow(QMainWindow):
 
     def _on_vignette(self):
         self._run_filter(vignette, "Winieta", "_winieta.png")
+
+    def _on_frame(self):
+        self._run_filter(frame, "Ramka", "_ramka.png")
+
+    def _on_brush_toggle(self):
+        if self._orig is None:
+            QMessageBox.warning(self, "Pedzel korekt", "Najpierw otworz zdjecie.")
+            return
+        if self._ba_active:
+            self._on_before_after()
+        if self.canvas._brush_mode:
+            self.canvas.cancel_brush()
+            self.statusBar().showMessage("Pedzel wylaczony.")
+        else:
+            self.canvas.cancel_crop()
+            self.canvas.cancel_spot()
+            self.canvas.start_brush()
+            self.statusBar().showMessage(
+                "Pedzel: lewy przycisk rozjasnia, prawy przyciemnia, "
+                "kolko myszy zmienia rozmiar."
+            )
+
+    def _on_brush_wheel(self, delta: int):
+        if self._orig is None:
+            return
+        if self._brush_size is None:
+            self._brush_size = 40
+        factor = 1.2 if delta > 0 else 1 / 1.2
+        self._brush_size = int(max(4, min(300, self._brush_size * factor)))
+        self.statusBar().showMessage(f"Pedzel: rozmiar {self._brush_size}px")
+
+    def _on_brush_stroke(self, points, button):
+        if self._orig is None or self._preview_arr is None or not points:
+            return
+        preview_h, preview_w = self._preview_arr.shape[:2]
+        scale_x = self._orig.width / preview_w
+        scale_y = self._orig.height / preview_h
+        size = (self._brush_size or 40) * scale_x
+        dodge = button != Qt.MouseButton.RightButton
+        qimg = pil_to_qimage(self._orig)
+        self._brush.settings.size = size
+        self._brush.settings.opacity = 0.25
+        self._brush.settings.flow = 1.0
+        self._brush.settings.mode = (
+            BrushMode.DODGE if dodge else BrushMode.BURN
+        )
+        self._brush.settings.color = (
+            QColor("white") if dodge else QColor("black")
+        )
+        orig_points = [
+            QPointF(p.x() * scale_x, p.y() * scale_y) for p in points
+        ]
+        self._history.push(self._orig)
+        self._brush.begin(orig_points[0], qimg)
+        for p in orig_points[1:]:
+            self._brush.update(p, qimg)
+        self._brush.finish()
+        self._orig = qimage_to_pil(qimg)
+        self._refresh_after_edit()
+        self.statusBar().showMessage(
+            "Pedzel: rozjasniono." if dodge else "Pedzel: przyciemniono."
+        )
+
+    def _on_info(self):
+        if self._orig is None:
+            QMessageBox.warning(self, "Informacje", "Najpierw otworz zdjecie.")
+            return
+        QMessageBox.information(
+            self, "Informacje o zdjeciu", self._build_info_text()
+        )
+
+    def _build_info_text(self) -> str:
+        lines = [f"Wymiary: {self._orig.width} x {self._orig.height} px"]
+        if self._path is not None:
+            lines.append(f"Plik: {self._path.name}")
+            lines.append(f"Folder: {self._path.parent}")
+            try:
+                stat = self._path.stat()
+                lines.append(f"Rozmiar: {stat.st_size / 1024 / 1024:.1f} MB")
+                with Image.open(self._path) as im:
+                    exif = im.getexif()
+                tags = {
+                    272: "Aparat", 271: "Producent", 305: "Program",
+                    42036: "Obiektyw", 34855: "ISO", 33434: "Czas [s]",
+                    33437: "Przyslona", 37386: "Ogniskowa [mm]",
+                    36867: "Data wykonania",
+                }
+                for tag, label in tags.items():
+                    value = exif.get(tag) if exif else None
+                    if value:
+                        lines.append(f"{label}: {value}")
+            except Exception as e:
+                logging.debug("Brak EXIF dla %s: %s", self._path, e)
+        return "\n".join(lines)
+
+    def _on_compare(self):
+        if self._orig is None:
+            QMessageBox.warning(self, "Porownaj", "Najpierw otworz zdjecie.")
+            return
+        if self._ba_active:
+            self._on_before_after()
+            return
+        f = "Obrazy (" + " ".join("*" + e for e in SUPPORTED_FORMATS) + ")"
+        p, _ = QFileDialog.getOpenFileName(self, "Porownaj z plikiem", "", f)
+        if not p:
+            return
+        other = self._open_image(Path(p))
+        if other is None:
+            QMessageBox.critical(self, "Blad", "Nie mozna otworzyc: " + Path(p).name)
+            return
+        self.canvas.cancel_crop()
+        self._ba_active = True
+        before = arr_to_pil(apply_adjustments_arr(self._preview_arr, self._adj))
+        other_preview = prepare_preview(other, max_dim=800)
+        self.canvas.set_before_after(
+            pil_to_qpixmap(before), pil_to_qpixmap(other_preview)
+        )
+        self.statusBar().showMessage(
+            "Porownanie: lewo = biezace zdjecie, prawo = " + Path(p).name
+            + ". Przeciagaj linie podzialu."
+        )
 
     def _on_auto_enhance(self):
         if self._orig is None:

@@ -25,6 +25,7 @@ class ToolBar(QToolBar):
         self.addSeparator()
         self.addAction(self.actions.crop)
         self.addAction(self.actions.spot)
+        self.addAction(self.actions.brush)
         self.addSeparator()
         self.addAction(self.actions.rotate_left)
         self.addAction(self.actions.rotate_right)
