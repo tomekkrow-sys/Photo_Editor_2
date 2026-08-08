@@ -19,7 +19,9 @@ from core.filters import (
     negative,
     pencil_sketch,
     sepia,
+    straighten,
     vignette,
+    watermark,
 )
 from core.history import EditHistory
 from core.image_loader import SUPPORTED_FORMATS
@@ -120,6 +122,8 @@ class MainWindow(QMainWindow):
         self.actions.info.triggered.connect(self._on_info)
         self.actions.compare.triggered.connect(self._on_compare)
         self.actions.overlay.triggered.connect(self._on_overlay)
+        self.actions.straighten.triggered.connect(self._on_straighten)
+        self.actions.watermark.triggered.connect(self._on_watermark)
         self.actions.rotate_left.triggered.connect(lambda: self._on_rotate(90))
         self.actions.rotate_right.triggered.connect(lambda: self._on_rotate(-90))
         self.actions.flip_h.triggered.connect(lambda: self._on_flip(True, False))
@@ -538,6 +542,53 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(
             f"Nalozono warstwe ({mode}, {int(opacity * 100)}%)."
         )
+        return True
+
+    def _on_straighten(self):
+        if self._orig is None:
+            QMessageBox.warning(self, "Wyprostuj", "Najpierw otworz zdjecie.")
+            return
+        from ui.straighten_dialog import StraightenDialog
+        dlg = StraightenDialog(self)
+        if dlg.exec() != StraightenDialog.DialogCode.Accepted:
+            return
+        self.apply_straighten(dlg.get_angle())
+
+    def apply_straighten(self, angle: float) -> bool:
+        """Rotate by an arbitrary angle with auto-crop (undoable)."""
+
+        if self._orig is None:
+            return False
+        self._history.push(self._orig)
+        self._orig = straighten(self._orig, angle)
+        self._refresh_after_edit()
+        self.statusBar().showMessage(
+            f"Wyprostowano ({angle:+.1f}°). Ctrl+Z cofa."
+        )
+        return True
+
+    def _on_watermark(self):
+        if self._orig is None:
+            QMessageBox.warning(self, "Znak wodny", "Najpierw otworz zdjecie.")
+            return
+        from ui.watermark_dialog import WatermarkDialog
+        dlg = WatermarkDialog(self)
+        if dlg.exec() != WatermarkDialog.DialogCode.Accepted:
+            return
+        if not dlg.get_text():
+            self.statusBar().showMessage("Znak wodny: pusty tekst — anulowano.")
+            return
+        self.apply_watermark(dlg.get_text(), dlg.get_position(), dlg.get_opacity())
+
+    def apply_watermark(self, text: str, position: str, opacity: float) -> bool:
+        """Draw a text watermark on the current image (undoable)."""
+
+        if self._orig is None or not text:
+            return False
+        self._history.push(self._orig)
+        self._orig = watermark(self._orig, text, position, opacity)
+        self._refresh_after_edit()
+        self.statusBar().showMessage("Dodano znak wodny. Ctrl+Z cofa.")
         return True
 
     def _on_compare(self):

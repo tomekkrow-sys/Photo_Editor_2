@@ -15,7 +15,9 @@ from core.filters import (
     negative,
     pencil_sketch,
     sepia,
+    straighten,
     vignette,
+    watermark,
 )
 
 
@@ -236,6 +238,66 @@ class CompositeTests(unittest.TestCase):
 
         self.assertEqual(result.size, (100, 50))
         self.assertEqual(result.getpixel((50, 25)), (255, 255, 255))
+
+
+class StraightenTests(unittest.TestCase):
+    """Verify arbitrary-angle rotation with auto-crop."""
+
+    def test_zero_angle_keeps_size(self) -> None:
+        img = Image.new("RGB", (200, 100), (10, 20, 30))
+
+        result = straighten(img, 0.0)
+
+        self.assertEqual(result.size, (200, 100))
+
+    def test_45_degrees_crops_to_inscribed_rect(self) -> None:
+        img = Image.new("RGB", (200, 200), (128, 64, 32))
+
+        result = straighten(img, 45.0)
+
+        self.assertEqual(result.mode, "RGB")
+        self.assertLess(result.width, 200)
+        self.assertGreater(result.width, 100)
+
+    def test_content_preserved_near_center(self) -> None:
+        img = Image.new("RGB", (200, 200), (128, 64, 32))
+
+        result = straighten(img, 10.0)
+
+        cx, cy = result.width // 2, result.height // 2
+        r, g, b = result.getpixel((cx, cy))
+        self.assertTrue(abs(r - 128) < 30 and abs(g - 64) < 30)
+
+
+class WatermarkTests(unittest.TestCase):
+    """Verify text watermark rendering."""
+
+    def test_watermark_draws_text(self) -> None:
+        img = Image.new("RGB", (400, 300), (255, 255, 255))
+
+        result = watermark(img, "TEST", "Prawy dolny rog", 1.0)
+
+        self.assertEqual(result.mode, "RGB")
+        self.assertEqual(result.size, img.size)
+        pixels = np.asarray(result)
+        self.assertLess(int(pixels.min()), 255)
+
+    def test_watermark_respects_position(self) -> None:
+        img = Image.new("RGB", (400, 300), (255, 255, 255))
+
+        left = watermark(img, "ABCDEF", "Lewy gorny rog", 1.0)
+        right = watermark(img, "ABCDEF", "Prawy dolny rog", 1.0)
+
+        self.assertLess(int(np.asarray(left)[20:60, 20:200].min()), 255)
+        top_left_of_right = np.asarray(right)[20:60, 20:200]
+        self.assertEqual(int(top_left_of_right.min()), 255)
+
+    def test_empty_opacity_keeps_image(self) -> None:
+        img = Image.new("RGB", (100, 100), (200, 100, 50))
+
+        result = watermark(img, "X", "Srodek", 0.0)
+
+        self.assertEqual(result.getpixel((10, 10)), (200, 100, 50))
 
 
 if __name__ == "__main__":

@@ -37,6 +37,11 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/).
   (artefakt do pobrania po kazdym pushu)
 - Pelne polskie etykiety przyciskow (Obroc w lewo/prawo,
   Odbij poziomo/pionowo, Przybliz, Oddal)
+- **Wyprostuj horyzont** (menu Obraz): obrot o dowolny kat
+  (-45°..+45°) z automatycznym przycieciem pustych naroznikow,
+  z obsluga Cofnij
+- **Znak wodny** (menu Obraz): tekst na zdjeciu z wyborem pozycji
+  (5 miejsc), krycia i konturem dla czytelnosci, z obsluga Cofnij
 
 ### Usuniete
 - Przestarzale testy starej architektury MainWindow (pokrycie zapewnia

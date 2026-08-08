@@ -339,6 +339,32 @@ class MainWindowBrushAndRecentTests(unittest.TestCase):
         self.window._on_undo()
         self.assertEqual(self.window._orig.getpixel((60, 40)), (128, 128, 128))
 
+    def test_straighten_supports_undo(self) -> None:
+        original_size = self.window._orig.size
+
+        self.assertTrue(self.window.apply_straighten(15.0))
+        self.assertNotEqual(self.window._orig.size, original_size)
+
+        self.window._on_undo()
+        self.assertEqual(self.window._orig.size, original_size)
+
+    def test_watermark_applies_and_supports_undo(self) -> None:
+        before = self.window._orig.copy()
+
+        self.assertTrue(
+            self.window.apply_watermark("TEST", "Prawy dolny rog", 1.0)
+        )
+        self.assertNotEqual(
+            list(self.window._orig.getdata()),
+            list(before.getdata()),
+        )
+
+        self.window._on_undo()
+        self.assertEqual(
+            list(self.window._orig.getdata()),
+            list(before.getdata()),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

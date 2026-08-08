@@ -33,6 +33,8 @@ class MenuBar(QMenuBar):
         om.addAction(self.actions.auto_enhance)
         om.addAction(self.actions.resize_image)
         om.addAction(self.actions.overlay)
+        om.addAction(self.actions.straighten)
+        om.addAction(self.actions.watermark)
         om.addSeparator()
         om.addAction(self.actions.info)
         film = self.addMenu("&Filtry")

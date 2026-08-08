@@ -62,3 +62,5 @@ class ActionManager:
         self.auto_enhance = QAction("Auto-korekta", self.parent)
         self.resize_image = QAction("Zmien rozmiar...", self.parent)
         self.overlay = QAction("Naloz warstwe z pliku...", self.parent)
+        self.straighten = QAction("Wyprostuj horyzont...", self.parent)
+        self.watermark = QAction("Znak wodny...", self.parent)

@@ -104,6 +104,114 @@ def frame(img: Image.Image, border: int | None = None, color=(255, 255, 255)) ->
     return ImageOps.expand(img.convert("RGB"), border=border, fill=color)
 
 
+def _largest_rotated_rect(w: float, h: float, angle_deg: float) -> tuple[float, float]:
+    """Largest axis-aligned rectangle fitting inside a rotated w x h rect."""
+
+    import math
+
+    a = abs(math.radians(angle_deg)) % math.pi
+    if a > math.pi / 2:
+        a = math.pi - a
+    if a < 1e-9:
+        return float(w), float(h)
+
+    sin_a, cos_a = math.sin(a), math.cos(a)
+    if w >= h:
+        side_long, side_short = float(w), float(h)
+    else:
+        side_long, side_short = float(h), float(w)
+
+    if side_short <= 2.0 * sin_a * cos_a * side_long:
+        x = 0.5 * side_short
+        if w >= h:
+            wr, hr = x / sin_a, x / cos_a
+        else:
+            wr, hr = x / cos_a, x / sin_a
+    else:
+        cos_2a = cos_a * cos_a - sin_a * sin_a
+        wr = (w * cos_a - h * sin_a) / cos_2a
+        hr = (h * cos_a - w * sin_a) / cos_2a
+    return wr, hr
+
+
+def straighten(img: Image.Image, angle_deg: float) -> Image.Image:
+    """Rotate by an arbitrary angle and crop away the empty corners.
+
+    Positive angle rotates counter-clockwise. Returns a new RGB image.
+    """
+
+    rgb = img.convert("RGB")
+    if abs(angle_deg) < 1e-9:
+        return rgb
+
+    rotated = rgb.rotate(
+        angle_deg, expand=True, resample=Image.Resampling.BICUBIC
+    )
+    wr, hr = _largest_rotated_rect(*rgb.size, angle_deg)
+    wr, hr = int(wr), int(hr)
+    if wr < 1 or hr < 1:
+        return rotated
+
+    left = (rotated.width - wr) // 2
+    top = (rotated.height - hr) // 2
+    return rotated.crop((left, top, left + wr, top + hr))
+
+
+WATERMARK_POSITIONS = (
+    "Lewy gorny rog",
+    "Prawy gorny rog",
+    "Srodek",
+    "Lewy dolny rog",
+    "Prawy dolny rog",
+)
+
+
+def watermark(
+    img: Image.Image,
+    text: str,
+    position: str = "Prawy dolny rog",
+    opacity: float = 0.6,
+    size: int | None = None,
+) -> Image.Image:
+    """Draw a text watermark; returns a new RGB image."""
+
+    from PIL import ImageDraw, ImageFont
+
+    base = img.convert("RGBA")
+    w, h = base.size
+    if size is None:
+        size = max(14, min(base.size) // 20)
+
+    font = ImageFont.load_default(size)
+    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+
+    bbox = draw.textbbox((0, 0), text, font=font)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    margin = max(8, size // 2)
+
+    x = margin
+    y = margin
+    if "Prawy" in position:
+        x = w - tw - margin
+    if "dolny" in position:
+        y = h - th - margin
+    if position == "Srodek":
+        x = (w - tw) // 2
+        y = (h - th) // 2
+
+    alpha = int(255 * max(0.0, min(1.0, opacity)))
+    draw.text(
+        (x, y),
+        text,
+        font=font,
+        fill=(255, 255, 255, alpha),
+        stroke_width=max(1, size // 12),
+        stroke_fill=(0, 0, 0, alpha),
+    )
+    return Image.alpha_composite(base, layer).convert("RGB")
+
+
 BLEND_MODES = ("Normalny", "Pomnoz", "Nakladka", "Ekran")
 
 
