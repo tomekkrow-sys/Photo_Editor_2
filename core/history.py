@@ -82,3 +82,48 @@ class ImageHistory:
 
         self._index += 1
         return self._states[self._index].copy()
+
+
+class EditHistory:
+    """Two-stack undo/redo history for PIL images (deep copies)."""
+
+    def __init__(self, limit: int = 10) -> None:
+        self._limit = limit
+        self._undo: list = []
+        self._redo: list = []
+
+    @property
+    def can_undo(self) -> bool:
+        return bool(self._undo)
+
+    @property
+    def can_redo(self) -> bool:
+        return bool(self._redo)
+
+    def clear(self) -> None:
+        self._undo.clear()
+        self._redo.clear()
+
+    def push(self, current) -> None:
+        """Store a copy of the current state; call BEFORE mutating."""
+
+        self._undo.append(current.copy())
+        if len(self._undo) > self._limit:
+            self._undo.pop(0)
+        self._redo.clear()
+
+    def undo(self, current):
+        """Return the previous state (or None) and move current to redo."""
+
+        if not self._undo:
+            return None
+        self._redo.append(current)
+        return self._undo.pop()
+
+    def redo(self, current):
+        """Return the re-done state (or None) and move current to undo."""
+
+        if not self._redo:
+            return None
+        self._undo.append(current)
+        return self._redo.pop()

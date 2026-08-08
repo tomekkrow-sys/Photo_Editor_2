@@ -5,11 +5,13 @@ import rawpy
 from pathlib import Path
 from PIL import Image
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QGuiApplication, QImage, QPixmap
 from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QSplitter, QVBoxLayout, QWidget
 from config.defaults import DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH
 from config.version import WINDOW_TITLE
 from core.adjustments import Adjustments
 from core.filters import pencil_sketch
+from core.history import EditHistory
 from core.image_loader import SUPPORTED_FORMATS
 from core.pipeline import prepare_preview, pil_to_cv, pil_to_qpixmap, apply_adjustments_arr, arr_to_pil
 from core.preset_manager import save_preset, load_preset, list_presets
@@ -23,6 +25,8 @@ from ui.panels.right_panel import RightPanel
 from ui.statusbar import StatusBar
 from ui.toolbar import ToolBar
 
+RAW_EXTS = {".nef", ".cr2", ".cr3", ".arw", ".dng", ".orf", ".rw2", ".raf", ".pef"}
+
 class MainWindow(QMainWindow):
     def __init__(self, catalog=None):
         super().__init__()
@@ -33,6 +37,7 @@ class MainWindow(QMainWindow):
         self.actions = ActionManager(self)
         self._orig = None
         self._path = None
+        self._history = EditHistory()
         self._preview_arr = None
         self._adj = Adjustments()
         self._worker = PipelineWorker(self)
@@ -72,7 +77,17 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Gotowy. Otworz zdjecie (Ctrl+O).")
 
     def _connect_actions(self):
+        self.actions.new.triggered.connect(self._on_new)
         self.actions.open.triggered.connect(self._on_open)
+        self.actions.save.triggered.connect(self._on_save)
+        self.actions.save_as.triggered.connect(self._on_save_as)
+        self.actions.export.triggered.connect(self._on_export)
+        self.actions.undo.triggered.connect(self._on_undo)
+        self.actions.redo.triggered.connect(self._on_redo)
+        self.actions.cut.triggered.connect(self._on_cut)
+        self.actions.copy.triggered.connect(self._on_copy)
+        self.actions.paste.triggered.connect(self._on_paste)
+        self.actions.delete.triggered.connect(self._on_delete)
         self.actions.exit.triggered.connect(self.close)
         self.actions.crop.triggered.connect(self._on_crop)
         self.actions.rotate_left.triggered.connect(lambda: self._on_rotate(90))
@@ -96,8 +111,8 @@ class MainWindow(QMainWindow):
     def _load(self, path):
         try:
             ext = path.suffix.lower()
-            raw_exts = {".nef", ".cr2", ".cr3", ".arw", ".dng", ".orf", ".rw2", ".raf", ".pef"}
-            
+            raw_exts = RAW_EXTS
+
             # Pobierz EXIF orientation z pliku (dziala dla RAW i JPG)
             orientation = 1
             try:
@@ -137,6 +152,7 @@ class MainWindow(QMainWindow):
         preview = prepare_preview(self._orig, max_dim=800)
         self._preview_arr = pil_to_cv(preview)
         self._path = path
+        self._history.clear()
         self._adj.reset()
         self.right_panel._reset_all()
         self._ba_active = False
@@ -175,6 +191,7 @@ class MainWindow(QMainWindow):
                 if x2 - x1 < 2 or y2 - y1 < 2:
                     self.statusBar().showMessage("Zaznaczenie za male — anulowano.")
                 else:
+                    self._history.push(self._orig)
                     self._orig = self._orig.crop((x1, y1, x2, y2))
                     preview = prepare_preview(self._orig, max_dim=800)
                     self._preview_arr = pil_to_cv(preview)
@@ -191,6 +208,7 @@ class MainWindow(QMainWindow):
     def _on_rotate(self, angle):
         if self._orig is None:
             return
+        self._history.push(self._orig)
         self._orig = self._orig.rotate(angle, expand=True)
         preview = prepare_preview(self._orig, max_dim=800)
         self._preview_arr = pil_to_cv(preview)
@@ -202,6 +220,7 @@ class MainWindow(QMainWindow):
     def _on_flip(self, h, v):
         if self._orig is None:
             return
+        self._history.push(self._orig)
         if h:
             self._orig = self._orig.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
         if v:
@@ -342,6 +361,158 @@ class MainWindow(QMainWindow):
     def _on_reset(self):
         self._adj.reset()
         self._render_now()
+
+    def _on_new(self):
+        self._orig = Image.new("RGB", (1920, 1080), (255, 255, 255))
+        self._path = None
+        self._history.clear()
+        self._adj.reset()
+        self.right_panel._reset_all()
+        preview = prepare_preview(self._orig, max_dim=800)
+        self._preview_arr = pil_to_cv(preview)
+        self._render_now()
+        self.statusBar().showMessage("Nowy obraz 1920 x 1080")
+
+    def _on_save(self):
+        if self._orig is None:
+            QMessageBox.warning(self, "Zapisz", "Najpierw otworz zdjecie.")
+            return
+        if self._path is None or self._path.suffix.lower() in RAW_EXTS:
+            self._on_save_as()
+            return
+        answer = QMessageBox.question(
+            self,
+            "Zapisz",
+            "Nadpisac oryginalny plik " + self._path.name + "?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer == QMessageBox.StandardButton.Yes and self._save_to(str(self._path)):
+            self.statusBar().showMessage("Zapisano: " + self._path.name)
+
+    def _on_save_as(self):
+        if self._orig is None:
+            QMessageBox.warning(self, "Zapisz jako", "Najpierw otworz zdjecie.")
+            return
+        suggested = "obraz.png"
+        if self._path is not None:
+            suggested = str(self._path.with_name(self._path.stem + "_edytowane.png"))
+        p, _ = QFileDialog.getSaveFileName(
+            self,
+            "Zapisz jako",
+            suggested,
+            "PNG (*.png);;JPEG (*.jpg *.jpeg);;TIFF (*.tif *.tiff)",
+        )
+        if p and self._save_to(p):
+            self._path = Path(p)
+            self.statusBar().showMessage("Zapisano: " + Path(p).name)
+
+    def _save_to(self, path):
+        """Render full-resolution image with adjustments and save it."""
+
+        try:
+            full = pil_to_cv(self._orig)
+            out = apply_adjustments_arr(full, self._adj)
+            pil_out = arr_to_pil(out)
+            ext = Path(path).suffix.lower()
+            if ext in (".jpg", ".jpeg"):
+                pil_out.convert("RGB").save(path, "JPEG", quality=95, optimize=True)
+            elif ext in (".tif", ".tiff"):
+                pil_out.save(path, "TIFF")
+            else:
+                pil_out.save(path, "PNG")
+            logging.info("Zapisano: %s", path)
+            return True
+        except Exception as e:
+            logging.error("Blad zapisu %s: %s", path, e)
+            QMessageBox.critical(self, "Blad", "Nie mozna zapisac pliku.")
+            return False
+
+    def _on_undo(self):
+        if self._orig is None:
+            return
+        prev = self._history.undo(self._orig)
+        if prev is None:
+            self.statusBar().showMessage("Nic do cofniecia.")
+            return
+        self._orig = prev
+        self._refresh_after_edit()
+        self.statusBar().showMessage(f"Cofnieto. {self._orig.width} x {self._orig.height}")
+
+    def _on_redo(self):
+        if self._orig is None:
+            return
+        nxt = self._history.redo(self._orig)
+        if nxt is None:
+            self.statusBar().showMessage("Nic do ponowienia.")
+            return
+        self._orig = nxt
+        self._refresh_after_edit()
+        self.statusBar().showMessage(f"Ponowiono. {self._orig.width} x {self._orig.height}")
+
+    def _refresh_after_edit(self):
+        preview = prepare_preview(self._orig, max_dim=800)
+        self._preview_arr = pil_to_cv(preview)
+        self._render_now()
+        sb = self.statusBar()
+        if hasattr(sb, 'size_label'):
+            sb.size_label.setText(str(self._orig.width) + " x " + str(self._orig.height))
+
+    def _on_copy(self):
+        if self._orig is None:
+            self.statusBar().showMessage("Brak obrazu do skopiowania.")
+            return
+        full = pil_to_cv(self._orig)
+        out = apply_adjustments_arr(full, self._adj)
+        pixmap = pil_to_qpixmap(arr_to_pil(out))
+        QGuiApplication.clipboard().setImage(pixmap.toImage())
+        self.statusBar().showMessage("Skopiowano obraz do schowka.")
+
+    def _on_paste(self):
+        img = QGuiApplication.clipboard().image()
+        if img.isNull():
+            self.statusBar().showMessage("Schowek nie zawiera obrazu.")
+            return
+        import numpy as np
+        img = img.convertToFormat(QImage.Format.Format_RGBA8888)
+        w, h = img.width(), img.height()
+        arr = np.frombuffer(img.bits(), dtype=np.uint8).reshape(
+            h, img.bytesPerLine()
+        )[:, : w * 4].reshape(h, w, 4)
+        self._orig = Image.fromarray(arr, "RGBA").convert("RGB")
+        self._path = None
+        self._history.clear()
+        self._adj.reset()
+        self.right_panel._reset_all()
+        preview = prepare_preview(self._orig, max_dim=800)
+        self._preview_arr = pil_to_cv(preview)
+        self._render_now()
+        self.statusBar().showMessage(
+            f"Wklejono obraz ze schowka ({w} x {h})"
+        )
+
+    def _on_cut(self):
+        if self._orig is None:
+            return
+        self._on_copy()
+        self._clear_image()
+        self.statusBar().showMessage("Wyjeto obraz do schowka.")
+
+    def _on_delete(self):
+        if self._orig is None:
+            return
+        self._clear_image()
+        self.statusBar().showMessage(
+            "Usunieto obraz z edytora (plik na dysku bez zmian)."
+        )
+
+    def _clear_image(self):
+        self._orig = None
+        self._path = None
+        self._history.clear()
+        self._preview_arr = None
+        self.canvas.set_pixmap(QPixmap())
+        self.histogram.set_image(None)
 
     def _on_export(self):
         if self._orig is None:
