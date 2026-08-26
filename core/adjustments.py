@@ -23,6 +23,27 @@ class Adjustments:
     vibrance:    float = 0.0
     sharpness:   float = 0.0
     clarity:     float = 0.0
+    tone_curve:  list[tuple[int, int]] | None = None
+    shadows_color: tuple[int, int, int] | None = None
+    midtones_color: tuple[int, int, int] | None = None
+    highlights_color: tuple[int, int, int] | None = None
+    hsl_shadows: dict[str, float] | None = None
+    hsl_midtones: dict[str, float] | None = None
+    hsl_highlights: dict[str, float] | None = None
+    bw_mix: dict[str, float] | None = None
+    bw_grain: float = 0.0
+    bw_vignette: float = 0.0
+    split_shadows_hue: float = 0.0
+    split_shadows_sat: float = 0.0
+    split_highlights_hue: float = 0.0
+    split_highlights_sat: float = 0.0
+    split_balance: float = 0.0
+    lens_distortion: float = 0.0
+    lens_vignette: float = 0.0
+    lens_ca: float = 0.0
+    lens_scale: float = 1.0
+    lens_auto_scale: bool = True
+    lens_vertical_distortion: bool = False
 
     def copy(self):
         return Adjustments(**self.to_dict())
@@ -44,12 +65,45 @@ class Adjustments:
             "temperature": self.temperature, "tint": self.tint,
             "saturation": self.saturation, "vibrance": self.vibrance,
             "sharpness": self.sharpness, "clarity": self.clarity,
+            "tone_curve": self.tone_curve,
+            "shadows_color": self.shadows_color,
+            "midtones_color": self.midtones_color,
+            "highlights_color": self.highlights_color,
+            "hsl_shadows": self.hsl_shadows,
+            "hsl_midtones": self.hsl_midtones,
+            "hsl_highlights": self.hsl_highlights,
+            "bw_mix": self.bw_mix,
+            "bw_grain": self.bw_grain,
+            "bw_vignette": self.bw_vignette,
+            "split_shadows_hue": self.split_shadows_hue,
+            "split_shadows_sat": self.split_shadows_sat,
+            "split_highlights_hue": self.split_highlights_hue,
+            "split_highlights_sat": self.split_highlights_sat,
+            "split_balance": self.split_balance,
+            "lens_distortion": self.lens_distortion,
+            "lens_vignette": self.lens_vignette,
+            "lens_ca": self.lens_ca,
+            "lens_scale": self.lens_scale,
+            "lens_auto_scale": self.lens_auto_scale,
+            "lens_vertical_distortion": self.lens_vertical_distortion,
         }
 
     def reset(self):
         self.exposure = self.contrast = self.highlights = self.shadows = 0.0
         self.whites = self.blacks = self.temperature = self.tint = 0.0
         self.saturation = self.vibrance = self.sharpness = self.clarity = 0.0
+        self.tone_curve = None
+        self.shadows_color = self.midtones_color = self.highlights_color = None
+        self.hsl_shadows = self.hsl_midtones = self.hsl_highlights = None
+        self.bw_mix = None
+        self.bw_grain = self.bw_vignette = 0.0
+        self.split_shadows_hue = self.split_shadows_sat = 0.0
+        self.split_highlights_hue = self.split_highlights_sat = 0.0
+        self.split_balance = 0.0
+        self.lens_distortion = self.lens_vignette = self.lens_ca = 0.0
+        self.lens_scale = 1.0
+        self.lens_auto_scale = True
+        self.lens_vertical_distortion = False
 
 
 class ImageAdjustments:
