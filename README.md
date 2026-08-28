@@ -1,7 +1,7 @@
 # Photo Editor 2.0
 
 A desktop photo editor for Linux, written in **Python** and **PySide6 (Qt)**.
-Solo project, in active development — current version: **0.1.0**.
+Solo project, in active development — current version: **0.2.0**.
 
 ![Main window](docs/screenshots/main_window.png)
 

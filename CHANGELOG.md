@@ -4,6 +4,19 @@ Wszystkie istotne zmiany w projekcie Photo Editor 2.
 
 Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/).
 
+## [0.2.0] - 2026-08-28
+
+### Dodane
+- Workflow GitHub Actions budujący AppImage dla Linux
+- Instalator `.deb` z gotowym pakietem (CI)
+- Instalator Windows `.exe` (PyInstaller, CI)
+- Instalator macOS `.app` (PyInstaller, CI)
+- `run.bat` — uruchamianie pod Windows
+- `run.sh` — uruchamianie pod Linux
+
+### Naprawione
+- Python 3.13 w `.venv` działa na glibc systemie
+
 ## [Unreleased]
 
 ### Dodane
