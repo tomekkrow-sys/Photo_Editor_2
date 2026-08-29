@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Photo Editor 2
+Comment=Edytor zdjęć z obsługą RAW
+Exec=photo-editor-2
+Icon=photo-editor-2
+Terminal=false
+Categories=Graphics;Photography;
+Keywords=photo;editor;raw;photography;
