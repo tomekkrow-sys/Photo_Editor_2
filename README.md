@@ -54,7 +54,16 @@ pip install -r requirements.txt
 
 ## Project status
 
-Version 0.1.0 — the project is under active development. New features and fixes are added regularly. See [CHANGELOG.md](CHANGELOG.md).
+Version 0.2.0 — the project is under active development. New features and fixes are added regularly. See [CHANGELOG.md](CHANGELOG.md).
+
+## Update Management
+
+Photo Editor 2 now includes an advanced update manager system:
+
+- Automatic version checking against GitHub releases
+- Background update checking without requiring application restart  
+- Download and installation of updates
+- Automated release publishing capabilities (API integration)
 
 ## Author
 

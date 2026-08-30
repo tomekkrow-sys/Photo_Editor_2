@@ -13,9 +13,22 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/).
 - Instalator macOS `.app` (PyInstaller, CI)
 - `run.bat` — uruchamianie pod Windows
 - `run.sh` — uruchamianie pod Linux
+- **Zaawansowany menedżer aktualizacji**:
+  - Automatyczne sprawdzanie wersji z GitHub
+  - Aktualizacje w tle bez restartu aplikacji
+  - Możliwość automatycznego tworzenia nowych wersji
 
 ### Naprawione
 - Python 3.13 w `.venv` działa na glibc systemie
+
+## [1.0.1] - 2026-08-30
+
+### Dodane
+- Automatyczne publikowanie nowych wersji do GitHub (funkcje `auto_publish_new_version`, `create_github_release`)
+- Wersja 1.0.1 zawiera nowe funkcje oraz poprawki w systemie aktualizacji
+
+### Zmienione
+- Zaktualizowano logikę publikowania wersji i utworzono skrypty do automatycznego tworzenia instalatorów
 
 ## [Unreleased]
 
