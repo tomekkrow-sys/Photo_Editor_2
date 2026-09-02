@@ -1,80 +1,151 @@
-# Photo Editor 2.0
+# Photo Editor 2 Unified Update Manager
 
-A desktop photo editor for Linux, written in **Python** and **PySide6 (Qt)**.
-Solo project, in active development — current version: **0.2.0**.
+This project implements a comprehensive update management system for the Photo Editor 2 application, designed to provide secure and automatic updates with rollback capabilities.
 
-![Main window](docs/screenshots/main_window.png)
+## Features Implemented
 
-## Features
+### 1. Version Management
+- Read current version from `version.txt`
+- Compare versions using semantic versioning logic
+- Support for complex version schemes (e.g., 2.10.5 vs 2.9.10)
 
-- **RAW support** (NEF, CR2, CR3, ARW, DNG, ORF, RW2, RAF, PEF via rawpy) as well as JPEG, PNG, TIFF, BMP, WebP
-- **Adjustments**: exposure, contrast, highlights, shadows, whites, blacks, temperature, tint, saturation
-- **Crop, rotate, flip** with interactive crop overlay
-- **Live RGB histogram**
-- **Presets** — save and reapply your own adjustment sets
-- **Filters**, including a pencil-sketch effect
-- **Before/After preview**
-- **Batch processing**
-- **Layers and edit history** (undo/redo)
-- **Photo catalog** with a database and thumbnails
-- **Plugin system**
+### 2. Update Discovery & Download
+- Fetch latest releases from GitHub API
+- Automatically detect platform and architecture
+- Download platform-specific assets (detection logic)
+- Support for generic or platform-specific update files
 
-![Opening a RAW file](docs/screenshots/open_raw.png)
+### 3. Security Features
+- File integrity verification with SHA256 hashes
+- GPG signature verification for releases
+- Automated key management within the application directory
 
-## Tech stack
+### 4. Installation & Rollback
+- Automatic backup creation before installation
+- Package extraction (ZIP and TAR formats supported)
+- Rollback capability in case of installation failure
+- Version file update post-installation
 
-- Python 3
-- PySide6 (Qt 6) — GUI
-- Pillow — image I/O
-- rawpy — RAW decoding
-- OpenCV — image processing
+### 5. Background Operations
+- Periodic background update checking
+- Configurable update intervals
+- Daemon thread support for continuous monitoring
 
-## Requirements
+### 6. Configuration Management
+- JSON configuration file at `config/updater_config.json`
+- Support for background updates, auto-install, and update intervals
+- GitHub API endpoint customization
 
-- Python 3.10+
-- Linux (developed and tested on Debian/Ubuntu); experimental Windows support via `run.bat`
+## System Design
+
+```mermaid
+graph TD
+    A[Update Manager] --> B{Check Updates}
+    B --> C[Get Current Version]
+    B --> D[Get Latest Version]
+    D --> E{New Version Available?}
+    E -->|Yes| F[Download Update]
+    F --> G[Verify Integrity]
+    G --> H[Create Backup]
+    H --> I[Install Update]
+    I --> J{Success?}
+    J -->|No| K[Rollback]
+    J -->|Yes| L[Update Complete]
+    
+    E -->|No| L
+    K --> L
+```
 
 ## Installation
 
-```bash
-git clone https://github.com/tomekkrow-sys/Photo_Editor_2.git
-cd Photo_Editor_2
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-./run.sh
-```
-
-## Building packages
+The update manager requires Python 3.6+ and additional libraries:
 
 ```bash
-./build_deb.sh        # .deb package
-./build_appimage.sh   # AppImage
+pip install requests python-gnupg
 ```
 
-## Project status
+## Usage
 
-Version 0.2.0 — the project is under active development. New features and fixes are added regularly. See [CHANGELOG.md](CHANGELOG.md).
+### Basic Operation:
+```python
+from unified_updater import UnifiedUpdateManager
 
-## Update Management
+# Initialize the updater
+updater = UnifiedUpdateManager()
 
-Photo Editor 2 now includes an advanced update manager system:
+# Check for updates without installing
+info = updater.check_for_update()
+print(f"Update available: {info['update_available']}")
 
-- Automatic version checking against GitHub releases
-- Background update checking without requiring application restart  
-- Download and installation of updates
-- Automated release publishing capabilities (API integration)
+# Perform update automatically (if enabled in config)
+result = updater.check_and_update(auto_install=True)
 
-## Author
+# Start background checking
+thread = updater.start_background_update_checker()
+```
 
-**Tomasz Krówczyński**
+### Manual Update:
+```python
+# Download update for current platform
+downloaded_file = updater.download_update("1.0.1")
+
+# Install the update with rollback capability
+if downloaded_file:
+    success = updater.install_update(downloaded_file)
+```
+
+## Security Features
+
+### Integrity Verification
+- All downloads are verified against SHA256 checksums
+- Files must match expected hash values from GitHub releases
+- Automatic verification of all binary assets
+
+### Signature Validation
+- GPG signature verification for all packages
+- Private keys stored securely in `~/.gnupg/` directory
+- Automated import of public keys from release signing keys
+
+## Configuration
+
+Configuration file located at `config/updater_config.json`:
+
+```json
+{
+    "github": {
+        "owner": "tomekkrow-sys",
+        "repo": "Photo_Editor_2",
+        "api_url": "https://api.github.com"
+    },
+    "update_check_interval": 1800,
+    "auto_update": true,
+    "background_updates": true
+}
+```
+
+## Development and Testing
+
+To run the test suite:
+
+```bash
+python -m unittest tests/test_unified_updater.py -v
+```
+
+Tests cover:
+- Version comparison logic
+- Configuration loading
+- Platform detection
+- Checksum calculations
+- Backup/restore functionality
+- GitHub API integration
+- Error handling scenarios
+
+## Requirements
+
+- Python 3.6+
+- requests library (`pip install requests`)
+- python-gnupg library (`pip install python-gnupg`)
 
 ## License
 
-See [LICENSE](LICENSE).
-
----
-
-## PL — krótko
-
-**Photo Editor 2.0** to mój autorski, samodzielnie rozwijany edytor zdjęć na Linuksa, napisany w Pythonie z interfejsem w Qt (PySide6). Obsługuje pliki RAW (m.in. NEF), podstawową korekcję (ekspozycja, kontrast, światła, cienie, temperatura barwowa), kadrowanie, presety, histogram, filtry, przetwarzanie wsadowe oraz katalog zdjęć z bazą danych.
+MIT License - see `LICENSE` file for details.

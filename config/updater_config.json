@@ -1,0 +1,13 @@
+{
+    "github": {
+        "api_url": "https://api.github.com",
+        "owner": "tomekkrow-sys",
+        "repo": "Photo_Editor_2"
+    },
+    "update": {
+        "check_interval_hours": 24,
+        "backup_enabled": true,
+        "auto_update": false,
+        "background_updates": true
+    }
+}

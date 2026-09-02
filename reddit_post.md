@@ -2,7 +2,7 @@
 
 ## Title (choose one):
 1. I built a free, open-source photo editor with RAW support (Windows/macOS/Linux) — looking for testers and feedback
-2. My hobby project: a Lightroom-style photo editor in Python/Qt — MIT licensed, all feedback welcome
+2. My hobby project: a photo editor with advanced update manager in Python/Qt — MIT licensed, all feedback welcome
 
 ---
 
@@ -11,9 +11,10 @@
 Hi everyone!
 
 For the past months I've been building my own photo editor as a hobby
-project. It's far from Lightroom, but it already covers my daily
-workflow, and I'd love some real-world feedback.
+project. It's not yet fully feature-complete like Lightroom, but it already covers my daily
+workflow. 
 
+The app now has an advanced update manager system which will automatically keep your software up to date.
 
 **What it does:**
 - opens RAW files (NEF, CR2, ARW, DNG...) with proper EXIF orientation
@@ -29,9 +30,7 @@ workflow, and I'd love some real-world feedback.
 - photo catalog with database and thumbnails
 - plugin system
 
-
 **Tech:** Python + PySide6 (Qt), rawpy, numpy/OpenCV. MIT license.
-
 
 Ready-to-run packages for Windows, macOS (Apple Silicon) and Debian
 are on the Releases page — no Python install needed:

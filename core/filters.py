@@ -275,3 +275,306 @@ def auto_enhance(img: Image.Image) -> Image.Image:
 
     out = np.clip((balanced - lo) * (255.0 / (hi - lo)), 0, 255)
     return Image.fromarray(out.astype(np.uint8), mode="RGB")
+# New filters: GaussianBlur, Sharpen, Emboss, Vignette
+
+
+def gaussian_blur(img: Image.Image, kernel_size: int = 5, sigma: float = 1.0) -> Image.Image:
+    """Apply Gaussian blur to an image.
+
+    Smooths the image by convolving with a Gaussian kernel, reducing noise and detail.
+
+    Args:
+        img: Input image (RGB, RGBA, L, or P).
+        kernel_size: Size of the Gaussian kernel (must be odd).
+        sigma: Standard deviation of the Gaussian kernel.
+
+    Returns:
+        New image with Gaussian blur applied.
+    """
+    # Ensure RGB or RGBA for processing
+    if img.mode in ("P",):
+        img = img.convert("RGB")
+    elif img.mode == "L":
+        # For grayscale, keep it but convert back later
+        pass
+
+    arr = np.asarray(img.convert("RGB"), dtype=np.float32)
+
+    # OpenCV uses BGR, so convert
+    bgr = cv2.cvtColor(arr.astype(np.uint8), cv2.COLOR_RGB2BGR)
+
+    # Ensure kernel_size is odd
+    if kernel_size % 2 == 0:
+        kernel_size += 1
+
+    # Apply Gaussian blur
+    blurred = cv2.GaussianBlur(
+        bgr,
+        (kernel_size, kernel_size),
+        sigma,
+        borderType=cv2.BORDER_DEFAULT,
+    )
+
+    # Convert back to RGB
+    result = cv2.cvtColor(blurred, cv2.COLOR_BGR2RGB)
+
+    # Preserve original mode if grayscale
+    if img.mode == "L":
+        # Compute luminance from blurred RGB to get back grayscale
+        gray = 0.299 * result[..., 0] + 0.587 * result[..., 1] + 0.114 * result[..., 2]
+        result = gray.astype(np.uint8)
+
+    return Image.fromarray(result.astype(np.uint8), mode=img.mode)
+
+
+def sharpen(
+    img: Image.Image, amount: float = 1.0, radius: int = 1
+) -> Image.Image:
+    """Apply sharpening to enhance edges and details.
+
+    Uses unsharp masking: sharp = original + amount * (original - blurred).
+
+    Args:
+        img: Input image (RGB, RGBA, L).
+        amount: Strength of sharpening (0.0 = no sharpening, 1.0 = standard).
+        radius: Blur radius for creating the blurred version.
+
+    Returns:
+        New image with sharpening applied.
+    """
+    if img.mode == "P":
+        img = img.convert("RGB")
+
+    arr = np.asarray(img.convert("RGB"), dtype=np.float32)
+
+    # Create blurred version for unsharp mask
+    blurred = cv2.GaussianBlur(arr.astype(np.uint8), (0, 0), radius)
+
+    # Unsharp mask: sharp = original + amount * (original - blurred)
+    sharpened = arr + amount * (arr - blurred)
+
+    result = np.clip(sharpened, 0, 255).astype(np.uint8)
+
+    return Image.fromarray(result, mode=img.mode if img.mode in ("RGB", "L") else "RGB")
+
+
+def emboss(
+    img: Image.Image, intensity: float = 1.0, angle: float = 45.0
+) -> Image.Image:
+    """Apply emboss effect to create a 3D relief appearance.
+
+    Uses Sobel-based edge detection with directional lighting.
+
+    Args:
+        img: Input image (RGB, RGBA, L).
+        intensity: Strength of embossing (0.0 = no emboss, 1.0 = standard).
+        angle: Direction of light source in degrees (0 = from right, 90 = from top).
+
+    Returns:
+        New RGB image with emboss effect.
+    """
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+    elif img.mode == "L":
+        pass
+
+    arr = np.asarray(img.convert("RGB"), dtype=np.float32)
+
+    # Convert to grayscale for edge detection
+    gray = 0.299 * arr[..., 0] + 0.587 * arr[..., 1] + 0.114 * arr[..., 2]
+
+    # Sobel operators
+    sobel_x = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
+    sobel_y = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
+
+    # Combine Sobel gradients
+    magnitude = np.sqrt(sobel_x**2 + sobel_y**2)
+
+    # Normalize to [0, 1]
+    magnitude = magnitude / (np.max(magnitude) + 1e-6)
+
+    # Create emboss base (mid-gray)
+    embossed = np.full_like(arr, 128, dtype=np.float32)
+
+    # Apply emboss based on gradient direction and intensity
+    angle_rad = np.radians(angle)
+    light_x = np.cos(angle_rad)
+    light_y = np.sin(angle_rad)
+
+    # Dot product of gradient with light direction
+    gradient_direction = np.arctan2(sobel_y, sobel_x)
+    light_direction = angle_rad
+    dot_product = np.cos(gradient_direction - light_direction)
+
+    # Apply emboss
+    embossed += magnitude * dot_product * intensity * 64
+
+    # Add subtle lighting gradient for depth
+    h, w = gray.shape
+    y, x = np.ogrid[:h, :w]
+    depth = (x / w + y / h) * 0.5
+    embossed += depth * intensity * 16
+
+    result = np.clip(embossed, 0, 255).astype(np.uint8)
+
+    return Image.fromarray(result, mode="RGB")
+
+
+def vignette(
+    img: Image.Image,
+    strength: float = 0.6,
+    roundness: float = 1.0,
+    center: tuple[float, float] = (0.5, 0.5),
+) -> Image.Image:
+    """Apply vignette effect to darken image corners.
+
+    Args:
+        img: Input image (RGB, RGBA, L).
+        strength: Darkness of corners (0.0 = no vignette, 1.0 = strong).
+        roundness: Shape of vignette (0.0 = square, 1.0 = circular).
+        center: Vignette center as (x_ratio, y_ratio) in [0, 1].
+
+    Returns:
+        New RGB image with vignette applied.
+    """
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+    elif img.mode == "L":
+        pass
+
+    arr = np.asarray(img.convert("RGB"), dtype=np.float32)
+    h, w = arr.shape[:2]
+
+    y, x = np.ogrid[:h, :w]
+
+    # Normalize coordinates relative to center
+    x_norm = (x - w * center[0]) / (w / 2)
+    y_norm = (y - h * center[1]) / (h / 2)
+
+    # Distance from center (with roundness control)
+    d = np.sqrt(x_norm**2 + y_norm**2)
+    corner_distance = np.sqrt(2.0)
+    # Adjust for roundness: power transformation
+    falloff = np.power(d / corner_distance, roundness)
+    falloff = np.clip(falloff, 0.0, 1.0)
+
+    # Vignette mask: 1.0 at center, decreasing toward corners
+    mask = 1.0 - strength * falloff
+
+    # Apply mask
+    result = arr * mask[..., None]
+
+    return Image.fromarray(np.clip(result, 0, 255).astype(np.uint8), mode="RGB")
+
+
+# ============================================================================
+# PLUGIN METADATA
+# ============================================================================
+
+
+__plugin_meta__ = {
+    "gaussian_blur": {
+        "name": "Gaussian Blur",
+        "description": "Rozmycie Gaussa – wygładzenie obrazu poprzez rozkład Gaussa, przydatne do usuwania szumów i tworzenia efektu tła.",
+        "parameters": {
+            "kernel_size": {
+                "type": "int",
+                "default": 5,
+                "min": 3,
+                "max": 31,
+                "step": 2,
+                "description": "Rozmiar macierzy Gaussa (musi być nieparzysta).",
+            },
+            "sigma": {
+                "type": "float",
+                "default": 1.0,
+                "min": 0.1,
+                "max": 10.0,
+                "step": 0.1,
+                "description": "Odchylenie standardowe rozkładu Gaussa.",
+            },
+        },
+        "output_mode": "RGB",
+        "supported_modes": ["RGB", "RGBA", "L", "P"],
+    },
+    "sharpen": {
+        "name": "Sharpen",
+        "description": "Ostrzenie – wzmocnienie krawędzi i szczegółów obrazu.",
+        "parameters": {
+            "amount": {
+                "type": "float",
+                "default": 1.0,
+                "min": 0.0,
+                "max": 3.0,
+                "step": 0.1,
+                "description": "Siła ostrzenia (0.0 = brak, 1.0 = standardowe).",
+            },
+            "radius": {
+                "type": "int",
+                "default": 1,
+                "min": 1,
+                "max": 10,
+                "step": 1,
+                "description": "Promień rozmycia do tworzenia wersji rozmytej.",
+            },
+        },
+        "output_mode": "RGB",
+        "supported_modes": ["RGB", "RGBA", "L", "P"],
+    },
+    "emboss": {
+        "name": "Emboss",
+        "description": "Wydrążenie – efekt 3D poprzez wykrywanie gradientów (Sobel) z kierunkiem światła.",
+        "parameters": {
+            "intensity": {
+                "type": "float",
+                "default": 1.0,
+                "min": 0.0,
+                "max": 2.0,
+                "step": 0.1,
+                "description": "Siła efektu wydrążenia (0.0 = brak, 1.0 = standardowe).",
+            },
+            "angle": {
+                "type": "float",
+                "default": 45.0,
+                "min": 0.0,
+                "max": 360.0,
+                "step": 1.0,
+                "description": "Kierunek źródła światła w stopniach (0 = z prawej, 90 = z góry).",
+            },
+        },
+        "output_mode": "RGB",
+        "supported_modes": ["RGB", "RGBA", "L", "P"],
+    },
+    "vignette": {
+        "name": "Vignette",
+        "description": "Winieta – przyciemnienie rogów obrazu w porównaniu do środka.",
+        "parameters": {
+            "strength": {
+                "type": "float",
+                "default": 0.6,
+                "min": 0.0,
+                "max": 1.0,
+                "step": 0.1,
+                "description": "Siła przyciemnienia rogów (0.0 = brak, 1.0 = silne).",
+            },
+            "roundness": {
+                "type": "float",
+                "default": 1.0,
+                "min": 0.0,
+                "max": 2.0,
+                "step": 0.1,
+                "description": "Kształt winietowania (0.0 = kwadratowy, 1.0 = kołowy).",
+            },
+            "center": {
+                "type": "tuple[float, float]",
+                "default": [0.5, 0.5],
+                "min": [0.0, 0.0],
+                "max": [1.0, 1.0],
+                "step": [0.1, 0.1],
+                "description": "Środek winietu jako (x_ratio, y_ratio) w zakresie [0, 1].",
+            },
+        },
+        "output_mode": "RGB",
+        "supported_modes": ["RGB", "RGBA", "L", "P"],
+    },
+}

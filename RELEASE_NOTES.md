@@ -1,4 +1,4 @@
-# Photo Editor 2 - Update Manager Release
+# Photo Editor 2 Update Manager Release
 
 ## Version 1.0.1
 

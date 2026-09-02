@@ -15,10 +15,13 @@ from core.filters import (
     auto_enhance,
     black_and_white,
     composite,
+    emboss,
     frame,
+    gaussian_blur,
     negative,
     pencil_sketch,
     sepia,
+    sharpen,
     straighten,
     vignette,
     watermark,
@@ -133,8 +136,12 @@ class MainWindow(QMainWindow):
         self.actions.black_white.triggered.connect(self._on_black_white)
         self.actions.sepia.triggered.connect(self._on_sepia)
         self.actions.negative.triggered.connect(self._on_negative)
+        self.actions.gaussian_blur.triggered.connect(self._on_gaussian_blur)
+        self.actions.sharpen.triggered.connect(self._on_sharpen)
+        self.actions.emboss.triggered.connect(self._on_emboss)
         self.actions.vignette.triggered.connect(self._on_vignette)
         self.actions.auto_enhance.triggered.connect(self._on_auto_enhance)
+
         self.actions.resize_image.triggered.connect(self._on_resize)
         self.actions.batch.triggered.connect(self._on_batch_export)
         self.actions.zoom_in.triggered.connect(self._on_zin)
@@ -415,6 +422,17 @@ class MainWindow(QMainWindow):
 
     def _on_negative(self):
         self._run_filter(negative, "Negatyw", "_negatyw.png")
+
+
+
+    def _on_gaussian_blur(self):
+        self._run_filter(gaussian_blur, "Rozmycie Gaussa", "_gaussian.png")
+
+    def _on_sharpen(self):
+        self._run_filter(sharpen, "Ostrzenie", "_sharpen.png")
+
+    def _on_emboss(self):
+        self._run_filter(emboss, "Wydrążenie", "_emboss.png")
 
     def _on_vignette(self):
         self._run_filter(vignette, "Winieta", "_winieta.png")

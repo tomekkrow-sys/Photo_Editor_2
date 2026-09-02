@@ -301,6 +301,162 @@ class WatermarkTests(unittest.TestCase):
 
         self.assertEqual(result.getpixel((10, 10)), (200, 100, 50))
 
+class GaussianBlurTests(unittest.TestCase):
+    """Verify Gaussian blur behavior."""
+
+    def test_returns_image_of_same_size(self) -> None:
+        img = Image.new("RGB", (120, 80), (200, 120, 60))
+
+        result = gaussian_blur(img, kernel_size=5, sigma=1.0)
+
+        self.assertEqual(result.mode, "RGB")
+        self.assertEqual(result.size, img.size)
+
+    def test_does_not_modify_original(self) -> None:
+        img = Image.new("RGB", (64, 64), (10, 200, 90))
+        before = np.asarray(img).copy()
+
+        gaussian_blur(img, kernel_size=7)
+
+        np.testing.assert_array_equal(np.asarray(img), before)
+
+    def test_higher_sigma_leads_to_more_blur(self) -> None:
+        img = Image.new("RGB", (60, 60), (128, 128, 128))
+        # Add some noise
+        noise = np.random.randint(-30, 30, (60, 60, 3), dtype=np.int16)
+        img_array = np.asarray(img).astype(np.int16)
+        noisy = np.clip(img_array + noise, 0, 255).astype(np.uint8)
+        img = Image.fromarray(noisy, "RGB")
+
+        result_low = np.asarray(gaussian_blur(img, kernel_size=5, sigma=1.0))
+        result_high = np.asarray(gaussian_blur(img, kernel_size=5, sigma=3.0))
+
+        # Higher sigma should smooth out variations more
+        self.assertLess(result_high.std(), result_low.std())
+
+    def test_accepts_rgba_and_grayscale(self) -> None:
+        rgba = Image.new("RGBA", (40, 30), (120, 60, 200, 255))
+        gray = Image.new("L", (50, 40), 128)
+
+        result_rgba = gaussian_blur(rgba, kernel_size=5)
+        result_gray = gaussian_blur(gray, kernel_size=5)
+
+        self.assertEqual(result_rgba.mode, "RGBA")
+        self.assertEqual(result_gray.mode, "L")
+
+
+class SharpenTests(unittest.TestCase):
+    """Verify sharpen filter behavior."""
+
+    def test_sharpen_returns_same_size(self) -> None:
+        img = Image.new("RGB", (120, 80), (100, 150, 200))
+        result = sharpen(img, amount=1.0)
+        self.assertEqual(result.size, img.size)
+
+    def test_sharpen_increases_edge_contrast(self) -> None:
+        # Create an image with a sharp edge
+        img = Image.new("RGB", (100, 100))
+        draw = ImageDraw.Draw(img)
+        draw.rectangle([0, 0, 50, 100], fill=(100, 100, 100))
+        draw.rectangle([50, 0, 100, 100], fill=(200, 200, 200))
+        del draw
+
+        result = sharpen(img, amount=1.5)
+
+        # Check edge pixels: left side should get darker, right side lighter
+        left_mean = np.mean(np.asarray(result)[:25, 25:75, 0])
+        right_mean = np.mean(np.asarray(result)[75:, 25:75, 0])
+        # After sharpening, contrast should increase
+        self.assertGreater(right_mean - left_mean, 50)
+
+    def test_sharpen_parameters_affect_strength(self) -> None:
+        img = Image.new("RGB", (100, 100), 128)
+        # Add noise
+        arr = np.asarray(img).astype(np.float32)
+        arr += np.random.randint(-20, 20, arr.shape, dtype=np.int32)
+        img = Image.fromarray(arr.astype(np.uint8), "RGB")
+
+        weak = sharpen(img, amount=0.5)
+        strong = sharpen(img, amount=2.0)
+
+        # Strong sharpening should produce more variation
+        self.assertGreater(strong.getextrema()[1][0] - strong.getextrema()[0][0],
+                          weak.getextrema()[1][0] - weak.getextrema()[0][0])
+
+
+class EmbossTests(unittest.TestCase):
+    """Verify emboss filter behavior."""
+
+    def test_emboss_returns_same_size(self) -> None:
+        img = Image.new("RGB", (120, 80), (100, 150, 200))
+        result = emboss(img, intensity=1.0)
+        self.assertEqual(result.size, img.size)
+
+    def test_emboss_creates_3d_relief(self) -> None:
+        # Create image with a clear shape
+        img = Image.new("RGB", (100, 100))
+        draw = ImageDraw.Draw(img)
+        draw.ellipse([20, 20, 80, 80], fill=(200, 100, 100))
+        del draw
+
+        result = emboss(img, intensity=1.5)
+
+        # Embossed image should have more variation in pixel values
+        arr = np.asarray(result)
+        self.assertGreater(arr.std(), 20)
+
+    def test_emboss_angle_affects_lighting(self) -> None:
+        img = Image.new("RGB", (100, 100), 128)
+        draw = ImageDraw.Draw(img)
+        draw.rectangle([25, 25, 75, 75], fill=(255, 255, 255))
+        del draw
+
+        left_lit = emboss(img, intensity=1.0, angle=0.0)   # light from right
+        top_lit = emboss(img, intensity=1.0, angle=90.0)  # light from bottom
+
+        # Light from right: left side of rectangle should be darker
+        left_left = np.mean(np.asarray(left_lit)[30:70, 20:40, 0])
+        left_right = np.mean(np.asarray(left_lit)[30:70, 60:80, 0])
+
+        # Light from bottom: top side should be darker
+        top_top = np.mean(np.asarray(top_lit)[20:40, 30:70, 0])
+        top_bottom = np.mean(np.asarray(top_lit)[60:80, 30:70, 0])
+
+        # Check that left_lit shows left-side darkening more than top_lit
+        self.assertGreater(left_right - left_left, 10)
+
+
+class VignetteTests(unittest.TestCase):
+    """Verify vignette filter behavior."""
+
+    def test_vignette_returns_same_size(self) -> None:
+        img = Image.new("RGB", (120, 80), (100, 150, 200))
+        result = vignette(img, strength=0.5)
+        self.assertEqual(result.size, img.size)
+
+    def test_vignette_darkens_corners(self) -> None:
+        img = Image.new("RGB", (100, 100), (200, 200, 200))
+        result = vignette(img, strength=0.8)
+
+        arr = np.asarray(result)
+        corners = np.concatenate([
+            arr[:25, :25], arr[:25, -25:],
+            arr[-25:, :25], arr[-25:, -25:],
+        ])
+        center = arr[25:75, 25:75]
+
+        self.assertLess(corners.mean(), center.mean())
+
+    def test_vignette_parameters_affect_strength_and_shape(self) -> None:
+        img = Image.new("RGB", (100, 100), (200, 200, 200))
+
+        weak_round = vignette(img, strength=0.3, roundness=1.0)
+        strong_square = vignette(img, strength=0.7, roundness=0.3)
+
+        weak_mean_corner = np.mean(np.asarray(weak_round)[:25, :25])
+        strong_mean_corner = np.mean(np.asarray(strong_square)[:25, :25])
+
+        self.assertLess(strong_mean_corner, weak_mean_corner)
 
 if __name__ == "__main__":
     unittest.main()

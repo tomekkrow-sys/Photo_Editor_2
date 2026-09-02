@@ -47,7 +47,7 @@ class _SliderRow(QWidget):
 
 
 class EffectsPanel(QWidget):
-    """Creative effects: Vignette, Dehaze, Grain."""
+    """Creative effects: Gaussian Blur, Sharpen, Emboss, Vignette."""
 
     valuesChanged = Signal(dict)
 
@@ -63,9 +63,10 @@ class EffectsPanel(QWidget):
         layout.addWidget(title)
 
         for name, label in [
-            ("vignette", "Winietowanie"),
-            ("dehaze", "Usuwanie mgly"),
-            ("grain", "Ziarno"),
+            ("gaussian_blur", "Rozmycie Gaussa"),
+            ("sharpen", "Ostrzenie"),
+            ("emboss", "Wydrążenie"),
+            ("vignette", "Winieta"),
         ]:
             row = _SliderRow(label, minimum=0, maximum=100)
             row._slider.valueChanged.connect(self._emit_change)
