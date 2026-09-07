@@ -67,7 +67,7 @@ class UpdateManager:
     def _load_config(self):
         """Load configuration from file or use defaults."""
         default_config = {
-            "base_url": "https://api.github.com/repos/username/repo/releases",
+            "base_url": "https://api.github.com/repos/tomekkrow-sys/Photo_Editor_2/releases",
             "update_interval_days": 7,
             "check_on_startup": True,
             "auto_install": False,
@@ -110,7 +110,7 @@ class UpdateManager:
             if 'github' in self.config and 'owner' in self.config['github'] and 'repo' in self.config['github']:
                 repository = f"{self.config['github']['owner']}/{self.config['github']['repo']}"
             else:
-                repository = "username/repo"
+                repository = f"{self.owner}/{self.repo}"
                 
         try:
             # Get the latest release from GitHub
@@ -140,7 +140,7 @@ class UpdateManager:
             version2 (str): Second version string
             
         Returns:
-            bool: True if version1 >= version2
+            bool: True if version1 > version2
         """
         def parse_version(v):
             # Split into major.minor.patch and pre-release/build metadata
@@ -180,7 +180,7 @@ class UpdateManager:
             return v1_pre > v2_pre
         else:
             # Both are normal versions and equal
-            return True
+            return False
 
     def _get_platform_info(self):
         """Get platform and architecture information."""

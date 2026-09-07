@@ -43,21 +43,10 @@ class UpdateManager:
         
         # Load config with defaults
         self.config = self._load_config()
-        
-        # Set repository details from config if available, otherwise use defaults
-        self.owner = "username"
-        self.repo = "repo"
-        if 'github' in self.config:
-            if 'owner' in self.config['github']:
-                self.owner = self.config['github']['owner']
-            if 'repo' in self.config['github']:
-                self.repo = self.config['github']['repo']
-        
-        # Set up base URL and full repo path
-        self.base_url = f"https://api.github.com/repos/{self.owner}/{self.repo}/releases"
-        self.full_repo_path = f"{self.owner}/{self.repo}"
+        self.base_url = "https://api.github.com/repos/username/repo/releases"
         
         # Version information
+        self.current_version = self.get_current_version()
         try:
             with open("version.txt", "r") as f:
                 self.current_version = f.read().strip()
@@ -103,84 +92,52 @@ class UpdateManager:
             logger.warning("version.txt not found, using default version 1.0.0")
             return "1.0.0"
 
-    def get_latest_version(self, repository=None):
+    def get_latest_version(self, repository="username/repo"):
         """Get the latest version from GitHub releases."""
-        if repository is None:
-            # Use config for repository details
-            if 'github' in self.config and 'owner' in self.config['github'] and 'repo' in self.config['github']:
-                repository = f"{self.config['github']['owner']}/{self.config['github']['repo']}"
-            else:
-                repository = "username/repo"
-                
         try:
             # Get the latest release from GitHub
-            response = requests.get(f"https://api.github.com/repos/{self.full_repo_path}/releases/latest", timeout=10)
+            response = requests.get(f"https://api.github.com/repos/{repository}/releases/latest", timeout=10)
             if response.status_code == 200:
                 latest_release = response.json()
-                # Check if tag_name exists in the response
-                if 'tag_name' not in latest_release:
-                    logger.warning("Release response does not contain tag_name")
-                    return None
-                latest_version = latest_release['tag_name'].lstrip('v')
+                latest_version = latest_release['tag_name'].lstrip('v')  # Remove 'v' prefix if present
                 logger.info(f"Latest version from GitHub: {latest_version}")
                 return latest_version
             else:
-                logger.warning(f"Failed to get latest version, status code: {response.status_code}")
+                logger.warning(f"Failed to get latest version. Status code: {response.status_code}")
                 return None
         except Exception as e:
-            logger.error(f"Error getting latest version from GitHub: {e}")
+            logger.error(f"Error fetching latest version from GitHub: {e}")
             return None
 
     def is_version_newer(self, version1, version2):
         """
-        Compare two version strings using semantic versioning rules.
+        Compare two version strings.
         
         Args:
             version1 (str): First version string
             version2 (str): Second version string
             
         Returns:
-            bool: True if version1 >= version2
+            bool: True if version1 > version2
         """
-        def parse_version(v):
-            # Split into major.minor.patch and pre-release/build metadata
-            parts = v.split('-')
-            main_version = parts[0]
-            pre_release = parts[1] if len(parts) > 1 else ""
-            
-            # Split main version into components  
-            v_parts = [int(x) for x in main_version.split('.')]
-            
-            # Pad to ensure we have at least 3 components
-            while len(v_parts) < 3:
-                v_parts.append(0)
-                
-            return (v_parts, pre_release)
+        # Split version strings into components
+        v1_parts = [int(x) for x in version1.split('.')]
+        v2_parts = [int(x) for x in version2.split('.')]
         
-        v1_parts, v1_pre = parse_version(version1)
-        v2_parts, v2_pre = parse_version(version2)
+        # Pad the shorter version with zeros
+        max_len = max(len(v1_parts), len(v2_parts))
+        v1_parts.extend([0] * (max_len - len(v1_parts)))
+        v2_parts.extend([0] * (max_len - len(v2_parts)))
         
-        # Compare major.minor.patch
-        for i in range(3):
+        # Compare each component
+        for i in range(max_len):
             if v1_parts[i] > v2_parts[i]:
                 return True
             elif v1_parts[i] < v2_parts[i]:
                 return False
         
-        # If we get here, the semantic version parts are equal
-        # Pre-release versions have lower precedence than normal versions
-        if v1_pre and not v2_pre:
-            return False  # pre-release is "older"
-        elif not v1_pre and v2_pre:
-            return True   # non-pre-release is "newer" 
-        elif v1_pre and v2_pre:
-            # Both have pre-release, compare directly as string
-            # This simple approach will work for most cases like:
-            # '1.0.0-alpha' vs '1.0.0-beta'
-            return v1_pre > v2_pre
-        else:
-            # Both are normal versions and equal
-            return True
+        # Versions are equal
+        return False
 
     def _get_platform_info(self):
         """Get platform and architecture information."""
@@ -243,20 +200,15 @@ class UpdateManager:
             
             # Remove existing content and restore from backup
             for root, dirs, files in os.walk(os.getcwd()):
-                # Skip backup directory to avoid removing backup contents
-                if "backup" in os.path.relpath(root, os.getcwd()).split(os.sep):
-                    continue
-                    
                 for file in files:
-                    os.remove(os.path.join(root, file))
-            
+                    if not root.endswith("backup"):
+                        os.remove(os.path.join(root, file))
+                
             # Restore backup content
             for root, dirs, files in os.walk(backup_dir):
                 for file in files:
                     src_path = os.path.join(backup_dir, root, file)
-                    # Create relative path from backup to avoid nested backups
-                    rel_file_path = os.path.relpath(src_path, backup_dir)
-                    dst_path = os.path.join(os.getcwd(), rel_file_path)
+                    dst_path = os.path.join(os.getcwd(), os.path.relpath(src_path, backup_dir))
                     os.makedirs(os.path.dirname(dst_path), exist_ok=True)
                     shutil.copy2(src_path, dst_path)
             
@@ -289,7 +241,7 @@ class UpdateManager:
             
             # GitHub API endpoint for releases
             response = requests.get(
-                f"https://api.github.com/repos/{self.full_repo_path}/releases/tags/v{version}",
+                f"https://api.github.com/repos/username/repo/releases/tags/v{version}",
                 timeout=30
             )
             
@@ -356,8 +308,7 @@ class UpdateManager:
             # Update version file
             with open(os.path.join(target_dir, "version.txt"), "w") as f:
                 # Write the new version that we're installing 
-                version_to_write = latest_version or self.current_version
-                f.write(version_to_write)
+                f.write(latest_version)
             
             logger.info("Update installed successfully")
             return True
@@ -407,9 +358,8 @@ class UpdateManager:
                 if downloaded_file:
                     logger.info("Installing update...")
                     
-                    # Install the update - use current directory as target 
-                    target_dir = os.getcwd()
-                    install_result = self.install_update(downloaded_file, target_dir=target_dir, latest_version=latest_version)
+                    # Install the update
+                    install_result = self.install_update(downloaded_file, latest_version=latest_version)
                     
                     if install_result:
                         logger.info("Update installed successfully!")

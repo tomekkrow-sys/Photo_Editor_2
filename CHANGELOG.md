@@ -25,6 +25,9 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/).
 
 ## [Unreleased]
 
+### Naprawione
+- Wersje semantyczne: funkcja `is_version_newer` teraz poprawnie rozpoznaje równe wersje (np. "1.7" i "1.7.0") jako "nowsze lub równe"
+
 ### Dodane
 - Filtr **Czarno-biały** (menu Filtry / pasek narzędzi): naturalne tony,
   łagodna krzywa S, podgląd i zapis jako nowy plik

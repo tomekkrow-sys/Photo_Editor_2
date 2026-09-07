@@ -1,151 +1,109 @@
-# Photo Editor 2 Unified Update Manager
+# Photo Editor 2 Update Manager
 
-This project implements a comprehensive update management system for the Photo Editor 2 application, designed to provide secure and automatic updates with rollback capabilities.
+Unified Update Manager for Photo Editor 2 application, handling version retrieval, checking, downloading, and installing updates from GitHub repositories.
 
-## Features Implemented
+## Features
 
-### 1. Version Management
-- Read current version from `version.txt`
-- Compare versions using semantic versioning logic
-- Support for complex version schemes (e.g., 2.10.5 vs 2.9.10)
-
-### 2. Update Discovery & Download
-- Fetch latest releases from GitHub API
-- Automatically detect platform and architecture
-- Download platform-specific assets (detection logic)
-- Support for generic or platform-specific update files
-
-### 3. Security Features
-- File integrity verification with SHA256 hashes
-- GPG signature verification for releases
-- Automated key management within the application directory
-
-### 4. Installation & Rollback
-- Automatic backup creation before installation
-- Package extraction (ZIP and TAR formats supported)
-- Rollback capability in case of installation failure
-- Version file update post-installation
-
-### 5. Background Operations
-- Periodic background update checking
-- Configurable update intervals
-- Daemon thread support for continuous monitoring
-
-### 6. Configuration Management
-- JSON configuration file at `config/updater_config.json`
-- Support for background updates, auto-install, and update intervals
-- GitHub API endpoint customization
-
-## System Design
-
-```mermaid
-graph TD
-    A[Update Manager] --> B{Check Updates}
-    B --> C[Get Current Version]
-    B --> D[Get Latest Version]
-    D --> E{New Version Available?}
-    E -->|Yes| F[Download Update]
-    F --> G[Verify Integrity]
-    G --> H[Create Backup]
-    H --> I[Install Update]
-    I --> J{Success?}
-    J -->|No| K[Rollback]
-    J -->|Yes| L[Update Complete]
-    
-    E -->|No| L
-    K --> L
-```
-
-## Installation
-
-The update manager requires Python 3.6+ and additional libraries:
-
-```bash
-pip install requests python-gnupg
-```
-
-## Usage
-
-### Basic Operation:
-```python
-from unified_updater import UnifiedUpdateManager
-
-# Initialize the updater
-updater = UnifiedUpdateManager()
-
-# Check for updates without installing
-info = updater.check_for_update()
-print(f"Update available: {info['update_available']}")
-
-# Perform update automatically (if enabled in config)
-result = updater.check_and_update(auto_install=True)
-
-# Start background checking
-thread = updater.start_background_update_checker()
-```
-
-### Manual Update:
-```python
-# Download update for current platform
-downloaded_file = updater.download_update("1.0.1")
-
-# Install the update with rollback capability
-if downloaded_file:
-    success = updater.install_update(downloaded_file)
-```
-
-## Security Features
-
-### Integrity Verification
-- All downloads are verified against SHA256 checksums
-- Files must match expected hash values from GitHub releases
-- Automatic verification of all binary assets
-
-### Signature Validation
-- GPG signature verification for all packages
-- Private keys stored securely in `~/.gnupg/` directory
-- Automated import of public keys from release signing keys
+- Fetch current version from `version.txt`
+- Check for latest releases on GitHub
+- Download updates for specific platforms
+- Install updates automatically 
+- Support for semantic versioning comparison
+- Configurable via JSON configuration file
+- Backup and rollback capabilities
+- Background update checking support
 
 ## Configuration
 
-Configuration file located at `config/updater_config.json`:
+The manager uses a JSON configuration file at `config/updater_config.json`:
 
 ```json
 {
     "github": {
+        "api_url": "https://api.github.com",
         "owner": "tomekkrow-sys",
-        "repo": "Photo_Editor_2",
-        "api_url": "https://api.github.com"
+        "repo": "Photo_Editor_2"
     },
-    "update_check_interval": 1800,
-    "auto_update": true,
-    "background_updates": true
+    "update": {
+        "check_interval_hours": 24,
+        "backup_enabled": true,
+        "auto_update": false,
+        "background_updates": true
+    }
 }
 ```
 
-## Development and Testing
+## Usage
 
-To run the test suite:
+### Basic usage:
+```python
+from unified_updater import UpdateManager
 
-```bash
-python -m unittest tests/test_unified_updater.py -v
+# Create manager instance (loads configuration automatically)
+updater = UpdateManager()
+
+# Check and optionally update
+status = updater.check_and_update()
+print(f"Update status: {status}")
+
+# Or check latest version only
+latest_version = updater.get_latest_version()
+print(f"Latest version: {latest_version}")
 ```
 
-Tests cover:
-- Version comparison logic
-- Configuration loading
-- Platform detection
-- Checksum calculations
-- Backup/restore functionality
-- GitHub API integration
-- Error handling scenarios
+### Direct update:
+```python
+# Download and install latest update
+updater.download_update(latest_version, platform_arch)
+updater.install_update(downloaded_file, target_dir, latest_version)
+```
+
+## Supported Platforms
+
+- Linux (x86_64, arm64)
+- Windows (x86, x64)
+- macOS (Intel, Apple Silicon)
+
+## Version Comparison
+
+The manager implements semantic versioning comparison that handles:
+- Standard versions: 1.0.0, 2.1.3
+- Pre-release versions: 1.0.0-alpha, 2.1.0-beta.2
+- Build metadata suffixes
+
+## Repository Structure
+
+```
+.
+├── config/
+│   └── updater_config.json     # Update configuration
+├── unified_updater.py          # Main update manager
+├── version.txt                 # Current application version
+└── update_manager.log          # Update logs
+```
 
 ## Requirements
 
-- Python 3.6+
-- requests library (`pip install requests`)
-- python-gnupg library (`pip install python-gnupg`)
+- Python 3.7+
+- requests library
+- json module (built-in)
+
+## Installation
+
+Extract the archive `photo-editor-2-update-manager-complete.tar.gz` to get all necessary files:
+
+```bash
+tar -xzf photo-editor-2-update-manager-complete.tar.gz
+```
 
 ## License
 
-MIT License - see `LICENSE` file for details.
+MIT License - see LICENSE file for details.
+
+## Contributing
+
+1. Fork the repository
+2. Create feature branch 
+3. Commit changes
+4. Push to branch
+5. Create pull request
