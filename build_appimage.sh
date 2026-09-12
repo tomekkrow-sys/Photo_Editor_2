@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 
 echo "=== Photo Editor 2 - budowanie AppImage ==="
 
-VERSION=$(python3 -c "import sys; sys.path.insert(0, '.'); from config.version import APP_VERSION; print(APP_VERSION)")
+VERSION=$(cat version.txt)
 
 # 1. Zbuduj binarne via PyInstaller
 DIST=dist/Photo_Editor_2

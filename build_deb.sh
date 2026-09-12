@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 
 echo "=== Photo Editor 2 - budowanie pakietu .deb ==="
 
-VERSION=$(python3 -c "import sys; sys.path.insert(0, '.'); from config.version import APP_VERSION; print(APP_VERSION)")
+VERSION=$(cat version.txt)
 PKG=packaging/debian
 DIST=dist/Photo_Editor_2
 

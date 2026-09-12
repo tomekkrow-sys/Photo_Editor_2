@@ -1,0 +1,90 @@
+name: Create GitHub Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: approve
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Pobierz wersję
+        id: version
+        run: echo "VERSION=$(cat version.txt)" >> $GITHUB_OUTPUT
+
+      - name: Budowanie AppImage
+        if: runner.os == "Linux"
+        run: |
+          chmod +x build_appimage.sh
+          bash build_appimage.sh
+          echo "AppImage built"
+
+      - name: Budowanie pakietu .deb
+        if: runner.os == "Linux"
+        run: |
+          chmod +x build_deb.sh
+          bash build_deb.sh
+
+      - name: Pobierz wygenerowane pliki
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: |
+            Photo_Editor_2-v*_x86_64.AppImage
+            photo-editor-2_*_amd64.deb
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Photo Editor 2 ${{ github.ref_name }}"
+          body: |
+            ## Photo Editor 2 v${{ github.ref_name }}
+
+            **Features:**
+            - Enhanced version comparison algorithm
+            - Better error handling for update downloads
+            - Improved logging capabilities
+            - Optimized memory usage during updates
+
+            **Changes:**
+            - Refactored update manager logic
+            - Updated semantic versioning support
+            - Fixed crash on invalid version strings
+            - Improved platform detection accuracy
+
+            **Assets:**
+            - `Photo_Editor_2-${{ github.ref_name }}-x86_64.AppImage`
+            - `photo-editor-2_${{ github.ref_name }}_amd64.deb`
+
+            ---
+            *Automatically generated release*
+          },
+          files: |
+            artifacts/Photo_Editor_2-v${{ github.ref_name }}-x86_64.AppImage
+            artifacts/photo-editor-2_${{ github.ref_name }}_amd64.deb
+          generate_release_notes: false
