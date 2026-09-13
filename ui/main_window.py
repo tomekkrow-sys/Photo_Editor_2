@@ -1088,7 +1088,8 @@ class MainWindow(QMainWindow):
 
         data = result["data"]
         latest_tag = data.get("tag_name", "unknown")
-        current = APP_VERSION
+        from config.version import APP_VERSION as _ver
+        current = _ver
 
         import re
         cur_parts = [int(x) for x in re.sub(r'^v', '', current).split('.')]
@@ -1121,10 +1122,11 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Sprawdzono aktualizacje.")
 
     def _on_about(self):
+        from config.version import APP_NAME as _name, APP_VERSION as _ver
         QMessageBox.about(
             self, "O programie",
-            f"<h3>{APP_NAME}</h3>"
-            f"<p>Wersja: {APP_VERSION}</p>"
+            f"<h3>{_name}</h3>"
+            f"<p>Wersja: {_ver}</p>"
             f"<p>Autor: Tomek Krowczynski</p>"
             f"<p>Edytor zdjec z obsluga RAW</p>"
             f"<p>GitHub: <a href='https://github.com/tomekkrow-sys/Photo_Editor_2'>tomekkrow-sys/Photo_Editor_2</a></p>"
