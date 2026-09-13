@@ -141,6 +141,8 @@ class MainWindow(QMainWindow):
         self.actions.emboss.triggered.connect(self._on_emboss)
         self.actions.vignette.triggered.connect(self._on_vignette)
         self.actions.auto_enhance.triggered.connect(self._on_auto_enhance)
+        self.actions.check_updates.triggered.connect(self._on_check_updates)
+        self.actions.about.triggered.connect(self._on_about)
 
         self.actions.resize_image.triggered.connect(self._on_resize)
         self.actions.batch.triggered.connect(self._on_batch_export)
@@ -1051,6 +1053,82 @@ class MainWindow(QMainWindow):
             sh = self.canvas.height() / self.canvas._pixmap.height()
             self.canvas._zoom = min(sw, sh) * 0.95
             self.canvas.update()
+
+    def _on_check_updates(self):
+        from PySide6.QtCore import QThread, Signal
+
+        class UpdateChecker(QThread):
+            finished = Signal(dict)
+
+            def run(self):
+                try:
+                    import requests
+                    config_path = Path(__file__).resolve().parent.parent / "config" / "updater_config.json"
+                    import json
+                    cfg = json.loads(config_path.read_text()) if config_path.exists() else {}
+                    gh = cfg.get("github", {})
+                    url = f"{gh.get('api_url', 'https://api.github.com')}/repos/{gh.get('owner', 'tomekkrow-sys')}/{gh.get('repo', 'Photo_Editor_2')}/releases/latest"
+                    resp = requests.get(url, timeout=10)
+                    resp.raise_for_status()
+                    data = resp.json()
+                    self.finished.emit({"status": "ok", "data": data})
+                except Exception as e:
+                    self.finished.emit({"status": "error", "message": str(e)})
+
+        self.statusBar().showMessage("Sprawdzam aktualizacje...")
+        self._update_checker = UpdateChecker()
+        self._update_checker.finished.connect(self._on_update_result)
+        self._update_checker.start()
+
+    def _on_update_result(self, result):
+        if result["status"] == "error":
+            QMessageBox.warning(self, "Aktualizacje", f"Blad sprawdzania:\n{result['message']}")
+            self.statusBar().showMessage("Blad sprawdzania aktualizacji.")
+            return
+
+        data = result["data"]
+        latest_tag = data.get("tag_name", "unknown")
+        current = APP_VERSION
+
+        import re
+        cur_parts = [int(x) for x in re.sub(r'^v', '', current).split('.')]
+        lat_parts = [int(x) for x in re.sub(r'^v', '', latest_tag).split('.')]
+
+        newer = False
+        for i in range(min(len(cur_parts), len(lat_parts))):
+            if lat_parts[i] > cur_parts[i]:
+                newer = True
+                break
+            elif lat_parts[i] < cur_parts[i]:
+                break
+        if not newer and len(lat_parts) > len(cur_parts):
+            newer = True
+
+        if newer:
+            reply = QMessageBox.information(
+                self, "Aktualizacja",
+                f"Dostepna jest nowa wersja: {latest_tag}\n\n"
+                f"Biezaca wersja: {current}\n"
+                f"Nowa wersja: {latest_tag}\n\n"
+                f"Aby zaktualizowac, pobierz plik z:\n{data.get('html_url', '')}",
+                QMessageBox.StandardButton.Open | QMessageBox.StandardButton.Ok,
+            )
+            if reply == QMessageBox.StandardButton.Open:
+                import webbrowser
+                webbrowser.open(data.get("html_url", "https://github.com/tomekkrow-sys/Photo_Editor_2/releases"))
+        else:
+            QMessageBox.information(self, "Aktualizacje", f"Masz najnowsza wersje ({current}).")
+        self.statusBar().showMessage("Sprawdzono aktualizacje.")
+
+    def _on_about(self):
+        QMessageBox.about(
+            self, "O programie",
+            f"<h3>{APP_NAME}</h3>"
+            f"<p>Wersja: {APP_VERSION}</p>"
+            f"<p>Autor: Tomek Krowczynski</p>"
+            f"<p>Edytor zdjec z obsluga RAW</p>"
+            f"<p>GitHub: <a href='https://github.com/tomekkrow-sys/Photo_Editor_2'>tomekkrow-sys/Photo_Editor_2</a></p>"
+        )
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():

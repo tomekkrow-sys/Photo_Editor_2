@@ -67,3 +67,5 @@ class ActionManager:
         self.overlay = QAction("Naloz warstwe z pliku...", self.parent)
         self.straighten = QAction("Wyprostuj horyzont...", self.parent)
         self.watermark = QAction("Znak wodny...", self.parent)
+        self.check_updates = QAction("Sprawdz aktualizacje...", self.parent)
+        self.about = QAction("O programie", self.parent)

@@ -59,4 +59,7 @@ class MenuBar(QMenuBar):
         tm.addAction(self.actions.rotate_right)
         tm.addAction(self.actions.flip_h)
         tm.addAction(self.actions.flip_v)
-        self.addMenu("&Pomoc")
+        pm = self.addMenu("&Pomoc")
+        pm.addAction(self.actions.check_updates)
+        pm.addSeparator()
+        pm.addAction(self.actions.about)
