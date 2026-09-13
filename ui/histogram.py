@@ -14,7 +14,6 @@ class HistogramWidget(QWidget):
         self._clip_highlights = False
         self.setMinimumHeight(110)
         self.setMaximumHeight(130)
-        self.setStyleSheet("background: #1E1E1E; border-top: 1px solid #333;")
 
     def set_image(self, pil_img):
         if pil_img is None:

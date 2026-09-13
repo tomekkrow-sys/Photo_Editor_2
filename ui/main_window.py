@@ -62,10 +62,8 @@ RAW_EXTS = {".nef", ".cr2", ".cr3", ".arw", ".dng", ".orf", ".rw2", ".raf", ".pe
 class MainWindow(QMainWindow):
     def __init__(self, catalog=None):
         super().__init__()
-        self.setStyleSheet("""
-            QMainWindow { background: #1E1E1E; }
-            QSplitter::handle { background: #333333; }
-        """)
+        from ui.theme import build_stylesheet, DARK_THEME
+        self.setStyleSheet(build_stylesheet(DARK_THEME))
         self.actions = ActionManager(self)
         self._orig = None
         self._path = None
@@ -94,9 +92,9 @@ class MainWindow(QMainWindow):
         self.setStatusBar(StatusBar(self))
         splitter = QSplitter(Qt.Orientation.Horizontal)
         center = QWidget()
-        center.setStyleSheet("background: #141414;")
         cl = QVBoxLayout(center)
         cl.setContentsMargins(0, 0, 0, 0)
+        cl.setSpacing(0)
         self.canvas = Canvas(self)
         cl.addWidget(self.canvas, stretch=1)
         self.histogram = HistogramWidget(self)
@@ -1234,22 +1232,15 @@ class MainWindow(QMainWindow):
         self._run_filter(duotone, "Duotone", "_duotone.png")
 
     def _on_theme_toggle(self):
+        from ui.theme import build_stylesheet, DARK_THEME, LIGHT_THEME
         settings = QSettings("PhotoEditor2", "PhotoEditor2")
         current = settings.value("theme", "dark")
         if current == "dark":
             new_theme = "light"
-            self.setStyleSheet("""
-                QMainWindow { background: #F5F5F5; }
-                QSplitter::handle { background: #CCCCCC; }
-                QMenuBar { background: #F0F0F0; color: #333; }
-                QMenu { background: #F0F0F0; color: #333; }
-            """)
+            self.setStyleSheet(build_stylesheet(LIGHT_THEME))
         else:
             new_theme = "dark"
-            self.setStyleSheet("""
-                QMainWindow { background: #1E1E1E; }
-                QSplitter::handle { background: #333333; }
-            """)
+            self.setStyleSheet(build_stylesheet(DARK_THEME))
         settings.setValue("theme", new_theme)
         self.statusBar().showMessage(f"Motyw: {new_theme}")
 

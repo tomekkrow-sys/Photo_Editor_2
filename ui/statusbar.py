@@ -5,9 +5,8 @@ from PySide6.QtWidgets import QLabel, QStatusBar
 class StatusBar(QStatusBar):
     def __init__(self, parent):
         super().__init__(parent)
-        self.setStyleSheet("QStatusBar { background: #252526; color: #AAAAAA; border-top: 1px solid #333; } QLabel { color: #AAAAAA; }")
         self.zoom_label = QLabel("100%")
-        self.size_label = QLabel("0 × 0")
+        self.size_label = QLabel("0 x 0")
         self.format_label = QLabel("---")
         self.msg_label = QLabel("Ready")
         self.addPermanentWidget(self.zoom_label)

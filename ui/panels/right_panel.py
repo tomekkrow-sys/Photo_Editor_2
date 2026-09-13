@@ -8,22 +8,6 @@ from PySide6.QtWidgets import (
 )
 from core.adjustments import Adjustments
 
-DARK_STYLE = """
-QWidget { background-color: #1E1E1E; color: #CCCCCC; font-family: Segoe UI; font-size: 11px; }
-QGroupBox { border: 1px solid #333333; margin-top: 8px; padding-top: 4px; font-weight: bold; color: #FFFFFF; }
-QGroupBox::title { subcontrol-origin: margin; left: 6px; }
-QSlider::groove:horizontal { height: 4px; background: #333333; border-radius: 2px; }
-QSlider::handle:horizontal { width: 14px; height: 14px; background: #4A9EFF; border-radius: 7px; margin: -5px 0; }
-QSlider::sub-page:horizontal { background: #4A9EFF; border-radius: 2px; }
-QPushButton { background: #333333; color: #FFFFFF; border: 1px solid #444444; padding: 4px 12px; border-radius: 3px; }
-QPushButton:hover { background: #444444; }
-QPushButton:pressed { background: #4A9EFF; }
-QLineEdit { background: #2A2A2A; color: #FFFFFF; border: 1px solid #444444; padding: 3px; }
-QComboBox { background: #2A2A2A; color: #FFFFFF; border: 1px solid #444444; padding: 3px; }
-QComboBox::drop-down { border: none; width: 20px; }
-QScrollArea { border: none; }
-"""
-
 class SliderRow(QWidget):
     value_changed = Signal(str, float)
     def __init__(self, name, key, mn, mx, df=0.0, st=1.0):
@@ -34,8 +18,8 @@ class SliderRow(QWidget):
         self._df = df
         lay = QVBoxLayout(self)
         lay.setContentsMargins(4, 2, 4, 2)
+        lay.setSpacing(2)
         self.lab = QLabel(f"{name}: {df:.1f}")
-        self.lab.setStyleSheet("color: #AAAAAA; font-size: 10px;")
         lay.addWidget(self.lab)
         self.sli = QSlider(Qt.Orientation.Horizontal)
         self.sli.setRange(int(mn/st), int(mx/st))
@@ -43,8 +27,8 @@ class SliderRow(QWidget):
         self.sli.valueChanged.connect(self._on)
         lay.addWidget(self.sli)
         b = QPushButton("R")
-        b.setMaximumWidth(24)
-        b.setStyleSheet("padding: 2px; font-size: 9px;")
+        b.setMaximumWidth(28)
+        b.setMinimumHeight(20)
         b.clicked.connect(self._reset)
         lay.addWidget(b)
     def _on(self, v):
@@ -64,7 +48,6 @@ class RightPanel(QScrollArea):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setStyleSheet(DARK_STYLE)
         self._adj = Adjustments()
         self._blk = False
         self.setWidgetResizable(True)
@@ -145,7 +128,7 @@ class RightPanel(QScrollArea):
         lay.addWidget(rb)
 
         eb = QPushButton("Eksportuj...")
-        eb.setStyleSheet("background:#2E7D32; color:white; font-weight:bold;")
+        eb.setStyleSheet("background:#2E7D32; color:white; font-weight:bold; padding: 8px; border-radius: 6px;")
         eb.clicked.connect(self.export_requested.emit)
         lay.addWidget(eb)
         lay.addStretch()

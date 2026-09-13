@@ -6,7 +6,6 @@ class MenuBar(QMenuBar):
     def __init__(self, parent, actions):
         super().__init__(parent)
         self.actions = actions
-        self.setStyleSheet("QMenuBar { background: #252526; color: #CCCCCC; border-bottom: 1px solid #333; } QMenuBar::item:selected { background: #4A9EFF; color: white; } QMenu { background: #252526; color: #CCCCCC; border: 1px solid #444; } QMenu::item:selected { background: #4A9EFF; }")
         self._build()
     def _build(self):
         fm = self.addMenu("&Plik")

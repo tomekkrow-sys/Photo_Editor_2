@@ -9,14 +9,8 @@ class ToolBar(QToolBar):
         self.actions = actions
         self.setMovable(False)
         self.setFloatable(False)
-        self.setFixedHeight(36)
+        self.setFixedHeight(40)
         self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
-        self.setStyleSheet("""
-            QToolBar { background: #252526; border-bottom: 1px solid #333; spacing: 2px; padding: 2px 8px; }
-            QToolButton { color: #CCCCCC; background: transparent; border: none; padding: 4px 10px; font-size: 11px; }
-            QToolButton:hover { background: #3C3C3C; border-radius: 3px; }
-            QToolButton:pressed { background: #4A9EFF; color: white; }
-        """)
         self._build()
     def _build(self):
         self.addAction(self.actions.open)
