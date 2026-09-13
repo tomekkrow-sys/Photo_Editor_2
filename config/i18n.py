@@ -77,6 +77,34 @@ TRANSLATIONS = {
         "about": "O programie",
         "status_ready": "Gotowy. Otworz zdjecie (Ctrl+O).",
         "status_no_image": "Najpierw otworz zdjecie.",
+        "recent_menu": "Ostatnio otwierane",
+        "menu_language": "Jezyk",
+        "batch": "Konwerter folderu",
+        "brush": "Pedzel",
+        "preset_save": "Zapisz",
+        "preset_load": "Wczytaj",
+        "preset_delete": "Usun",
+        "preset_name_placeholder": "nazwa presetu",
+        "presets": "Presety",
+        "select_preset": "-- wybierz --",
+        "basic": "Podstawowe",
+        "tone": "Tona",
+        "color": "Kolor",
+        "detail": "Detal",
+        "exposure": "Ekspozycja",
+        "contrast": "Kontrast",
+        "highlights": "Swiatla",
+        "shadows": "Cienie",
+        "whites": "Biel",
+        "blacks": "Czern",
+        "temperature": "Temperatura",
+        "tint": "Odcien",
+        "saturation": "Nasycenie",
+        "vibrance": "Zywosc",
+        "sharpness": "Ostrosc",
+        "clarity": "Klarownosc",
+        "reset_all": "Resetuj wszystko",
+        "export_btn": "Eksportuj...",
     },
     "en": {
         "app_name": "Photo Editor 2",
@@ -146,6 +174,34 @@ TRANSLATIONS = {
         "about": "About",
         "status_ready": "Ready. Open an image (Ctrl+O).",
         "status_no_image": "Open an image first.",
+        "recent_menu": "Recent Files",
+        "menu_language": "Language",
+        "batch": "Batch Export",
+        "brush": "Brush",
+        "preset_save": "Save",
+        "preset_load": "Load",
+        "preset_delete": "Delete",
+        "preset_name_placeholder": "preset name",
+        "presets": "Presets",
+        "select_preset": "-- select --",
+        "basic": "Basic",
+        "tone": "Tone",
+        "color": "Color",
+        "detail": "Detail",
+        "exposure": "Exposure",
+        "contrast": "Contrast",
+        "highlights": "Highlights",
+        "shadows": "Shadows",
+        "whites": "Whites",
+        "blacks": "Blacks",
+        "temperature": "Temperature",
+        "tint": "Tint",
+        "saturation": "Saturation",
+        "vibrance": "Vibrance",
+        "sharpness": "Sharpness",
+        "clarity": "Clarity",
+        "reset_all": "Reset All",
+        "export_btn": "Export...",
     },
     "es": {
         "app_name": "Photo Editor 2",
@@ -215,6 +271,34 @@ TRANSLATIONS = {
         "about": "Acerca de",
         "status_ready": "Listo. Abre una imagen (Ctrl+O).",
         "status_no_image": "Abre una imagen primero.",
+        "recent_menu": "Archivos recientes",
+        "menu_language": "Idioma",
+        "batch": "Exportar lote",
+        "brush": "Pincel",
+        "preset_save": "Guardar",
+        "preset_load": "Cargar",
+        "preset_delete": "Eliminar",
+        "preset_name_placeholder": "nombre del preset",
+        "presets": "Presets",
+        "select_preset": "-- seleccionar --",
+        "basic": "Basico",
+        "tone": "Tono",
+        "color": "Color",
+        "detail": "Detalle",
+        "exposure": "Exposicion",
+        "contrast": "Contraste",
+        "highlights": "Altas luces",
+        "shadows": "Sombras",
+        "whites": "Blancos",
+        "blacks": "Negros",
+        "temperature": "Temperatura",
+        "tint": "Matiz",
+        "saturation": "Saturacion",
+        "vibrance": "Viveza",
+        "sharpness": "Nitidez",
+        "clarity": "Claridad",
+        "reset_all": "Restablecer todo",
+        "export_btn": "Exportar...",
     },
 }
 
@@ -223,6 +307,7 @@ class I18n:
     _instance = None
     _lang = "pl"
     _translations = TRANSLATIONS["pl"]
+    _listeners = []
 
     @classmethod
     def get(cls) -> "I18n":
@@ -231,9 +316,14 @@ class I18n:
         return cls._instance
 
     def set_language(self, lang: str) -> None:
-        if lang in TRANSLATIONS:
+        if lang in TRANSLATIONS and lang != self._lang:
             self._lang = lang
             self._translations = TRANSLATIONS[lang]
+            for cb in self._listeners:
+                cb(lang)
+
+    def on_change(self, callback):
+        self._listeners.append(callback)
 
     def t(self, key: str) -> str:
         return self._translations.get(key, key)

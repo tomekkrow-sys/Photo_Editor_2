@@ -1,25 +1,35 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 from PySide6.QtWidgets import QMenuBar
+from config.i18n import t
+
 
 class MenuBar(QMenuBar):
     def __init__(self, parent, actions):
         super().__init__(parent)
         self.actions = actions
         self._build()
+        from config.i18n import I18n
+        I18n.get().on_change(self._rebuild)
+
+    def _rebuild(self, lang=None):
+        self.clear()
+        self._build()
+
     def _build(self):
-        fm = self.addMenu("&Plik")
+        fm = self.addMenu(t("menu_file"))
         fm.addAction(self.actions.new)
         fm.addAction(self.actions.open)
         fm.addSeparator()
         fm.addAction(self.actions.save)
         fm.addAction(self.actions.save_as)
-        self.recent_menu = fm.addMenu("Ostatnio otwierane")
+        self.recent_menu = fm.addMenu(t("recent_menu"))
         fm.addSeparator()
         fm.addAction(self.actions.export)
         fm.addSeparator()
         fm.addAction(self.actions.exit)
-        em = self.addMenu("&Edycja")
+
+        em = self.addMenu(t("menu_edit"))
         em.addAction(self.actions.undo)
         em.addAction(self.actions.redo)
         em.addSeparator()
@@ -28,7 +38,8 @@ class MenuBar(QMenuBar):
         em.addAction(self.actions.paste)
         em.addSeparator()
         em.addAction(self.actions.delete)
-        om = self.addMenu("&Obraz")
+
+        om = self.addMenu(t("menu_image"))
         om.addAction(self.actions.auto_enhance)
         om.addAction(self.actions.resize_image)
         om.addAction(self.actions.overlay)
@@ -36,7 +47,8 @@ class MenuBar(QMenuBar):
         om.addAction(self.actions.watermark)
         om.addSeparator()
         om.addAction(self.actions.info)
-        film = self.addMenu("&Filtry")
+
+        film = self.addMenu(t("menu_filters"))
         film.addAction(self.actions.pencil)
         film.addAction(self.actions.black_white)
         film.addAction(self.actions.sepia)
@@ -50,7 +62,8 @@ class MenuBar(QMenuBar):
         film.addAction(self.actions.thermal)
         film.addAction(self.actions.pixelate)
         film.addAction(self.actions.duotone)
-        vm = self.addMenu("&Widok")
+
+        vm = self.addMenu(t("menu_view"))
         vm.addAction(self.actions.zoom_in)
         vm.addAction(self.actions.zoom_out)
         vm.addSeparator()
@@ -58,7 +71,8 @@ class MenuBar(QMenuBar):
         vm.addAction(self.actions.actual_size)
         vm.addSeparator()
         vm.addAction(self.actions.compare)
-        tm = self.addMenu("&Narzedzia")
+
+        tm = self.addMenu(t("menu_tools"))
         tm.addAction(self.actions.crop)
         tm.addAction(self.actions.spot)
         tm.addAction(self.actions.rotate_left)
@@ -69,14 +83,16 @@ class MenuBar(QMenuBar):
         tm.addAction(self.actions.layers)
         tm.addAction(self.actions.face_detect)
         tm.addAction(self.actions.history_timeline)
-        um = self.addMenu("&Ustawienia")
+
+        um = self.addMenu(t("menu_settings"))
         um.addAction(self.actions.theme_toggle)
         um.addAction(self.actions.shortcuts)
-        lang_menu = um.addMenu("&Jezyk")
+        lang_menu = um.addMenu(t("menu_language"))
         lang_menu.addAction(self.actions.lang_pl)
         lang_menu.addAction(self.actions.lang_en)
         lang_menu.addAction(self.actions.lang_es)
-        pm = self.addMenu("&Pomoc")
+
+        pm = self.addMenu(t("menu_help"))
         pm.addAction(self.actions.check_updates)
         pm.addSeparator()
         pm.addAction(self.actions.about)

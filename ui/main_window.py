@@ -80,6 +80,16 @@ class MainWindow(QMainWindow):
         self._worker = PipelineWorker(self)
         self._worker.finished.connect(self._on_preview_ready)
         self._ba_active = False
+        # Load saved language
+        from config.i18n import I18n
+        saved_lang = QSettings("PhotoEditor2", "PhotoEditor2").value("language", "pl")
+        if saved_lang and saved_lang != "pl":
+            I18n.get().set_language(saved_lang)
+        # Load saved theme
+        saved_theme = QSettings("PhotoEditor2", "PhotoEditor2").value("theme", "dark")
+        if saved_theme == "light":
+            from ui.theme import build_stylesheet, LIGHT_THEME
+            self.setStyleSheet(build_stylesheet(LIGHT_THEME))
         self._build_ui()
         self._connect_actions()
         self.setAcceptDrops(True)
@@ -1380,9 +1390,11 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Motyw: {new_theme}")
 
     def _on_lang_change(self, lang):
+        from config.i18n import I18n
+        I18n.get().set_language(lang)
         settings = QSettings("PhotoEditor2", "PhotoEditor2")
         settings.setValue("language", lang)
-        self.statusBar().showMessage(f"Zmieniono jezyk na: {lang}. Zrestartuj aplikacje.")
+        self.statusBar().showMessage(f"Zmieniono jezyk na: {lang}")
 
     def _on_shortcuts(self):
         from ui.shortcuts_dialog import ShortcutsDialog
