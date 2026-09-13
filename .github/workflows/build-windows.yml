@@ -32,14 +32,19 @@ jobs:
           --collect-all rawpy
           photo_editor.py
 
+      - name: Get version
+        id: version
+        shell: bash
+        run: echo "VERSION=$(cat version.txt)" >> $GITHUB_OUTPUT
+
       - name: Zip package
-        run: Compress-Archive -Path dist/Photo_Editor_2 -DestinationPath Photo_Editor_2-windows.zip
+        run: Compress-Archive -Path dist/Photo_Editor_2 -DestinationPath Photo_Editor_2-windows-v${{ steps.version.outputs.VERSION }}.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: Photo_Editor_2-windows
-          path: Photo_Editor_2-windows.zip
+          path: Photo_Editor_2-windows-v*.zip
 
   build-linux:
     runs-on: ubuntu-latest
@@ -88,13 +93,13 @@ jobs:
           photo_editor.py
 
       - name: Zip package
-        run: ditto -c -k --sequesterRsrc --keepParent dist/Photo_Editor_2.app Photo_Editor_2-macos.zip
+        run: ditto -c -k --sequesterRsrc --keepParent dist/Photo_Editor_2.app Photo_Editor_2-macos-v$(cat version.txt).zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: Photo_Editor_2-macos
-          path: Photo_Editor_2-macos.zip
+          path: Photo_Editor_2-macos-v*.zip
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -109,7 +114,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/Photo_Editor_2-windows/Photo_Editor_2-windows.zip
+            artifacts/Photo_Editor_2-windows/Photo_Editor_2-windows-v*.zip
             artifacts/Photo_Editor_2-debian/photo-editor-2_*_amd64.deb
-            artifacts/Photo_Editor_2-macos/Photo_Editor_2-macos.zip
+            artifacts/Photo_Editor_2-macos/Photo_Editor_2-macos-v*.zip
           generate_release_notes: true
