@@ -12,7 +12,7 @@ ORGANIZATION: str = "PhotoEditor"
 
 VERSION_MAJOR: int = 0
 VERSION_MINOR: int = 2
-VERSION_PATCH: int = 6
+VERSION_PATCH: int = 7
 
 APP_VERSION: str = (
     f"{VERSION_MAJOR}."
