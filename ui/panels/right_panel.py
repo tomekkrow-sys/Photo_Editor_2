@@ -21,7 +21,7 @@ class SliderRow(QWidget):
         lay.setContentsMargins(4, 2, 4, 2)
         lay.setSpacing(2)
         self.lab = QLabel(f"{name}: {df:.1f}")
-        self.lab.setStyleSheet("font-size: 13px; font-weight: 500;")
+        self.lab.setStyleSheet("font-size: 15px; font-weight: 700;")
         lay.addWidget(self.lab)
         self.sli = QSlider(Qt.Orientation.Horizontal)
         self.sli.setRange(int(mn/st), int(mx/st))
@@ -142,7 +142,7 @@ class RightPanel(QScrollArea):
         lay.addWidget(rb)
 
         eb = QPushButton(t("export_btn"))
-        eb.setStyleSheet("background:#2E7D32; color:white; font-weight:bold; padding: 8px; border-radius: 6px; font-size: 14px;")
+        eb.setStyleSheet("background:#2E7D32; color:white; font-weight:bold; padding: 8px; border-radius: 6px; font-size: 15px;")
         eb.clicked.connect(self.export_requested.emit)
         lay.addWidget(eb)
         lay.addStretch()
