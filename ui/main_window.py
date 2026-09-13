@@ -1150,7 +1150,10 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Sprawdzono aktualizacje.")
 
     def _auto_update(self, release_data, latest_tag):
-        """Download and install update automatically."""
+        """Download and install update with animated progress dialog."""
+        from PySide6.QtCore import QTimer, QCoreApplication
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar
+
         assets = release_data.get("assets", [])
         if not assets:
             QMessageBox.warning(self, "Aktualizacja", "Brak plikow do pobrania.")
@@ -1168,50 +1171,182 @@ class MainWindow(QMainWindow):
                 break
             elif sys_name == "darwin" and "macos" in name:
                 asset = a
-
         if not asset:
             asset = assets[0]
 
         url = asset.get("browser_download_url", "")
         filename = asset.get("name", "update.zip")
-        self.statusBar().showMessage(f"Pobieranie: {filename}...")
+        total_size = asset.get("size", 0)
+
+        # Create progress dialog
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Aktualizacja Photo Editor 2")
+        dlg.setFixedSize(480, 220)
+        dlg.setWindowFlags(dlg.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
+        dlg.setModal(True)
+
+        layout = QVBoxLayout(dlg)
+        layout.setSpacing(12)
+        layout.setContentsMargins(24, 24, 24, 24)
+
+        status_label = QLabel(f"Przygotowywanie aktualizacji do {latest_tag}...")
+        status_label.setStyleSheet("font-size: 14px; font-weight: bold;")
+        layout.addWidget(status_label)
+
+        detail_label = QLabel("")
+        detail_label.setStyleSheet("font-size: 12px; color: #A0A0AB;")
+        layout.addWidget(detail_label)
+
+        progress = QProgressBar()
+        progress.setRange(0, 100)
+        progress.setValue(0)
+        progress.setFixedHeight(10)
+        progress.setTextVisible(False)
+        layout.addWidget(progress)
+
+        speed_label = QLabel("")
+        speed_label.setStyleSheet("font-size: 11px; color: #6B6B76;")
+        layout.addWidget(speed_label)
+
+        layout.addStretch()
+
+        dlg.show()
+        QCoreApplication.processEvents()
+
+        def set_status(text):
+            status_label.setText(text)
+            QCoreApplication.processEvents()
+
+        def set_detail(text):
+            detail_label.setText(text)
+            QCoreApplication.processEvents()
+
+        def set_progress(val):
+            progress.setValue(int(val))
+            QCoreApplication.processEvents()
+
+        def set_speed(text):
+            speed_label.setText(text)
+            QCoreApplication.processEvents()
 
         try:
+            import time
             temp_dir = tempfile.mkdtemp(prefix="pe2_update_")
             download_path = str(Path(temp_dir) / filename)
+
+            # Step 1: Download
+            set_status(f"Pobieranie {filename}...")
+            set_detail(f"Rozmiar: {total_size / 1024 / 1024:.1f} MB")
+
+            start_time = time.time()
+            downloaded = 0
 
             req = urllib.request.Request(url, headers={"User-Agent": "Photo-Editor-2"})
             with urllib.request.urlopen(req, timeout=120) as resp:
                 with open(download_path, "wb") as f:
-                    shutil.copyfileobj(resp, f)
+                    while True:
+                        chunk = resp.read(8192)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        elapsed = time.time() - start_time
+                        if elapsed > 0:
+                            speed = downloaded / elapsed / 1024 / 1024
+                            set_speed(f"{speed:.1f} MB/s")
+                        if total_size > 0:
+                            pct = (downloaded / total_size) * 60
+                            set_progress(pct)
+                            mb_done = downloaded / 1024 / 1024
+                            mb_total = total_size / 1024 / 1024
+                            set_detail(f"{mb_done:.1f} / {mb_total:.1f} MB")
 
-            self.statusBar().showMessage("Rozpakowywanie...")
+            set_progress(60)
+            set_speed("")
+
+            # Step 2: Extract
+            set_status("Rozpakowywanie...")
+            set_detail("Analiza archiwum...")
 
             if download_path.endswith(".zip"):
                 with zipfile.ZipFile(download_path, "r") as z:
-                    z.extractall(temp_dir)
+                    names = z.namelist()
+                    for i, name in enumerate(names):
+                        z.extract(name, temp_dir)
+                        set_progress(60 + (i / len(names)) * 20)
+                        if i % 5 == 0:
+                            set_detail(f"Rozpakowywanie: {Path(name).name}")
             elif download_path.endswith((".tar.gz", ".tgz")):
                 with tarfile.open(download_path, "r:gz") as t:
-                    t.extractall(temp_dir)
+                    members = t.getmembers()
+                    for i, member in enumerate(members):
+                        t.extract(member, temp_dir)
+                        set_progress(60 + (i / len(members)) * 20)
+                        if i % 5 == 0:
+                            set_detail(f"Rozpakowywanie: {member.name}")
+
+            set_progress(80)
+
+            # Step 3: Install
+            set_status("Instalowanie aktualizacji...")
+            set_detail("Kopiowanie plikow...")
+
+            app_dir = Path(__file__).resolve().parent.parent
+
+            # Find extracted files
+            extracted_files = []
+            for root, dirs, files in os.walk(temp_dir):
+                for file in files:
+                    src = os.path.join(root, file)
+                    rel = os.path.relpath(src, temp_dir)
+                    if not rel.startswith("photo-editor-2_"):
+                        extracted_files.append((src, rel))
+
+            for i, (src, rel) in enumerate(extracted_files):
+                dst = app_dir / rel
+                if dst.suffix in {".py", ".json", ".txt", ".md", ".desktop"} or \
+                   any(p in rel for p in ["ui/", "core/", "config/", "resources/"]):
+                    dst.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src, dst)
+                    if len(extracted_files) > 0:
+                        set_progress(80 + (i / len(extracted_files)) * 15)
+                        if i % 3 == 0:
+                            set_detail(f"Aktualizacja: {rel[:50]}")
 
             # Update version file
-            app_dir = Path(__file__).resolve().parent.parent
             ver_file = app_dir / "version.txt"
             if ver_file.exists():
                 ver_file.write_text(latest_tag.lstrip("v"))
 
-            self.statusBar().showMessage("Aktualizacja pobrana. Zrestartuj aplikacje.")
-            QMessageBox.information(
-                self, "Aktualizacja",
-                f"Pobrano {filename}\n\n"
-                f"Zrestartuj aplikacje aby zaktualizowac do {latest_tag}."
-            )
+            # Step 4: Complete
+            set_progress(100)
+            set_status("Aktualizacja zakonczona!")
+            set_detail(f"Zainstalowano wersje {latest_tag}")
+
+            dlg.repaint()
+            QCoreApplication.processEvents()
 
             # Cleanup
             shutil.rmtree(temp_dir, ignore_errors=True)
+
+            # Wait a moment then restart
+            QTimer.singleShot(1500, lambda: self._restart_app())
+
         except Exception as e:
-            self.statusBar().showMessage("Blad aktualizacji.")
+            set_status("Blad aktualizacji!")
+            set_detail(str(e))
+            set_progress(0)
+            QTimer.singleShot(3000, dlg.close)
             QMessageBox.critical(self, "Aktualizacja", f"Blad:\n{str(e)}")
+
+    def _restart_app(self):
+        """Restart the application."""
+        import sys
+        import os
+        app = QApplication.instance()
+        if app:
+            app.quit()
+        os.execl(sys.executable, sys.executable, *sys.argv)
 
     def _on_hdr(self):
         self._run_filter(hdr_tone_map, "HDR", "_hdr.png")
