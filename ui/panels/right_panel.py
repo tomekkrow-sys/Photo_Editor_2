@@ -142,7 +142,7 @@ class RightPanel(QScrollArea):
         lay.addWidget(rb)
 
         eb = QPushButton(t("export_btn"))
-        eb.setStyleSheet("background:#2E7D32; color:white; font-weight:bold; padding: 8px; border-radius: 6px; font-size: 15px;")
+        eb.setProperty("accent", "success")
         eb.clicked.connect(self.export_requested.emit)
         lay.addWidget(eb)
         lay.addStretch()

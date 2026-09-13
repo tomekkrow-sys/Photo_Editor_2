@@ -253,6 +253,14 @@ def build_stylesheet(theme: dict) -> str:
         background: {t["accent_pressed"]};
         color: white;
     }}
+    QPushButton[accent="success"] {{
+        background: {t["success"]};
+        color: white;
+        font-weight: 700;
+    }}
+    QPushButton[accent="success"]:hover {{
+        background: {t["accent_hover"]};
+    }}
 
     /* === INPUT FIELDS === */
     QLineEdit {{

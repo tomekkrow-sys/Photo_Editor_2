@@ -95,6 +95,7 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._connect_actions()
         self.setAcceptDrops(True)
+        self._drop_highlight_style = "QMainWindow { border: 3px dashed #5B9EF4; }"
 
     def _build_ui(self):
         self.setWindowTitle(WINDOW_TITLE)
@@ -1475,10 +1476,23 @@ class MainWindow(QMainWindow):
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
+            self.setStyleSheet(self._drop_highlight_style)
+
+    def dragLeaveEvent(self, event):
+        self._apply_current_theme()
 
     def dropEvent(self, event):
+        self._apply_current_theme()
         for url in event.mimeData().urls():
             p = Path(url.toLocalFile())
             if p.suffix.lower() in SUPPORTED_FORMATS:
                 self._load(p)
                 break
+
+    def _apply_current_theme(self):
+        from ui.theme import build_stylesheet, DARK_THEME, LIGHT_THEME
+        saved = QSettings("PhotoEditor2", "PhotoEditor2").value("theme", "dark")
+        if saved == "light":
+            self.setStyleSheet(build_stylesheet(LIGHT_THEME))
+        else:
+            self.setStyleSheet(build_stylesheet(DARK_THEME))
