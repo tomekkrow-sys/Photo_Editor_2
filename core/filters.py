@@ -578,3 +578,108 @@ __plugin_meta__ = {
         "supported_modes": ["RGB", "RGBA", "L", "P"],
     },
 }
+
+
+# ==========================================================
+# NEW FILTERS
+# ==========================================================
+
+
+def hdr_tone_map(img: Image.Image, strength: float = 0.5) -> Image.Image:
+    """HDR-like tone mapping effect."""
+    arr = np.asarray(img.convert("RGB"), dtype=np.float32)
+    # Local tone mapping via bilateral filter
+    bgr = cv2.cvtColor(arr.astype(np.uint8), cv2.COLOR_RGB2BGR)
+    gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+    # Create HDR effect by enhancing contrast locally
+    clahe = cv2.createCLAHE(clipLimit=3.0 + strength * 5, tileGridSize=(8, 8))
+    enhanced = clahe.apply(gray)
+    # Blend with original
+    enhanced_bgr = cv2.cvtColor(enhanced, cv2.COLOR_GRAY2BGR)
+    result = cv2.addWeighted(bgr, 1.0 - strength * 0.4, enhanced_bgr, strength * 0.4, 0)
+    return Image.fromarray(cv2.cvtColor(result, cv2.COLOR_BGR2RGB))
+
+
+def cartoon(img: Image.Image, strength: float = 0.5) -> Image.Image:
+    """Cartoon / comic book effect."""
+    arr = np.asarray(img.convert("RGB"), dtype=np.uint8)
+    bgr = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
+    # Edge detection
+    gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+    edges = cv2.adaptiveThreshold(
+        cv2.medianBlur(gray, 7),
+        255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 9, 9
+    )
+    edges_bgr = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
+    # Smooth colors
+    num_bilateral = max(1, int(strength * 7))
+    color = bgr
+    for _ in range(num_bilateral):
+        color = cv2.bilateralFilter(color, 9, 9, 9)
+    # Combine edges with smooth colors
+    result = cv2.bitwise_and(color, edges_bgr)
+    return Image.fromarray(cv2.cvtColor(result, cv2.COLOR_BGR2RGB))
+
+
+def glitch_art(img: Image.Image, strength: float = 0.5) -> Image.Image:
+    """Glitch art effect - RGB channel displacement and scanlines."""
+    arr = np.asarray(img.convert("RGB"), dtype=np.uint8)
+    h, w, _ = arr.shape
+    result = arr.copy()
+    num_shifts = max(1, int(strength * 10))
+    for _ in range(num_shifts):
+        # Random horizontal shift for one channel
+        channel = np.random.randint(0, 3)
+        shift = np.random.randint(-int(w * 0.1 * strength), int(w * 0.1 * strength) + 1)
+        result[:, :, channel] = np.roll(arr[:, :, channel], shift, axis=1)
+    # Add scanlines
+    scanline_spacing = max(2, int(6 - strength * 4))
+    result[::scanline_spacing] = (result[::scanline_spacing] * 0.7).astype(np.uint8)
+    # Add random color blocks
+    num_blocks = int(strength * 5)
+    for _ in range(num_blocks):
+        y = np.random.randint(0, h)
+        x = np.random.randint(0, w)
+        bh = np.random.randint(1, max(2, int(h * 0.05)))
+        bw = np.random.randint(1, max(2, int(w * 0.3)))
+        color = [np.random.randint(0, 256) for _ in range(3)]
+        y2 = min(y + bh, h)
+        x2 = min(x + bw, w)
+        result[y:y2, x:x2] = color
+    return Image.fromarray(result)
+
+
+def thermal(img: Image.Image, strength: float = 0.5) -> Image.Image:
+    """Thermal camera / heat map effect."""
+    arr = np.asarray(img.convert("RGB"), dtype=np.float32)
+    gray = np.mean(arr, axis=2).astype(np.uint8)
+    # Apply colormap
+    thermal_map = cv2.applyColorMap(gray, cv2.COLORMAP_JET)
+    thermal_rgb = cv2.cvtColor(thermal_map, cv2.COLOR_BGR2RGB)
+    # Blend with original based on strength
+    result = (
+        arr * (1.0 - strength) + thermal_rgb.astype(np.float32) * strength
+    ).clip(0, 255).astype(np.uint8)
+    return Image.fromarray(result)
+
+
+def pixelate(img: Image.Image, block_size: int = 8) -> Image.Image:
+    """Pixelate / mosaic effect."""
+    w, h = img.size
+    small = img.resize((max(1, w // block_size), max(1, h // block_size)), Image.Resampling.NEAREST)
+    return small.resize((w, h), Image.Resampling.NEAREST)
+
+
+def duotone(img: Image.Image, color1: str = "#FF6B35", color2: str = "#004E89") -> Image.Image:
+    """Duotone effect - map grayscale to two colors."""
+    from PIL import ImageDraw
+    gray = img.convert("L")
+    w, h = gray.size
+    c1 = ImageDraw.Draw(Image.new("RGB", (1, 1))).getrgb(color1)
+    c2 = ImageDraw.Draw(Image.new("RGB", (1, 1))).getrgb(color2)
+    result = Image.new("RGB", (w, h))
+    gray_arr = np.asarray(gray, dtype=np.float32) / 255.0
+    r = (gray_arr * c1[0] + (1 - gray_arr) * c2[0]).astype(np.uint8)
+    g = (gray_arr * c1[1] + (1 - gray_arr) * c2[1]).astype(np.uint8)
+    b = (gray_arr * c1[2] + (1 - gray_arr) * c2[2]).astype(np.uint8)
+    return Image.fromarray(np.stack([r, g, b], axis=2))

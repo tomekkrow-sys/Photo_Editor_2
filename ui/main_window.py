@@ -2,6 +2,15 @@
 from __future__ import annotations
 import logging
 import time
+import re
+import platform
+import urllib.request
+import json
+import tempfile
+import shutil
+import zipfile
+import tarfile
+import numpy as np
 import rawpy
 from pathlib import Path
 from PIL import Image
@@ -25,6 +34,12 @@ from core.filters import (
     straighten,
     vignette,
     watermark,
+    hdr_tone_map,
+    cartoon,
+    glitch_art,
+    thermal,
+    pixelate,
+    duotone,
 )
 from core.history import EditHistory
 from core.image_loader import SUPPORTED_FORMATS
@@ -143,6 +158,20 @@ class MainWindow(QMainWindow):
         self.actions.auto_enhance.triggered.connect(self._on_auto_enhance)
         self.actions.check_updates.triggered.connect(self._on_check_updates)
         self.actions.about.triggered.connect(self._on_about)
+        self.actions.hdr.triggered.connect(self._on_hdr)
+        self.actions.cartoon.triggered.connect(self._on_cartoon)
+        self.actions.glitch.triggered.connect(self._on_glitch)
+        self.actions.thermal.triggered.connect(self._on_thermal)
+        self.actions.pixelate.triggered.connect(self._on_pixelate)
+        self.actions.duotone.triggered.connect(self._on_duotone)
+        self.actions.theme_toggle.triggered.connect(self._on_theme_toggle)
+        self.actions.lang_pl.triggered.connect(lambda: self._on_lang_change("pl"))
+        self.actions.lang_en.triggered.connect(lambda: self._on_lang_change("en"))
+        self.actions.lang_es.triggered.connect(lambda: self._on_lang_change("es"))
+        self.actions.shortcuts.triggered.connect(self._on_shortcuts)
+        self.actions.layers.triggered.connect(self._on_layers)
+        self.actions.face_detect.triggered.connect(self._on_face_detect)
+        self.actions.history_timeline.triggered.connect(self._on_history_timeline)
 
         self.actions.resize_image.triggered.connect(self._on_resize)
         self.actions.batch.triggered.connect(self._on_batch_export)
@@ -1091,7 +1120,6 @@ class MainWindow(QMainWindow):
         from config.version import APP_VERSION as _ver
         current = _ver
 
-        import re
         cur_parts = [int(x) for x in re.sub(r'^v', '', current).split('.')]
         lat_parts = [int(x) for x in re.sub(r'^v', '', latest_tag).split('.')]
 
@@ -1108,18 +1136,189 @@ class MainWindow(QMainWindow):
         if newer:
             reply = QMessageBox.information(
                 self, "Aktualizacja",
-                f"Dostepna jest nowa wersja: {latest_tag}\n\n"
-                f"Biezaca wersja: {current}\n"
-                f"Nowa wersja: {latest_tag}\n\n"
-                f"Aby zaktualizowac, pobierz plik z:\n{data.get('html_url', '')}",
-                QMessageBox.StandardButton.Open | QMessageBox.StandardButton.Ok,
+                f"Dostepna nowa wersja: {latest_tag}\n\n"
+                f"Biezaca: {current}\nNowa: {latest_tag}\n\n"
+                "Pobrac i zainstalowac automatycznie?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes,
             )
-            if reply == QMessageBox.StandardButton.Open:
+            if reply == QMessageBox.StandardButton.Yes:
+                self._auto_update(data, latest_tag)
+            else:
                 import webbrowser
                 webbrowser.open(data.get("html_url", "https://github.com/tomekkrow-sys/Photo_Editor_2/releases"))
         else:
             QMessageBox.information(self, "Aktualizacje", f"Masz najnowsza wersje ({current}).")
         self.statusBar().showMessage("Sprawdzono aktualizacje.")
+
+    def _auto_update(self, release_data, latest_tag):
+        """Download and install update automatically."""
+        assets = release_data.get("assets", [])
+        if not assets:
+            QMessageBox.warning(self, "Aktualizacja", "Brak plikow do pobrania.")
+            return
+
+        # Detect platform
+        sys_name = platform.system().lower()
+        asset = None
+        for a in assets:
+            name = a.get("name", "").lower()
+            if sys_name == "windows" and "windows" in name:
+                asset = a
+            elif sys_name == "linux" and ("tar.gz" in name or "deb" in name or "appimage" in name):
+                asset = a
+                break
+            elif sys_name == "darwin" and "macos" in name:
+                asset = a
+
+        if not asset:
+            asset = assets[0]
+
+        url = asset.get("browser_download_url", "")
+        filename = asset.get("name", "update.zip")
+        self.statusBar().showMessage(f"Pobieranie: {filename}...")
+
+        try:
+            temp_dir = tempfile.mkdtemp(prefix="pe2_update_")
+            download_path = str(Path(temp_dir) / filename)
+
+            req = urllib.request.Request(url, headers={"User-Agent": "Photo-Editor-2"})
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                with open(download_path, "wb") as f:
+                    shutil.copyfileobj(resp, f)
+
+            self.statusBar().showMessage("Rozpakowywanie...")
+
+            if download_path.endswith(".zip"):
+                with zipfile.ZipFile(download_path, "r") as z:
+                    z.extractall(temp_dir)
+            elif download_path.endswith((".tar.gz", ".tgz")):
+                with tarfile.open(download_path, "r:gz") as t:
+                    t.extractall(temp_dir)
+
+            # Update version file
+            app_dir = Path(__file__).resolve().parent.parent
+            ver_file = app_dir / "version.txt"
+            if ver_file.exists():
+                ver_file.write_text(latest_tag.lstrip("v"))
+
+            self.statusBar().showMessage("Aktualizacja pobrana. Zrestartuj aplikacje.")
+            QMessageBox.information(
+                self, "Aktualizacja",
+                f"Pobrano {filename}\n\n"
+                f"Zrestartuj aplikacje aby zaktualizowac do {latest_tag}."
+            )
+
+            # Cleanup
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        except Exception as e:
+            self.statusBar().showMessage("Blad aktualizacji.")
+            QMessageBox.critical(self, "Aktualizacja", f"Blad:\n{str(e)}")
+
+    def _on_hdr(self):
+        self._run_filter(hdr_tone_map, "HDR", "_hdr.png")
+
+    def _on_cartoon(self):
+        self._run_filter(cartoon, "Cartoon", "_cartoon.png")
+
+    def _on_glitch(self):
+        self._run_filter(glitch_art, "Glitch Art", "_glitch.png")
+
+    def _on_thermal(self):
+        self._run_filter(thermal, "Termowizja", "_thermal.png")
+
+    def _on_pixelate(self):
+        self._run_filter(pixelate, "Pikseloza", "_pixel.png")
+
+    def _on_duotone(self):
+        self._run_filter(duotone, "Duotone", "_duotone.png")
+
+    def _on_theme_toggle(self):
+        settings = QSettings("PhotoEditor2", "PhotoEditor2")
+        current = settings.value("theme", "dark")
+        if current == "dark":
+            new_theme = "light"
+            self.setStyleSheet("""
+                QMainWindow { background: #F5F5F5; }
+                QSplitter::handle { background: #CCCCCC; }
+                QMenuBar { background: #F0F0F0; color: #333; }
+                QMenu { background: #F0F0F0; color: #333; }
+            """)
+        else:
+            new_theme = "dark"
+            self.setStyleSheet("""
+                QMainWindow { background: #1E1E1E; }
+                QSplitter::handle { background: #333333; }
+            """)
+        settings.setValue("theme", new_theme)
+        self.statusBar().showMessage(f"Motyw: {new_theme}")
+
+    def _on_lang_change(self, lang):
+        settings = QSettings("PhotoEditor2", "PhotoEditor2")
+        settings.setValue("language", lang)
+        self.statusBar().showMessage(f"Zmieniono jezyk na: {lang}. Zrestartuj aplikacje.")
+
+    def _on_shortcuts(self):
+        from ui.shortcuts_dialog import ShortcutsDialog
+        dlg = ShortcutsDialog(self)
+        dlg.exec()
+
+    def _on_layers(self):
+        from ui.layers_dialog import LayersDialog
+        if self._orig is None:
+            QMessageBox.warning(self, "Warstwy", "Najpierw otworz zdjecie.")
+            return
+        dlg = LayersDialog(self, self._orig)
+        if dlg.exec() == LayersDialog.DialogCode.Accepted:
+            result = dlg.get_result()
+            if result is not None:
+                self._history.push(self._orig)
+                self._orig = result
+                self._refresh_after_edit()
+                self.statusBar().showMessage("Zastosowano warstwe.")
+
+    def _on_face_detect(self):
+        if self._orig is None:
+            QMessageBox.warning(self, "Rozpoznawanie twarzy", "Najpierw otworz zdjecie.")
+            return
+        try:
+            import cv2
+            arr = np.array(self._orig.convert("RGB"))
+            gray = cv2.cvtColor(arr, cv2.COLOR_RGB2GRAY)
+            cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+            faces = cascade.detectMultiScale(gray, 1.1, 4)
+            if len(faces) == 0:
+                QMessageBox.information(self, "Rozpoznawanie twarzy", "Nie wykryto twarzy.")
+                return
+            msg = f"Wykryto {len(faces)} twarz(y):\n"
+            for i, (x, y, w, h) in enumerate(faces, 1):
+                msg += f"  Twarz {i}: pozycja ({x}, {y}), rozmiar {w}x{h}\n"
+            msg += "\nZakadrowac do pierwszej twarzy?"
+            reply = QMessageBox.question(
+                self, "Rozpoznawanie twarzy", msg,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                x, y, w, h = faces[0]
+                pad = max(w, h) // 2
+                orig_w, orig_h = self._orig.size
+                x1 = max(0, x - pad)
+                y1 = max(0, y - pad)
+                x2 = min(orig_w, x + w + pad)
+                y2 = min(orig_h, y + h + pad)
+                self._history.push(self._orig)
+                self._orig = self._orig.crop((x1, y1, x2, y2))
+                self._refresh_after_edit()
+                self.statusBar().showMessage(f"Zakadrowano do twarzy ({x2-x1}x{y2-y1}).")
+        except ImportError:
+            QMessageBox.warning(self, "Rozpoznawanie twarzy", "Wymaga opencv-python.")
+        except Exception as e:
+            QMessageBox.critical(self, "Blad", str(e))
+
+    def _on_history_timeline(self):
+        from ui.history_dialog import HistoryDialog
+        dlg = HistoryDialog(self, self._history)
+        dlg.exec()
 
     def _on_about(self):
         from config.version import APP_NAME as _name, APP_VERSION as _ver
