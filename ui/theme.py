@@ -79,7 +79,8 @@ def build_stylesheet(theme: dict) -> str:
         background-color: {t["bg_primary"]};
         color: {t["text_primary"]};
         font-family: 'Segoe UI', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
-        font-size: 13px;
+        font-size: 14px;
+        font-weight: 400;
     }}
 
     /* === MAIN WINDOW === */
@@ -97,7 +98,8 @@ def build_stylesheet(theme: dict) -> str:
         color: {t["text_primary"]};
         border-bottom: 1px solid {t["border"]};
         padding: 2px 4px;
-        font-size: 13px;
+        font-size: 14px;
+        font-weight: 500;
     }}
     QMenuBar::item {{
         padding: 6px 12px;
@@ -115,8 +117,9 @@ def build_stylesheet(theme: dict) -> str:
         padding: 4px;
     }}
     QMenu::item {{
-        padding: 7px 24px 7px 12px;
+        padding: 8px 24px 8px 12px;
         border-radius: 4px;
+        font-size: 14px;
     }}
     QMenu::item:selected {{
         background: {t["accent"]};
@@ -140,7 +143,7 @@ def build_stylesheet(theme: dict) -> str:
         background: transparent;
         border: none;
         padding: 5px 10px;
-        font-size: 12px;
+        font-size: 13px;
         border-radius: 4px;
     }}
     QToolButton:hover {{
@@ -158,11 +161,12 @@ def build_stylesheet(theme: dict) -> str:
         color: {t["text_secondary"]};
         border-top: 1px solid {t["border"]};
         padding: 2px 8px;
-        font-size: 12px;
+        font-size: 13px;
     }}
     QStatusBar QLabel {{
         color: {t["text_secondary"]};
         padding: 0 8px;
+        font-size: 13px;
     }}
 
     /* === SCROLL AREA (right panel) === */
@@ -193,13 +197,14 @@ def build_stylesheet(theme: dict) -> str:
         padding: 14px 8px 8px 8px;
         font-weight: 600;
         color: {t["text_primary"]};
-        font-size: 12px;
+        font-size: 13px;
     }}
     QGroupBox::title {{
         subcontrol-origin: margin;
         left: 12px;
         padding: 0 6px;
         color: {t["accent"]};
+        font-size: 13px;
     }}
 
     /* === SLIDER === */
@@ -230,10 +235,10 @@ def build_stylesheet(theme: dict) -> str:
         background: {t["button_bg"]};
         color: {t["text_primary"]};
         border: 1px solid {t["border"]};
-        padding: 6px 16px;
+        padding: 7px 18px;
         border-radius: 6px;
         font-weight: 500;
-        font-size: 12px;
+        font-size: 14px;
     }}
     QPushButton:hover {{
         background: {t["button_hover"]};
@@ -249,9 +254,9 @@ def build_stylesheet(theme: dict) -> str:
         background: {t["input_bg"]};
         color: {t["text_primary"]};
         border: 1px solid {t["input_border"]};
-        padding: 6px 10px;
+        padding: 7px 12px;
         border-radius: 6px;
-        font-size: 12px;
+        font-size: 14px;
     }}
     QLineEdit:focus {{
         border-color: {t["accent"]};
@@ -260,9 +265,9 @@ def build_stylesheet(theme: dict) -> str:
         background: {t["input_bg"]};
         color: {t["text_primary"]};
         border: 1px solid {t["input_border"]};
-        padding: 6px 10px;
+        padding: 7px 12px;
         border-radius: 6px;
-        font-size: 12px;
+        font-size: 14px;
     }}
     QComboBox:focus {{
         border-color: {t["accent"]};
@@ -275,6 +280,7 @@ def build_stylesheet(theme: dict) -> str:
     /* === LABELS === */
     QLabel {{
         color: {t["text_primary"]};
+        font-size: 14px;
     }}
 
     /* === TABLE === */
@@ -294,8 +300,9 @@ def build_stylesheet(theme: dict) -> str:
         color: {t["text_primary"]};
         border: none;
         border-bottom: 1px solid {t["border"]};
-        padding: 6px 8px;
+        padding: 8px 10px;
         font-weight: 600;
+        font-size: 13px;
     }}
 
     /* === DIALOGS === */
