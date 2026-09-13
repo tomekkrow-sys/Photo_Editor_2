@@ -19,7 +19,8 @@ from PySide6.QtCore import Qt, QPointF, QSettings
 from PySide6.QtGui import QColor, QGuiApplication, QPixmap
 from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QSplitter, QVBoxLayout, QWidget
 from config.defaults import DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH
-from config.version import WINDOW_TITLE
+from config.version import WINDOW_TITLE, APP_VERSION as _APP_VERSION
+from config.i18n import t
 from core.adjustments import Adjustments
 from core.filters import (
     auto_enhance,
@@ -123,7 +124,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(splitter)
         self._refresh_presets()
         self._refresh_recent_menu()
-        self.statusBar().showMessage("Gotowy. Otworz zdjecie (Ctrl+O).")
+        self.statusBar().showMessage(t("status_ready"))
 
     def _connect_actions(self):
         self.actions.new.triggered.connect(self._on_new)
@@ -1395,7 +1396,8 @@ class MainWindow(QMainWindow):
         I18n.get().set_language(lang)
         settings = QSettings("PhotoEditor2", "PhotoEditor2")
         settings.setValue("language", lang)
-        self.statusBar().showMessage(f"Zmieniono jezyk na: {lang}")
+        self.setWindowTitle(t("app_name") + " " + _APP_VERSION)
+        self.statusBar().showMessage(t("status_ready"))
 
     def _on_shortcuts(self):
         from ui.shortcuts_dialog import ShortcutsDialog
