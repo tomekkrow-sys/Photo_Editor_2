@@ -17,7 +17,7 @@ from pathlib import Path
 from PIL import Image
 from PySide6.QtCore import Qt, QPointF, QSettings
 from PySide6.QtGui import QColor, QGuiApplication, QPixmap
-from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QSplitter, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QSplitter, QVBoxLayout, QWidget, QApplication
 from config.defaults import DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH
 from config.version import WINDOW_TITLE, APP_VERSION as _APP_VERSION
 from config.i18n import t
