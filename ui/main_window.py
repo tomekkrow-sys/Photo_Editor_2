@@ -1062,15 +1062,15 @@ class MainWindow(QMainWindow):
 
             def run(self):
                 try:
-                    import requests
-                    config_path = Path(__file__).resolve().parent.parent / "config" / "updater_config.json"
+                    import urllib.request
                     import json
+                    config_path = Path(__file__).resolve().parent.parent / "config" / "updater_config.json"
                     cfg = json.loads(config_path.read_text()) if config_path.exists() else {}
                     gh = cfg.get("github", {})
                     url = f"{gh.get('api_url', 'https://api.github.com')}/repos/{gh.get('owner', 'tomekkrow-sys')}/{gh.get('repo', 'Photo_Editor_2')}/releases/latest"
-                    resp = requests.get(url, timeout=10)
-                    resp.raise_for_status()
-                    data = resp.json()
+                    req = urllib.request.Request(url, headers={"User-Agent": "Photo-Editor-2"})
+                    resp = urllib.request.urlopen(req, timeout=10)
+                    data = json.loads(resp.read().decode())
                     self.finished.emit({"status": "ok", "data": data})
                 except Exception as e:
                     self.finished.emit({"status": "error", "message": str(e)})
