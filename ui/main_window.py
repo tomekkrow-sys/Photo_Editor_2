@@ -17,7 +17,7 @@ from pathlib import Path
 from PIL import Image
 from PySide6.QtCore import Qt, QPointF, QSettings
 from PySide6.QtGui import QColor, QGuiApplication, QPixmap
-from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QSplitter, QVBoxLayout, QWidget, QApplication
+from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QSplitter, QVBoxLayout, QWidget, QApplication, QToolBar
 from config.defaults import DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH
 from config.version import WINDOW_TITLE, APP_VERSION as _APP_VERSION
 from config.i18n import t
@@ -42,12 +42,18 @@ from core.filters import (
     thermal,
     pixelate,
     duotone,
+    denoise,
+    perspective,
+    lens_correction,
+    add_text_overlay,
 )
 from core.history import EditHistory
 from core.image_loader import SUPPORTED_FORMATS
 from core.pipeline import prepare_preview, pil_to_cv, pil_to_qpixmap, pil_to_qimage, qimage_to_pil, apply_adjustments_arr, arr_to_pil
 from core.preset_manager import save_preset, load_preset, list_presets
 from core.tools.brush_tool import BrushMode, BrushTool
+from core.tools.draw_tool import DrawTool
+from core.tab_manager import TabManager, TabData
 from core.tools.spot_tool import SpotTool
 from core.worker import PipelineWorker
 from ui.actions import ActionManager
@@ -77,8 +83,12 @@ class MainWindow(QMainWindow):
         self._spot_size = None
         self._brush = BrushTool()
         self._brush_size = None
+        self._draw_tool = DrawTool()
+        self._draw_size = None
         self._preview_arr = None
         self._adj = Adjustments()
+        self._tab_mgr = TabManager()
+        self._tab_mgr.add_tab()
         self._worker = PipelineWorker(self)
         self._worker.finished.connect(self._on_preview_ready)
         self._ba_active = False
@@ -147,6 +157,7 @@ class MainWindow(QMainWindow):
         self.actions.brush.triggered.connect(self._on_brush_toggle)
         self.canvas.brush_stroke.connect(self._on_brush_stroke)
         self.canvas.brush_wheel.connect(self._on_brush_wheel)
+        self.canvas.draw_stroke.connect(self._on_draw_stroke)
         self.actions.frame.triggered.connect(self._on_frame)
         self.actions.info.triggered.connect(self._on_info)
         self.actions.compare.triggered.connect(self._on_compare)
@@ -190,6 +201,20 @@ class MainWindow(QMainWindow):
         self.actions.zoom_out.triggered.connect(self._on_zout)
         self.actions.actual_size.triggered.connect(self._on_z100)
         self.actions.fit.triggered.connect(self._on_fit)
+
+        self.actions.text_tool.triggered.connect(self._on_text_tool)
+        self.actions.draw_tool.triggered.connect(self._on_draw_tool_toggle)
+        self.actions.denoise.triggered.connect(self._on_denoise)
+        self.actions.perspective.triggered.connect(self._on_perspective)
+        self.actions.lens_correction.triggered.connect(self._on_lens_correction)
+
+        # Tab navigation shortcuts
+        from PySide6.QtGui import QShortcut, QKeySequence
+        QShortcut(QKeySequence("Ctrl+Tab"), self, self._on_next_tab)
+        QShortcut(QKeySequence("Ctrl+Shift+Tab"), self, self._on_prev_tab)
+        QShortcut(QKeySequence("Ctrl+T"), self, self._on_new_tab)
+        QShortcut(QKeySequence("Ctrl+W"), self, self._on_close_tab)
+        QShortcut(QKeySequence("F11"), self, self._toggle_fullscreen)
 
     def _on_open(self):
         f = "Obrazy (" + " ".join("*" + e for e in SUPPORTED_FORMATS) + ")"
@@ -301,10 +326,21 @@ class MainWindow(QMainWindow):
         self._history.clear()
         self._spot_size = None
         self._brush_size = None
+        self._draw_size = None
         self._reset_adjustment_state()
         self._ba_active = False
         self._render_now()
         self._add_recent(path)
+        # Update current tab
+        tab = self._tab_mgr.current
+        if tab:
+            tab.orig = self._orig
+            tab.path = path
+            tab.preview_arr = self._preview_arr
+            tab.title = path.name
+            tab.history = self._history
+            tab.adj_history = self._adj_history
+        self._update_tab_title()
         self.statusBar().showMessage("Otwarto: " + path.name)
         sb = self.statusBar()
         if hasattr(sb, 'size_label'):
@@ -847,6 +883,15 @@ class MainWindow(QMainWindow):
         preview = prepare_preview(self._orig, max_dim=800)
         self._preview_arr = pil_to_cv(preview)
         self._render_now()
+        # Update current tab
+        tab = self._tab_mgr.current
+        if tab:
+            tab.orig = self._orig
+            tab.path = None
+            tab.preview_arr = self._preview_arr
+            tab.title = "Nowy"
+            tab.history = self._history
+        self._update_tab_title()
         self.statusBar().showMessage("Nowy obraz 1920 x 1080")
 
     def _on_save(self):
@@ -1379,6 +1424,121 @@ class MainWindow(QMainWindow):
     def _on_duotone(self):
         self._run_filter(duotone, "Duotone", "_duotone.png")
 
+    def _on_text_tool(self):
+        if self._orig is None:
+            QMessageBox.warning(self, t("text_tool"), t("status_no_image"))
+            return
+        from ui.text_dialog import TextToolDialog
+        dlg = TextToolDialog(self)
+        if dlg.exec() != TextToolDialog.DialogCode.Accepted:
+            return
+        text = dlg.get_text()
+        if not text:
+            return
+        font = dlg.get_font()
+        color = dlg.get_color()
+        opacity = dlg.get_opacity()
+        pos = dlg.get_position()
+        anchor = dlg.get_anchor()
+        self._history.push(self._orig)
+        self._orig = add_text_overlay(
+            self._orig, text,
+            font_name=font.family(),
+            font_size=font.pixelSize(),
+            color=(color.red(), color.green(), color.blue()),
+            opacity=opacity,
+            position=pos,
+            anchor=anchor,
+            bold=font.bold(),
+        )
+        self._refresh_after_edit()
+        self.statusBar().showMessage(t("text_tool") + ": " + text)
+
+    def _on_draw_tool_toggle(self):
+        if self._orig is None:
+            QMessageBox.warning(self, t("draw_tool"), t("status_no_image"))
+            return
+        if self._ba_active:
+            self._on_before_after()
+        if self.canvas._draw_mode:
+            self.canvas.cancel_draw()
+            self.statusBar().showMessage(t("draw_tool") + " OFF")
+        else:
+            from ui.draw_dialog import DrawToolDialog
+            dlg = DrawToolDialog(self)
+            if dlg.exec() != DrawToolDialog.DialogCode.Accepted:
+                return
+            self.canvas.cancel_crop()
+            self.canvas.cancel_spot()
+            self.canvas.cancel_brush()
+            self._draw_size = dlg.get_size()
+            self._draw_tool.settings.size = dlg.get_size() * 2
+            self._draw_tool.settings.color = dlg.get_color()
+            self._draw_tool.settings.opacity = dlg.get_opacity()
+            self.canvas.start_draw()
+            self.statusBar().showMessage(t("draw_tool") + ": ON")
+
+    def _on_draw_stroke(self, points, button):
+        if self._orig is None or self._preview_arr is None or not points:
+            return
+        preview_h, preview_w = self._preview_arr.shape[:2]
+        scale_x = self._orig.width / preview_w
+        scale_y = self._orig.height / preview_h
+        qimg = pil_to_qimage(self._orig)
+        orig_points = [QPointF(p.x() * scale_x, p.y() * scale_y) for p in points]
+        self._history.push(self._orig)
+        self._draw_tool.begin(orig_points[0], qimg)
+        for p in orig_points[1:]:
+            self._draw_tool.update(p, qimg)
+        self._draw_tool.finish()
+        self._orig = qimage_to_pil(qimg)
+        self._refresh_after_edit()
+
+    def _on_denoise(self):
+        if self._orig is None:
+            QMessageBox.warning(self, t("denoise"), t("status_no_image"))
+            return
+        from PySide6.QtWidgets import QInputDialog
+        strength, ok = QInputDialog.getInt(self, t("denoise"), t("denoise_strength") + " (1-30):", 10, 1, 30)
+        if not ok:
+            return
+        self._history.push(self._orig)
+        self._orig = denoise(self._orig, strength=strength)
+        self._refresh_after_edit()
+        self.statusBar().showMessage(t("denoise") + ": " + str(strength))
+
+    def _on_perspective(self):
+        if self._orig is None:
+            QMessageBox.warning(self, t("perspective"), t("status_no_image"))
+            return
+        from ui.perspective_dialog import PerspectiveDialog
+        dlg = PerspectiveDialog(self._orig.width, self._orig.height, self)
+        if dlg.exec() != PerspectiveDialog.DialogCode.Accepted:
+            return
+        corners = dlg.get_corners()
+        self._history.push(self._orig)
+        self._orig = perspective(self._orig, corners=corners)
+        self._refresh_after_edit()
+        self.statusBar().showMessage(t("perspective"))
+
+    def _on_lens_correction(self):
+        if self._orig is None:
+            QMessageBox.warning(self, t("lens_correction"), t("status_no_image"))
+            return
+        from ui.lens_dialog import LensCorrectionDialog
+        dlg = LensCorrectionDialog(self)
+        if dlg.exec() != LensCorrectionDialog.DialogCode.Accepted:
+            return
+        vals = dlg.get_values()
+        self._history.push(self._orig)
+        self._orig = lens_correction(
+            self._orig,
+            k1=vals["k1"], k2=vals["k2"], k3=vals["k3"],
+            p1=vals["p1"], p2=vals["p2"],
+        )
+        self._refresh_after_edit()
+        self.statusBar().showMessage(t("lens_correction"))
+
     def _on_theme_toggle(self):
         from ui.theme import build_stylesheet, DARK_THEME, LIGHT_THEME
         settings = QSettings("PhotoEditor2", "PhotoEditor2")
@@ -1496,3 +1656,109 @@ class MainWindow(QMainWindow):
             self.setStyleSheet(build_stylesheet(LIGHT_THEME))
         else:
             self.setStyleSheet(build_stylesheet(DARK_THEME))
+
+    # === MULTI-TAB MANAGEMENT ===
+
+    def _save_current_tab(self):
+        """Save current tab state."""
+        tab = self._tab_mgr.current
+        if tab is None:
+            return
+        tab.orig = self._orig
+        tab.path = self._path
+        tab.preview_arr = self._preview_arr
+        tab.adj = self._adj.copy() if self._adj else Adjustments()
+        tab.history = self._history
+        tab.adj_history = self._adj_history
+        tab.ba_active = self._ba_active
+        tab.spot_size = self._spot_size
+        tab.brush_size = self._brush_size
+        tab.draw_size = self._draw_size
+        if self._path:
+            tab.title = self._path.name
+
+    def _restore_tab(self, tab: TabData):
+        """Restore state from a tab."""
+        self._orig = tab.orig
+        self._path = tab.path
+        self._preview_arr = tab.preview_arr
+        self._adj = tab.adj.copy() if tab.adj else Adjustments()
+        self._history = tab.history
+        self._adj_history = tab.adj_history
+        self._ba_active = tab.ba_active
+        self._spot_size = tab.spot_size
+        self._brush_size = tab.brush_size
+        self._draw_size = tab.draw_size
+        self.right_panel.set_adjustments(self._adj)
+        self._render_now()
+        self._update_tab_title()
+
+    def _update_tab_title(self):
+        """Update window title with tab info."""
+        tab = self._tab_mgr.current
+        if tab and tab.title:
+            count = self._tab_mgr.count()
+            if count > 1:
+                idx = self._tab_mgr.current_index + 1
+                self.setWindowTitle(f"[{idx}/{count}] {tab.title} - {t('app_name')} {_APP_VERSION}")
+            else:
+                self.setWindowTitle(f"{tab.title} - {t('app_name')} {_APP_VERSION}")
+        else:
+            self.setWindowTitle(f"{t('app_name')} {_APP_VERSION}")
+
+    def _on_next_tab(self):
+        self._save_current_tab()
+        tab = self._tab_mgr.next_tab()
+        if tab:
+            self._restore_tab(tab)
+            self.statusBar().showMessage(f"Tab {self._tab_mgr.current_index + 1}/{self._tab_mgr.count()}: {tab.title}")
+
+    def _on_prev_tab(self):
+        self._save_current_tab()
+        tab = self._tab_mgr.prev_tab()
+        if tab:
+            self._restore_tab(tab)
+            self.statusBar().showMessage(f"Tab {self._tab_mgr.current_index + 1}/{self._tab_mgr.count()}: {tab.title}")
+
+    def _on_new_tab(self):
+        self._save_current_tab()
+        new_tab = self._tab_mgr.add_tab()
+        self._orig = Image.new("RGB", (1920, 1080), (255, 255, 255))
+        self._path = None
+        self._history = EditHistory()
+        self._adj = Adjustments()
+        self._adj_history = EditHistory(limit=30)
+        self._ba_active = False
+        self._spot_size = None
+        self._brush_size = None
+        self._draw_size = None
+        preview = prepare_preview(self._orig, max_dim=800)
+        self._preview_arr = pil_to_cv(preview)
+        new_tab.orig = self._orig
+        new_tab.title = "Nowy"
+        self._render_now()
+        self._update_tab_title()
+        self.statusBar().showMessage(f"Nowa zakladka {self._tab_mgr.count()}")
+
+    def _on_close_tab(self):
+        if self._tab_mgr.count() <= 1:
+            return
+        idx = self._tab_mgr.current_index
+        self._tab_mgr.remove_tab(idx)
+        if self._tab_mgr.current is not None:
+            self._restore_tab(self._tab_mgr.current)
+        self.statusBar().showMessage(f"Pozostalo {self._tab_mgr.count()} zakladek")
+
+    def _toggle_fullscreen(self):
+        if self.isFullScreen():
+            self.showNormal()
+            self.menuBar().setVisible(True)
+            for bar in self.findChildren(QToolBar):
+                bar.setVisible(True)
+            self.statusBar().setVisible(True)
+        else:
+            self.showFullScreen()
+            self.menuBar().setVisible(False)
+            for bar in self.findChildren(QToolBar):
+                bar.setVisible(False)
+            self.statusBar().setVisible(False)

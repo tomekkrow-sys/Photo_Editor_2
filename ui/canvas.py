@@ -9,6 +9,7 @@ class Canvas(QWidget):
     spot_wheel = Signal(int)
     brush_stroke = Signal(object, object)
     brush_wheel = Signal(int)
+    draw_stroke = Signal(object, object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -30,6 +31,9 @@ class Canvas(QWidget):
         self._brush_mode = False
         self._brush_points = None
         self._brush_button = None
+        self._draw_mode = False
+        self._draw_points = None
+        self._draw_button = None
         self._ba_mode = False
         self._ba_split = 0.5
         self._ba_drag = False
@@ -48,6 +52,8 @@ class Canvas(QWidget):
         self._spot_mode = False
         self._brush_mode = False
         self._brush_points = None
+        self._draw_mode = False
+        self._draw_points = None
         self._crop_start = None
         self._crop_end = None
         self.update()
@@ -105,6 +111,18 @@ class Canvas(QWidget):
     def cancel_brush(self):
         self._brush_mode = False
         self._brush_points = None
+        self.setCursor(Qt.OpenHandCursor)
+        self.update()
+
+    def start_draw(self):
+        self._draw_mode = True
+        self._draw_points = None
+        self.setCursor(Qt.CrossCursor)
+        self.update()
+
+    def cancel_draw(self):
+        self._draw_mode = False
+        self._draw_points = None
         self.setCursor(Qt.OpenHandCursor)
         self.update()
 
@@ -207,6 +225,16 @@ class Canvas(QWidget):
                     self._brush_points = [QPointF(px, py)]
                     self._brush_button = event.button()
             return
+        if self._draw_mode:
+            r = self._img_rect()
+            if r and self._pixmap and not self._pixmap.isNull():
+                x, y, iw, ih = r
+                px = (event.pos().x() - x) / self._zoom
+                py = (event.pos().y() - y) / self._zoom
+                if 0 <= px < self._pixmap.width() and 0 <= py < self._pixmap.height():
+                    self._draw_points = [QPointF(px, py)]
+                    self._draw_button = event.button()
+            return
         if self._spot_mode:
             r = self._img_rect()
             if r and self._pixmap and not self._pixmap.isNull():
@@ -245,6 +273,17 @@ class Canvas(QWidget):
                     py = max(0, min(py, self._pixmap.height()))
                     self._brush_points.append(QPointF(px, py))
             return
+        if self._draw_mode:
+            if self._draw_points is not None:
+                r = self._img_rect()
+                if r:
+                    x, y, iw, ih = r
+                    px = (event.pos().x() - x) / self._zoom
+                    py = (event.pos().y() - y) / self._zoom
+                    px = max(0, min(px, self._pixmap.width()))
+                    py = max(0, min(py, self._pixmap.height()))
+                    self._draw_points.append(QPointF(px, py))
+            return
         if self._spot_mode:
             return
         if self._ba_mode and self._ba_drag:
@@ -274,6 +313,12 @@ class Canvas(QWidget):
             self._brush_points = None
             self._brush_button = None
             return
+        if self._draw_mode:
+            if self._draw_points:
+                self.draw_stroke.emit(self._draw_points, self._draw_button)
+            self._draw_points = None
+            self._draw_button = None
+            return
         if self._spot_mode:
             return
         if self._ba_mode:
@@ -295,6 +340,8 @@ class Canvas(QWidget):
             return
         if self._brush_mode:
             self.brush_wheel.emit(event.angleDelta().y())
+            return
+        if self._draw_mode:
             return
         if self._pixmap is None or self._pixmap.isNull():
             return

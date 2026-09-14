@@ -208,6 +208,21 @@ class ActionManager:
         self.history_timeline = QAction(t("history"), self.parent)
         _tip(self.history_timeline, t("history"))
 
+        self.text_tool = QAction(t("text_tool"), self.parent)
+        _tip(self.text_tool, t("text_tool"))
+
+        self.draw_tool = QAction(t("draw_tool"), self.parent)
+        _tip(self.draw_tool, t("draw_tool"))
+
+        self.denoise = QAction(t("denoise"), self.parent)
+        _tip(self.denoise, t("denoise"))
+
+        self.perspective = QAction(t("perspective"), self.parent)
+        _tip(self.perspective, t("perspective"))
+
+        self.lens_correction = QAction(t("lens_correction"), self.parent)
+        _tip(self.lens_correction, t("lens_correction"))
+
     def _refresh_texts(self, lang=None):
         self.new.setText(t("new"))
         self.open.setText(t("open"))
@@ -317,3 +332,14 @@ class ActionManager:
         _tip(self.layers, t("layers"))
         _tip(self.face_detect, t("face_detect"))
         _tip(self.history_timeline, t("history"))
+        # New actions
+        self.text_tool.setText(t("text_tool"))
+        self.draw_tool.setText(t("draw_tool"))
+        self.denoise.setText(t("denoise"))
+        self.perspective.setText(t("perspective"))
+        self.lens_correction.setText(t("lens_correction"))
+        _tip(self.text_tool, t("text_tool"))
+        _tip(self.draw_tool, t("draw_tool"))
+        _tip(self.denoise, t("denoise"))
+        _tip(self.perspective, t("perspective"))
+        _tip(self.lens_correction, t("lens_correction"))

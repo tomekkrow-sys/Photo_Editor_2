@@ -683,3 +683,84 @@ def duotone(img: Image.Image, color1: str = "#FF6B35", color2: str = "#004E89") 
     g = (gray_arr * c1[1] + (1 - gray_arr) * c2[1]).astype(np.uint8)
     b = (gray_arr * c1[2] + (1 - gray_arr) * c2[2]).astype(np.uint8)
     return Image.fromarray(np.stack([r, g, b], axis=2))
+
+
+def denoise(img: Image.Image, strength: int = 10) -> Image.Image:
+    """Reduce noise using Non-Local Means denoising."""
+    arr = np.array(img.convert("RGB"))
+    bgr = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
+    result = cv2.fastNlMeansDenoisingColored(bgr, None, strength, strength, 7, 21)
+    return Image.fromarray(cv2.cvtColor(result, cv2.COLOR_BGR2RGB))
+
+
+def perspective(img: Image.Image, corners: list = None) -> Image.Image:
+    """Apply perspective transform given 4 corner points (top-left, top-right, bottom-right, bottom-left).
+    corners should be list of 4 (x,y) tuples in original image coords.
+    """
+    if corners is None or len(corners) != 4:
+        return img
+    arr = np.array(img.convert("RGB"))
+    h, w = arr.shape[:2]
+    src = np.float32(corners)
+    # Calculate output rectangle
+    w_top = np.linalg.norm(src[1] - src[0])
+    w_bot = np.linalg.norm(src[2] - src[3])
+    h_left = np.linalg.norm(src[3] - src[0])
+    h_right = np.linalg.norm(src[2] - src[1])
+    out_w = int(max(w_top, w_bot))
+    out_h = int(max(h_left, h_right))
+    dst = np.float32([[0, 0], [out_w - 1, 0], [out_w - 1, out_h - 1], [0, out_h - 1]])
+    bgr = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
+    matrix = cv2.getPerspectiveTransform(src, dst)
+    warped = cv2.warpPerspective(bgr, matrix, (out_w, out_h))
+    return Image.fromarray(cv2.cvtColor(warped, cv2.COLOR_BGR2RGB))
+
+
+def add_text_overlay(img: Image.Image, text: str, font_name: str = "Arial",
+                     font_size: int = 48, color: tuple = (255, 255, 255),
+                     opacity: float = 1.0, position: tuple = (0, 0),
+                     anchor: str = "center", bold: bool = False) -> Image.Image:
+    """Add text overlay to an image."""
+    from PIL import ImageDraw, ImageFont
+    result = img.convert("RGBA")
+    overlay = Image.new("RGBA", result.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else
+                                  "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
+    except (OSError, IOError):
+        try:
+            font = ImageFont.truetype("arial.ttf", font_size)
+        except (OSError, IOError):
+            font = ImageFont.load_default()
+
+    bbox = draw.textbbox((0, 0), text, font=font)
+    tw = bbox[2] - bbox[0]
+    th = bbox[3] - bbox[1]
+    x, y = position
+
+    if anchor == "center":
+        x -= tw // 2
+        y -= th // 2
+    elif anchor == "bottomright":
+        x -= tw
+        y -= th
+
+    alpha = int(255 * opacity)
+    fill = (color[0], color[1], color[2], alpha)
+    draw.text((x, y), text, font=font, fill=fill)
+    result = Image.alpha_composite(result, overlay)
+    return result.convert("RGB")
+
+
+def lens_correction(img: Image.Image, k1: float = 0.0, k2: float = 0.0,
+                    k3: float = 0.0, p1: float = 0.0, p2: float = 0.0) -> Image.Image:
+    """Apply lens distortion correction (radial + tangential)."""
+    arr = np.array(img.convert("RGB"))
+    h, w = arr.shape[:2]
+    bgr = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
+    camera_matrix = np.array([[w / 2, 0, w / 2], [0, w / 2, h / 2], [0, 0, 1]], dtype=np.float32)
+    dist_coeffs = np.array([k1, k2, p1, p2, k3], dtype=np.float32)
+    new_camera, roi = cv2.getOptimalNewCameraMatrix(camera_matrix, dist_coeffs, (w, h), 1, (w, h))
+    result = cv2.undistort(bgr, camera_matrix, dist_coeffs, None, new_camera)
+    return Image.fromarray(cv2.cvtColor(result, cv2.COLOR_BGR2RGB))
