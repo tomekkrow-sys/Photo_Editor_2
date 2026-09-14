@@ -125,7 +125,15 @@ class UnifiedUpdateManager:
             str: Current version string or "0.0.0" if file not found
         """
         try:
-            with open("version.txt", "r") as f:
+            # Try config/version.py first (authoritative source)
+            sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            from config.version import APP_VERSION
+            return APP_VERSION
+        except ImportError:
+            pass
+        try:
+            vpath = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "version.txt")
+            with open(vpath, "r") as f:
                 return f.read().strip()
         except FileNotFoundError:
             logger.warning("version.txt not found. Using default version '0.0.0'")
