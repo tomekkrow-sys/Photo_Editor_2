@@ -22,7 +22,10 @@ This implementation maintains full backward compatibility while adding advanced 
 import sys
 import os
 import subprocess
-import requests
+try:
+    import requests
+except ImportError:
+    requests = None
 import json
 import hashlib
 import base64
@@ -36,7 +39,10 @@ import threading
 import time
 import logging
 from datetime import datetime
-import gnupg  # For GPG signature verification
+try:
+    import gnupg  # For GPG signature verification
+except ImportError:
+    gnupg = None
 
 # Add current directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -74,7 +80,7 @@ class UnifiedUpdateManager:
         """
         self.config_file = config_file
         self.config = self._load_config()
-        self.gpg = gnupg.GPG()
+        self.gpg = gnupg.GPG() if gnupg else None
 
     def _load_config(self):
         """
@@ -154,10 +160,15 @@ class UnifiedUpdateManager:
             
             url = f"{api_url}/repos/{owner}/{repo}/releases/latest"
             
-            response = requests.get(url, timeout=10)
-            response.raise_for_status()
-            
-            return response.json()
+            if requests:
+                response = requests.get(url, timeout=10)
+                response.raise_for_status()
+                return response.json()
+            else:
+                import urllib.request
+                req = urllib.request.Request(url, headers={"User-Agent": "Photo-Editor-2"})
+                resp = urllib.request.urlopen(req, timeout=10)
+                return json.loads(resp.read().decode())
         except Exception as e:
             logger.error(f"Error fetching latest release: {e}")
             return None
@@ -206,14 +217,19 @@ class UnifiedUpdateManager:
             bool: True if successful, False otherwise
         """
         try:
-            response = requests.get(url, stream=True, timeout=30)
-            response.raise_for_status()
-            
-            with open(path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-            
+            if requests:
+                response = requests.get(url, stream=True, timeout=30)
+                response.raise_for_status()
+                with open(path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+            else:
+                import urllib.request
+                req = urllib.request.Request(url, headers={"User-Agent": "Photo-Editor-2"})
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    with open(path, 'wb') as f:
+                        shutil.copyfileobj(resp, f)
             return True
         except Exception as e:
             logger.error(f"Error downloading file: {e}")
