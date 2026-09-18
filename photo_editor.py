@@ -174,7 +174,7 @@ def main() -> int:
                 ret = QMessageBox.information(
                     window,
                     t("check_updates"),
-                    f"Nowa wersja: v{ver}\nObecna: v{_APP_VERSION}\n\nOtworzyc strone pobierania?",
+                    f"Nowa wersja: v{ver}\nObecna: v{APP_VERSION}\n\nOtworzyc strone pobierania?",
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 )
                 if ret == QMessageBox.StandardButton.Yes:
