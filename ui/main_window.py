@@ -384,7 +384,7 @@ class MainWindow(QMainWindow):
                 if x2 - x1 < 2 or y2 - y1 < 2:
                     self.statusBar().showMessage("Zaznaczenie za male — anulowano.")
                 else:
-                    self._history.push(self._orig)
+                    self._history.push(self._orig, "Kadrowanie")
                     self._orig = self._orig.crop((x1, y1, x2, y2))
                     preview = prepare_preview(self._orig, max_dim=800)
                     self._preview_arr = pil_to_cv(preview)
@@ -449,7 +449,7 @@ class MainWindow(QMainWindow):
         self._spot.set_sample_source(QPointF(sx, sy), qimg)
         self._spot.begin_paint(QPointF(x, y), qimg)
         self._spot.finish_paint()
-        self._history.push(self._orig)
+        self._history.push(self._orig, "Retusz")
         self._orig = qimage_to_pil(qimg)
         self._refresh_after_edit()
         self.statusBar().showMessage("Usunieto element (Ctrl+Z cofa).")
@@ -457,7 +457,7 @@ class MainWindow(QMainWindow):
     def _on_rotate(self, angle):
         if self._orig is None:
             return
-        self._history.push(self._orig)
+        self._history.push(self._orig, f"Obrot {angle}\u00b0")
         self._orig = self._orig.rotate(angle, expand=True)
         preview = prepare_preview(self._orig, max_dim=800)
         self._preview_arr = pil_to_cv(preview)
@@ -469,7 +469,7 @@ class MainWindow(QMainWindow):
     def _on_flip(self, h, v):
         if self._orig is None:
             return
-        self._history.push(self._orig)
+        self._history.push(self._orig, "Odbicie")
         if h:
             self._orig = self._orig.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
         if v:
@@ -573,7 +573,7 @@ class MainWindow(QMainWindow):
         orig_points = [
             QPointF(p.x() * scale_x, p.y() * scale_y) for p in points
         ]
-        self._history.push(self._orig)
+        self._history.push(self._orig, "Pedzel")
         self._brush.begin(orig_points[0], qimg)
         for p in orig_points[1:]:
             self._brush.update(p, qimg)
@@ -639,7 +639,7 @@ class MainWindow(QMainWindow):
 
         if self._orig is None or layer is None:
             return False
-        self._history.push(self._orig)
+        self._history.push(self._orig, "Naloz warstwe")
         self._orig = composite(self._orig, layer, opacity, mode)
         self._refresh_after_edit()
         self.statusBar().showMessage(
@@ -662,7 +662,7 @@ class MainWindow(QMainWindow):
 
         if self._orig is None:
             return False
-        self._history.push(self._orig)
+        self._history.push(self._orig, "Wyprostuj")
         self._orig = straighten(self._orig, angle)
         self._refresh_after_edit()
         self.statusBar().showMessage(
@@ -688,7 +688,7 @@ class MainWindow(QMainWindow):
 
         if self._orig is None or not text:
             return False
-        self._history.push(self._orig)
+        self._history.push(self._orig, "Znak wodny")
         self._orig = watermark(self._orig, text, position, opacity)
         self._refresh_after_edit()
         self.statusBar().showMessage("Dodano znak wodny. Ctrl+Z cofa.")
@@ -725,7 +725,7 @@ class MainWindow(QMainWindow):
         if self._orig is None:
             QMessageBox.warning(self, "Auto-korekta", "Najpierw otworz zdjecie.")
             return
-        self._history.push(self._orig)
+        self._history.push(self._orig, "Auto-korekta")
         self._orig = auto_enhance(self._orig)
         self._refresh_after_edit()
         self.statusBar().showMessage("Zastosowano auto-korekte (Ctrl+Z cofa).")
@@ -744,7 +744,7 @@ class MainWindow(QMainWindow):
     def _resize_image(self, width: int, height: int) -> bool:
         if self._orig is None or width <= 0 or height <= 0:
             return False
-        self._history.push(self._orig)
+        self._history.push(self._orig, "Zmien rozmiar")
         self._orig = self._orig.resize(
             (width, height), Image.Resampling.LANCZOS
         )
@@ -1405,7 +1405,7 @@ class MainWindow(QMainWindow):
         opacity = dlg.get_opacity()
         pos = dlg.get_position()
         anchor = dlg.get_anchor()
-        self._history.push(self._orig)
+        self._history.push(self._orig, "Tekst")
         self._orig = add_text_overlay(
             self._orig, text,
             font_name=font.family(),
@@ -1451,7 +1451,7 @@ class MainWindow(QMainWindow):
         scale_y = self._orig.height / preview_h
         qimg = pil_to_qimage(self._orig)
         orig_points = [QPointF(p.x() * scale_x, p.y() * scale_y) for p in points]
-        self._history.push(self._orig)
+        self._history.push(self._orig, "Rysowanie")
         self._draw_tool.begin(orig_points[0], qimg)
         for p in orig_points[1:]:
             self._draw_tool.update(p, qimg)
@@ -1467,7 +1467,7 @@ class MainWindow(QMainWindow):
         strength, ok = QInputDialog.getInt(self, t("denoise"), t("denoise_strength") + " (1-30):", 10, 1, 30)
         if not ok:
             return
-        self._history.push(self._orig)
+        self._history.push(self._orig, "Redukcja szumu")
         self._orig = denoise(self._orig, strength=strength)
         self._refresh_after_edit()
         self.statusBar().showMessage(t("denoise") + ": " + str(strength))
@@ -1481,7 +1481,7 @@ class MainWindow(QMainWindow):
         if dlg.exec() != PerspectiveDialog.DialogCode.Accepted:
             return
         corners = dlg.get_corners()
-        self._history.push(self._orig)
+        self._history.push(self._orig, "Perspektywa")
         self._orig = perspective(self._orig, corners=corners)
         self._refresh_after_edit()
         self.statusBar().showMessage(t("perspective"))
@@ -1495,7 +1495,7 @@ class MainWindow(QMainWindow):
         if dlg.exec() != LensCorrectionDialog.DialogCode.Accepted:
             return
         vals = dlg.get_values()
-        self._history.push(self._orig)
+        self._history.push(self._orig, "Korekcja obiektywu")
         self._orig = lens_correction(
             self._orig,
             k1=vals["k1"], k2=vals["k2"], k3=vals["k3"],
@@ -1539,7 +1539,7 @@ class MainWindow(QMainWindow):
         if dlg.exec() == LayersDialog.DialogCode.Accepted:
             result = dlg.get_result()
             if result is not None:
-                self._history.push(self._orig)
+                self._history.push(self._orig, "Warstwa")
                 self._orig = result
                 self._refresh_after_edit()
                 self.statusBar().showMessage("Zastosowano warstwe.")
@@ -1573,7 +1573,7 @@ class MainWindow(QMainWindow):
                 y1 = max(0, y - pad)
                 x2 = min(orig_w, x + w + pad)
                 y2 = min(orig_h, y + h + pad)
-                self._history.push(self._orig)
+                self._history.push(self._orig, "Kadrowanie twarzy")
                 self._orig = self._orig.crop((x1, y1, x2, y2))
                 self._refresh_after_edit()
                 self.statusBar().showMessage(f"Zakadrowano do twarzy ({x2-x1}x{y2-y1}).")
@@ -1584,8 +1584,20 @@ class MainWindow(QMainWindow):
 
     def _on_history_timeline(self):
         from ui.history_dialog import HistoryDialog
-        dlg = HistoryDialog(self, self._history)
-        dlg.exec()
+        dlg = HistoryDialog(self._history, self)
+        if dlg.exec() == HistoryDialog.DialogCode.Accepted:
+            target = dlg.get_target_index()
+            if target is not None and target >= 0:
+                # Undo to target index
+                steps_back = self._history.current_index - target
+                for _ in range(steps_back):
+                    prev = self._history.undo(self._orig)
+                    if prev is not None:
+                        self._orig = prev
+                    else:
+                        break
+                self._refresh_after_edit()
+                self.statusBar().showMessage(f"{t('history')}: cofnieto do kroku {target + 1}")
 
     def _on_about(self):
         from config.version import APP_NAME as _name, APP_VERSION as _ver
@@ -1738,7 +1750,7 @@ class MainWindow(QMainWindow):
         if dlg.exec() != AdjustDialog.DialogCode.Accepted:
             return
         vals = dlg.get_values()
-        self._history.push(self._orig)
+        self._history.push(self._orig, "Korekcja obrazu")
         # Apply using PIL
         from PIL import ImageEnhance
         img = self._orig.copy()
@@ -1784,7 +1796,7 @@ class MainWindow(QMainWindow):
         expand = dlg.expand()
         if angle == 0:
             return
-        self._history.push(self._orig)
+        self._history.push(self._orig, f"Obrot {angle}\u00b0")
         self._orig = self._orig.rotate(-angle, expand=expand, resample=Image.Resampling.BICUBIC)
         self._refresh_after_edit()
         self.statusBar().showMessage(f"{t('rotate_custom')}: {angle}\u00b0")
@@ -1870,7 +1882,7 @@ class MainWindow(QMainWindow):
         feather_px = dlg.get_feather()
         self.canvas.cancel_select()
 
-        self._history.push(self._orig)
+        self._history.push(self._orig, "Edycja zaznaczenia")
         import numpy as np
         from PIL import Image, ImageFilter as PILFilter
         import core.filters as F

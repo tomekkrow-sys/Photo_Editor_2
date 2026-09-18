@@ -163,6 +163,8 @@ TRANSLATIONS = {
         "select_filter": "Filtr",
         "select_intensity": "Intensywnosc",
         "select_feather": "Mglistosc krawedzi",
+        "history_current": "Aktualny stan",
+        "history_undo_to": "Cofnij do tego",
     },
     "en": {
         "app_name": "Photo Editor 2",
@@ -318,6 +320,8 @@ TRANSLATIONS = {
         "select_filter": "Filter",
         "select_intensity": "Intensity",
         "select_feather": "Edge feather",
+        "history_current": "Current state",
+        "history_undo_to": "Undo to here",
     },
     "es": {
         "app_name": "Photo Editor 2",
@@ -473,6 +477,8 @@ TRANSLATIONS = {
         "select_filter": "Filtro",
         "select_intensity": "Intensidad",
         "select_feather": "Difuminar bordes",
+        "history_current": "Estado actual",
+        "history_undo_to": "Deshacer hasta aqui",
     },
 }
 
