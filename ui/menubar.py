@@ -85,6 +85,7 @@ class MenuBar(QMenuBar):
         tm.addAction(self.actions.draw_tool)
         tm.addAction(self.actions.eyedropper)
         tm.addSeparator()
+        tm.addAction(self.actions.select_edit)
         tm.addAction(self.actions.rotate_left)
         tm.addAction(self.actions.rotate_right)
         tm.addAction(self.actions.rotate_custom)

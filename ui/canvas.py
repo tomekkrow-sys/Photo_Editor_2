@@ -11,6 +11,7 @@ class Canvas(QWidget):
     brush_wheel = Signal(int)
     draw_stroke = Signal(object, object)
     color_picked = Signal(object)  # QPointF with image coords
+    selection_made = Signal(object, object)  # (x1,y1,x2,y2) in image coords, feather
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -38,6 +39,10 @@ class Canvas(QWidget):
         self._ba_mode = False
         self._ba_split = 0.5
         self._eyedropper_mode = False
+        self._select_mode = False
+        self._select_start = None
+        self._select_end = None
+        self._select_feather = 0
         self.setAutoFillBackground(True)
         self.setStyleSheet("background: #141414;")
         self.setCursor(Qt.OpenHandCursor)
@@ -137,6 +142,40 @@ class Canvas(QWidget):
         self.setCursor(Qt.OpenHandCursor)
         self.update()
 
+    def start_select(self, feather=0):
+        self._select_mode = True
+        self._select_start = None
+        self._select_end = None
+        self._select_feather = feather
+        self.setCursor(Qt.CrossCursor)
+        self.update()
+
+    def cancel_select(self):
+        self._select_mode = False
+        self._select_start = None
+        self._select_end = None
+        self.setCursor(Qt.OpenHandCursor)
+        self.update()
+
+    def get_select_rect(self):
+        if self._select_start is None or self._select_end is None or self._pixmap is None:
+            return None
+        r = self._img_rect()
+        if not r:
+            return None
+        x, y, iw, ih = r
+        x1 = (min(self._select_start.x(), self._select_end.x()) - x) / self._zoom
+        y1 = (min(self._select_start.y(), self._select_end.y()) - y) / self._zoom
+        x2 = (max(self._select_start.x(), self._select_end.x()) - x) / self._zoom
+        y2 = (max(self._select_start.y(), self._select_end.y()) - y) / self._zoom
+        x1 = max(0, min(x1, self._pixmap.width()))
+        y1 = max(0, min(y1, self._pixmap.height()))
+        x2 = max(0, min(x2, self._pixmap.width()))
+        y2 = max(0, min(y2, self._pixmap.height()))
+        if x2 - x1 < 2 or y2 - y1 < 2:
+            return None
+        return (int(x1), int(y1), int(x2), int(y2))
+
     def get_crop_rect(self):
         if self._crop_start is None or self._crop_end is None or self._pixmap is None:
             return None
@@ -222,6 +261,26 @@ class Canvas(QWidget):
                     painter.setPen(pen)
                     painter.drawRect(QRectF(self._crop_start, self._crop_end))
                     painter.fillRect(QRectF(self._crop_start, self._crop_end), QColor(74, 158, 255, 30))
+                if self._select_mode and self._select_start and self._select_end:
+                    # Marching ants effect - solid + dashed overlay
+                    sel_rect = QRectF(self._select_start, self._select_end)
+                    # Dim area outside selection
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.setBrush(QColor(0, 0, 0, 100))
+                    painter.drawRect(QRectF(x, y, iw, self._select_start.y() - y))
+                    painter.drawRect(QRectF(x, self._select_end.y(), iw, y + ih - self._select_end.y()))
+                    painter.drawRect(QRectF(x, self._select_start.y(), self._select_start.x() - x, self._select_end.y() - self._select_start.y()))
+                    painter.drawRect(QRectF(self._select_end.x(), self._select_start.y(), x + iw - self._select_end.x(), self._select_end.y() - self._select_start.y()))
+                    # Selection border
+                    pen = QPen(QColor("#FFFFFF"))
+                    pen.setWidth(1)
+                    painter.setPen(pen)
+                    painter.drawRect(sel_rect)
+                    pen2 = QPen(QColor("#000000"))
+                    pen2.setWidth(1)
+                    pen2.setStyle(Qt.PenStyle.DashLine)
+                    painter.setPen(pen2)
+                    painter.drawRect(sel_rect.adjusted(1, 1, -1, -1))
 
         painter.end()
 
@@ -272,6 +331,10 @@ class Canvas(QWidget):
                 if abs(event.pos().x() - split_x) < 10:
                     self._ba_drag = True
             return
+        if self._select_mode:
+            self._select_start = event.pos()
+            self._select_end = event.pos()
+            return
         if self._crop_mode:
             self._crop_start = event.pos()
             self._crop_end = event.pos()
@@ -316,6 +379,10 @@ class Canvas(QWidget):
                 self._ba_split = max(0.05, min(0.95, self._ba_split))
                 self.update()
             return
+        if self._select_mode and self._select_start:
+            self._select_end = event.pos()
+            self.update()
+            return
         if self._crop_mode and self._crop_start:
             self._crop_end = event.pos()
             self.update()
@@ -344,6 +411,13 @@ class Canvas(QWidget):
             self._draw_button = None
             return
         if self._spot_mode:
+            return
+        if self._select_mode:
+            self._select_end = event.pos()
+            rect = self.get_select_rect()
+            if rect:
+                self.selection_made.emit(rect, self._select_feather)
+            self.update()
             return
         if self._ba_mode:
             self._ba_drag = False

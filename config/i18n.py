@@ -159,6 +159,10 @@ TRANSLATIONS = {
         "batch_export": "Eksport",
         "batch_blur_kernel": "Rozmiar rozmycia:",
         "batch_pixel_block": "Blok pikseli:",
+        "select_edit": "Edycja zaznaczenia...",
+        "select_filter": "Filtr",
+        "select_intensity": "Intensywnosc",
+        "select_feather": "Mglistosc krawedzi",
     },
     "en": {
         "app_name": "Photo Editor 2",
@@ -310,6 +314,10 @@ TRANSLATIONS = {
         "batch_export": "Export",
         "batch_blur_kernel": "Blur size:",
         "batch_pixel_block": "Pixel block:",
+        "select_edit": "Selective Edit...",
+        "select_filter": "Filter",
+        "select_intensity": "Intensity",
+        "select_feather": "Edge feather",
     },
     "es": {
         "app_name": "Photo Editor 2",
@@ -461,6 +469,10 @@ TRANSLATIONS = {
         "batch_export": "Exportar",
         "batch_blur_kernel": "Tamano desenfoque:",
         "batch_pixel_block": "Bloque de pixel:",
+        "select_edit": "Edicion selectiva...",
+        "select_filter": "Filtro",
+        "select_intensity": "Intensidad",
+        "select_feather": "Difuminar bordes",
     },
 }
 

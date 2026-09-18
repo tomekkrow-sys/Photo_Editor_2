@@ -211,7 +211,9 @@ class MainWindow(QMainWindow):
         self.actions.rotate_custom.triggered.connect(self._on_rotate_custom)
         self.actions.eyedropper.triggered.connect(self._on_eyedropper_toggle)
         self.actions.histogram.triggered.connect(self._on_histogram)
+        self.actions.select_edit.triggered.connect(self._on_select_edit)
         self.canvas.color_picked.connect(self._on_color_picked)
+        self.canvas.selection_made.connect(self._on_selection_made)
 
         # Tab navigation shortcuts
         from PySide6.QtGui import QShortcut, QKeySequence
@@ -1836,3 +1838,106 @@ class MainWindow(QMainWindow):
         hist.set_image(pil_to_qpixmap(self._orig))
         lay.addWidget(hist)
         dlg.exec()
+
+    # --- v0.4.4: Selective Edit ---
+    def _on_select_edit(self):
+        if self._orig is None:
+            QMessageBox.warning(self, t("select_edit"), t("status_no_image"))
+            return
+        if self._ba_active:
+            self._on_before_after()
+        # Cancel other modes
+        self.canvas.cancel_crop()
+        self.canvas.cancel_spot()
+        self.canvas.cancel_brush()
+        self.canvas.cancel_draw()
+        self.canvas.cancel_eyedropper()
+        # Start selection mode
+        self.canvas.start_select()
+        self.statusBar().showMessage(t("select_edit") + ": " + "Zaznacz prostokat na obrazie")
+
+    def _on_selection_made(self, rect, feather):
+        if self._orig is None or rect is None:
+            return
+        x1, y1, x2, y2 = rect
+        from ui.select_edit_dialog import SelectEditDialog
+        dlg = SelectEditDialog(self)
+        if dlg.exec() != SelectEditDialog.DialogCode.Accepted:
+            self.canvas.cancel_select()
+            return
+        filt = dlg.get_filter()
+        intensity = dlg.get_intensity()
+        feather_px = dlg.get_feather()
+        self.canvas.cancel_select()
+
+        self._history.push(self._orig)
+        import numpy as np
+        from PIL import Image, ImageFilter as PILFilter
+        import core.filters as F
+
+        img = self._orig.copy()
+        # Extract region
+        region = img.crop((x1, y1, x2, y2))
+
+        # Apply filter to region
+        if filt == "blur":
+            k = max(1, int(intensity / 10) * 2 + 1)
+            region = F.gaussian_blur(region, kernel_size=k)
+        elif filt == "sharpen":
+            from PIL import ImageEnhance
+            factor = 1.0 + intensity / 100.0
+            enhancer = ImageEnhance.Sharpness(region)
+            region = enhancer.enhance(factor)
+        elif filt == "black_white":
+            region = F.black_and_white(region)
+        elif filt == "sepia":
+            region = F.sepia(region)
+        elif filt == "negative":
+            region = F.negative(region)
+        elif filt == "vignette":
+            region = F.vignette(region, strength=intensity / 100.0)
+        elif filt == "emboss":
+            region = F.emboss(region)
+        elif filt == "brightness":
+            from PIL import ImageEnhance
+            factor = 0.5 + intensity / 100.0
+            region = ImageEnhance.Brightness(region).enhance(factor)
+        elif filt == "contrast":
+            from PIL import ImageEnhance
+            factor = 0.5 + intensity / 100.0
+            region = ImageEnhance.Contrast(region).enhance(factor)
+        elif filt == "saturation":
+            from PIL import ImageEnhance
+            factor = 0.5 + intensity / 100.0
+            region = ImageEnhance.Color(region).enhance(factor)
+        elif filt == "pixelate":
+            bs = max(2, int(intensity / 5))
+            region = F.pixelate(region, block_size=bs)
+        elif filt == "denoise":
+            region = F.denoise(region, strength=max(1, intensity // 5))
+        elif filt == "hdr":
+            region = F.hdr_tone_map(region, strength=intensity / 100.0)
+        elif filt == "cartoon":
+            region = F.cartoon(region, strength=intensity / 100.0)
+        elif filt == "thermal":
+            region = F.thermal(region, strength=intensity / 100.0)
+
+        # Apply feathered mask
+        if feather_px > 0:
+            mask = Image.new("L", (x2 - x1, y2 - y1), 0)
+            from PIL import ImageDraw
+            draw = ImageDraw.Draw(mask)
+            # Inner rect with feather
+            draw.rectangle(
+                [feather_px, feather_px, mask.width - feather_px, mask.height - feather_px],
+                fill=255
+            )
+            mask = mask.filter(PILFilter.GaussianBlur(radius=feather_px))
+        else:
+            mask = Image.new("L", (x2 - x1, y2 - y1), 255)
+
+        # Composite
+        img.paste(region, (x1, y1), mask)
+        self._orig = img
+        self._refresh_after_edit()
+        self.statusBar().showMessage(t("select_edit") + ": OK")

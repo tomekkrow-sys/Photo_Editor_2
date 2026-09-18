@@ -235,6 +235,9 @@ class ActionManager:
         self.histogram = QAction(t("histogram"), self.parent)
         _tip(self.histogram, t("histogram"))
 
+        self.select_edit = QAction(t("select_edit"), self.parent)
+        _tip(self.select_edit, t("select_edit"))
+
     def _refresh_texts(self, lang=None):
         self.new.setText(t("new"))
         self.open.setText(t("open"))
@@ -364,3 +367,5 @@ class ActionManager:
         _tip(self.rotate_custom, t("rotate_custom"))
         _tip(self.eyedropper, t("eyedropper"))
         _tip(self.histogram, t("histogram"))
+        self.select_edit.setText(t("select_edit"))
+        _tip(self.select_edit, t("select_edit"))
