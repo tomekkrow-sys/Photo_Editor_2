@@ -791,51 +791,9 @@ class MainWindow(QMainWindow):
         self._render_now()
 
     def _on_batch_export(self):
-        import numpy as np
         from ui.batch_dialog import BatchDialog
         dlg = BatchDialog(self)
-        if dlg.exec() != BatchDialog.DialogCode.Accepted:
-            return
-        in_dir = Path(dlg.get_input_dir())
-        out_dir = Path(dlg.get_output_dir())
-        if not in_dir.exists() or not out_dir.exists():
-            QMessageBox.warning(self, "Konwerter folderu", "Wybierz poprawne foldery.")
-            return
-        files = [f for f in in_dir.iterdir() if f.suffix.lower() in SUPPORTED_FORMATS]
-        if not files:
-            QMessageBox.warning(self, "Konwerter folderu", "Brak zdjec w folderze wejsciowym.")
-            return
-        fmt = dlg.get_format()
-        quality = dlg.get_quality()
-        scale = dlg.get_scale()
-        suffix = dlg.get_suffix()
-        total = len(files)
-        for i, f in enumerate(files, 1):
-            try:
-                dlg.set_progress(i, total)
-                img = self._open_image(f)
-                if img is None:
-                    continue
-                arr = np.array(img, dtype=np.float32) / 255.0
-                out_arr = apply_adjustments_arr(arr, self._adj)
-                out_pil = arr_to_pil(out_arr)
-                if scale != 1.0:
-                    new_w = int(out_pil.width * scale)
-                    new_h = int(out_pil.height * scale)
-                    out_pil = out_pil.resize((new_w, new_h), Image.Resampling.LANCZOS)
-                ext = {"JPEG": ".jpg", "PNG": ".png", "TIFF": ".tiff"}[fmt]
-                out_path = out_dir / (f.stem + suffix + ext)
-                if fmt == "JPEG":
-                    out_pil = out_pil.convert("RGB")
-                    out_pil.save(str(out_path), "JPEG", quality=quality, optimize=True)
-                elif fmt == "PNG":
-                    out_pil.save(str(out_path), "PNG")
-                else:
-                    out_pil.save(str(out_path), "TIFF")
-            except Exception as e:
-                logging.error("Blad %s: %s", f.name, e)
-        self.statusBar().showMessage(f"Konwersja zakonczona: {total} plikow.")
-        QMessageBox.information(self, "Konwerter folderu", f"Wyeksportowano {total} zdjec.")
+        dlg.exec()
 
     def _reset_adjustment_state(self):
         """Reset adjustments and their history without a history push."""
