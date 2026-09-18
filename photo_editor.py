@@ -131,7 +131,7 @@ def main() -> int:
         from PySide6.QtCore import QThread, Signal as QSignal
 
         class _UpdateChecker(QThread):
-            result = QSignal(str)
+            result = QSignal(str, str)  # (current_version, latest_version) or ("","") 
 
             def run(self):
                 try:
@@ -161,25 +161,76 @@ def main() -> int:
                         elif lat_parts[i] < cur_parts[i]:
                             break
                     if newer:
-                        self.result.emit(latest)
+                        self.result.emit(current, latest)
                     else:
-                        self.result.emit("")
-                except Exception:
-                    self.result.emit("")
+                        self.result.emit("", "")
+                except Exception as e:
+                    logging.warning("Update check failed: %s", e)
+                    self.result.emit("", "")
 
-        def _on_update_result(ver):
-            if ver:
-                from PySide6.QtWidgets import QMessageBox
-                from config.i18n import t
-                ret = QMessageBox.information(
-                    window,
-                    t("check_updates"),
-                    f"Nowa wersja: v{ver}\nObecna: v{APP_VERSION}\n\nOtworzyc strone pobierania?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                )
-                if ret == QMessageBox.StandardButton.Yes:
-                    import webbrowser
-                    webbrowser.open(f"https://github.com/tomekkrow-sys/Photo_Editor_2/releases/tag/v{ver}")
+        def _on_update_result(cur, ver):
+            if not ver:
+                return
+            from PySide6.QtWidgets import QMessageBox, QProgressDialog
+            from PySide6.QtCore import Qt
+            from config.i18n import t
+
+            ret = QMessageBox.information(
+                window,
+                t("check_updates"),
+                f"Nowa wersja: v{ver}\nObecna: v{cur}\n\nPobrac i zainstalowac?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            if ret != QMessageBox.StandardButton.Yes:
+                return
+
+            import platform
+            system = platform.system().lower()
+            import urllib.request
+            import tempfile
+            import subprocess
+
+            # Find the right asset
+            assets = {
+                "linux": f"photo-editor-2_{ver}_amd64.deb",
+                "darwin": f"Photo_Editor_2-macos-{ver}.zip",
+                "windows": f"Photo_Editor_2-windows-{ver}.zip",
+            }
+            filename = assets.get(system, assets["linux"])
+            download_url = f"https://github.com/tomekkrow-sys/Photo_Editor_2/releases/download/v{ver}/{filename}"
+
+            try:
+                progress = QProgressDialog(f"Pobieranie v{ver}...", "Anuluj", 0, 0, window)
+                progress.setWindowTitle("Aktualizacja")
+                progress.setWindowModality(Qt.WindowModality.WindowModal)
+                progress.show()
+
+                tmp_dir = tempfile.mkdtemp(prefix="photo_editor_update_")
+                download_path = os.path.join(tmp_dir, filename)
+                urllib.request.urlretrieve(download_url, download_path)
+
+                progress.close()
+
+                if system == "linux":
+                    ret2 = subprocess.run(
+                        ["pkexec", "dpkg", "-i", download_path],
+                        capture_output=True, text=True
+                    )
+                    if ret2.returncode == 0:
+                        QMessageBox.information(window, "Aktualizacja",
+                            f"Zainstalowano v{ver}. Uruchom ponownie program.")
+                    else:
+                        # Fallback without pkexec
+                        QMessageBox.information(window, "Aktualizacja",
+                            f"Pobrano: {download_path}\n\nUruchom:\nsudo dpkg -i {download_path}")
+                else:
+                    QMessageBox.information(window, "Aktualizacja",
+                        f"Pobrano: {download_path}")
+
+            except Exception as e:
+                logging.error("Update download failed: %s", e)
+                QMessageBox.warning(window, "Aktualizacja",
+                    f"Blad pobierania: {e}\n\nPobierz recznie:\n{download_url}")
 
         _checker = _UpdateChecker()
         _checker.result.connect(_on_update_result)
