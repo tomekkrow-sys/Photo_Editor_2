@@ -10,6 +10,7 @@ class Canvas(QWidget):
     brush_stroke = Signal(object, object)
     brush_wheel = Signal(int)
     draw_stroke = Signal(object, object)
+    color_picked = Signal(object)  # QPointF with image coords
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -36,7 +37,7 @@ class Canvas(QWidget):
         self._draw_button = None
         self._ba_mode = False
         self._ba_split = 0.5
-        self._ba_drag = False
+        self._eyedropper_mode = False
         self.setAutoFillBackground(True)
         self.setStyleSheet("background: #141414;")
         self.setCursor(Qt.OpenHandCursor)
@@ -123,6 +124,16 @@ class Canvas(QWidget):
     def cancel_draw(self):
         self._draw_mode = False
         self._draw_points = None
+        self.setCursor(Qt.OpenHandCursor)
+        self.update()
+
+    def start_eyedropper(self):
+        self._eyedropper_mode = True
+        self.setCursor(Qt.CrossCursor)
+        self.update()
+
+    def cancel_eyedropper(self):
+        self._eyedropper_mode = False
         self.setCursor(Qt.OpenHandCursor)
         self.update()
 
@@ -215,6 +226,15 @@ class Canvas(QWidget):
         painter.end()
 
     def mousePressEvent(self, event):
+        if self._eyedropper_mode:
+            r = self._img_rect()
+            if r and self._pixmap and not self._pixmap.isNull():
+                x, y, iw, ih = r
+                px = (event.pos().x() - x) / self._zoom
+                py = (event.pos().y() - y) / self._zoom
+                if 0 <= px < self._pixmap.width() and 0 <= py < self._pixmap.height():
+                    self.color_picked.emit(QPointF(px, py))
+            return
         if self._brush_mode:
             r = self._img_rect()
             if r and self._pixmap and not self._pixmap.isNull():
@@ -262,6 +282,8 @@ class Canvas(QWidget):
             self.setCursor(Qt.ClosedHandCursor)
 
     def mouseMoveEvent(self, event):
+        if self._eyedropper_mode:
+            return
         if self._brush_mode:
             if self._brush_points is not None:
                 r = self._img_rect()
@@ -307,6 +329,8 @@ class Canvas(QWidget):
             self.update()
 
     def mouseReleaseEvent(self, event):
+        if self._eyedropper_mode:
+            return
         if self._brush_mode:
             if self._brush_points:
                 self.brush_stroke.emit(self._brush_points, self._brush_button)

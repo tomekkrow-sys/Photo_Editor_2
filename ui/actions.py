@@ -223,6 +223,18 @@ class ActionManager:
         self.lens_correction = QAction(t("lens_correction"), self.parent)
         _tip(self.lens_correction, t("lens_correction"))
 
+        self.adjust = QAction(t("adjust"), self.parent)
+        _tip(self.adjust, t("adjust"))
+
+        self.rotate_custom = QAction(t("rotate_custom"), self.parent)
+        _tip(self.rotate_custom, t("rotate_custom"))
+
+        self.eyedropper = QAction(t("eyedropper"), self.parent)
+        _tip(self.eyedropper, t("eyedropper"))
+
+        self.histogram = QAction(t("histogram"), self.parent)
+        _tip(self.histogram, t("histogram"))
+
     def _refresh_texts(self, lang=None):
         self.new.setText(t("new"))
         self.open.setText(t("open"))
@@ -343,3 +355,12 @@ class ActionManager:
         _tip(self.denoise, t("denoise"))
         _tip(self.perspective, t("perspective"))
         _tip(self.lens_correction, t("lens_correction"))
+        # New v0.4.1 actions
+        self.adjust.setText(t("adjust"))
+        self.rotate_custom.setText(t("rotate_custom"))
+        self.eyedropper.setText(t("eyedropper"))
+        self.histogram.setText(t("histogram"))
+        _tip(self.adjust, t("adjust"))
+        _tip(self.rotate_custom, t("rotate_custom"))
+        _tip(self.eyedropper, t("eyedropper"))
+        _tip(self.histogram, t("histogram"))

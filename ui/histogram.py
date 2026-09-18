@@ -1,93 +1,123 @@
 #!/usr/bin/env python3
+"""RGB Histogram widget for Photo Editor 2."""
 from __future__ import annotations
 import numpy as np
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QPainter, QPen, QPolygonF
-from PySide6.QtCore import QPointF
-from PySide6.QtWidgets import QWidget
+from PySide6.QtCore import Qt, QRect
+from PySide6.QtGui import QImage, QPainter, QColor, QPen, QLinearGradient, QPainterPath
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
+from config.i18n import t
+
 
 class HistogramWidget(QWidget):
+    """Displays an RGB histogram of an image."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._hist_r = self._hist_g = self._hist_b = self._hist_l = None
-        self._clip_shadows = False
-        self._clip_highlights = False
-        self.setMinimumHeight(110)
-        self.setMaximumHeight(130)
+        self.setMinimumHeight(120)
+        self.setMaximumHeight(160)
+        self._r = np.zeros(256, dtype=np.float64)
+        self._g = np.zeros(256, dtype=np.float64)
+        self._b = np.zeros(256, dtype=np.float64)
+        self._lum = np.zeros(256, dtype=np.float64)
 
-    def set_image(self, pil_img):
-        if pil_img is None:
-            self._hist_r = self._hist_g = self._hist_b = self._hist_l = None
-            self._clip_shadows = False
-            self._clip_highlights = False
+    def set_image(self, qimg: QImage | None):
+        if qimg is None or qimg.isNull():
+            self._r[:] = 0
+            self._g[:] = 0
+            self._b[:] = 0
+            self._lum[:] = 0
             self.update()
             return
-        arr = np.array(pil_img.convert("RGB"), dtype=np.uint8)
-        self._hist_r = np.histogram(arr[:, :, 0], bins=256, range=(0, 256))[0]
-        self._hist_g = np.histogram(arr[:, :, 1], bins=256, range=(0, 256))[0]
-        self._hist_b = np.histogram(arr[:, :, 2], bins=256, range=(0, 256))[0]
-        gray = np.mean(arr.astype(np.float32), axis=2).astype(np.uint8)
-        self._hist_l = np.histogram(gray, bins=256, range=(0, 256))[0]
-        # Clipping detection
-        total = arr.shape[0] * arr.shape[1]
-        shadows = np.sum(arr < 5) / 3
-        highlights = np.sum(arr > 250) / 3
-        self._clip_shadows = shadows / total > 0.01
-        self._clip_highlights = highlights / total > 0.01
+
+        img = qimg.convertToFormat(QImage.Format.Format_RGBA8888)
+        w, h = img.width(), img.height()
+        bpl = img.bytesPerLine()
+        buf = img.bits()
+        arr = np.frombuffer(buf, dtype=np.uint8, count=h * bpl).reshape(h, bpl)
+        pixels = arr[:, :w * 4].reshape(h, w, 4)
+
+        r = pixels[:, :, 0].ravel().astype(np.float64)
+        g = pixels[:, :, 1].ravel().astype(np.float64)
+        b = pixels[:, :, 2].ravel().astype(np.float64)
+
+        self._r = np.bincount(r.astype(np.uint8), minlength=256).astype(np.float64)
+        self._g = np.bincount(g.astype(np.uint8), minlength=256).astype(np.float64)
+        self._b = np.bincount(b.astype(np.uint8), minlength=256).astype(np.float64)
+        self._lum = np.bincount(
+            (0.2126 * r + 0.7152 * g + 0.0722 * b).clip(0, 255).astype(np.uint8),
+            minlength=256,
+        ).astype(np.float64)
         self.update()
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        w, h = self.width(), self.height()
-        painter.fillRect(0, 0, w, h, QColor("#1E1E1E"))
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        # Draw clipping triangles on top
-        tri_h = 8
-        if self._clip_shadows:
-            painter.setBrush(QColor("#FF4444"))
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.drawPolygon(QPolygonF([
-                QPointF(0, 0), QPointF(tri_h * 2, 0), QPointF(0, tri_h * 2)
-            ]))
-        if self._clip_highlights:
-            painter.setBrush(QColor("#4444FF"))
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.drawPolygon(QPolygonF([
-                QPointF(w, 0), QPointF(w - tri_h * 2, 0), QPointF(w, tri_h * 2)
-            ]))
+        rect = self.rect().adjusted(4, 4, -4, -4)
+        w, h = rect.width(), rect.height()
 
-        # Histogram area (below triangles)
-        top = tri_h + 2
-        hh = h - top
+        # Background
+        painter.fillRect(self.rect(), QColor(30, 30, 30))
+        painter.setPen(QPen(QColor(60, 60, 60), 1))
+        painter.drawRect(rect)
 
-        if self._hist_l is None:
-            painter.end()
-            return
+        # Find max value across all channels for normalization
+        all_max = max(
+            self._r.max(), self._g.max(), self._b.max(), self._lum.max(), 1.0
+        )
 
-        def draw(data, color, alpha=180):
-            if data is None or data.max() == 0:
+        def draw_channel(data, color):
+            if data.max() == 0:
                 return
-            norm = data / data.max()
-            pen = QPen(QColor(color))
-            pen.setWidthF(max(1.0, w / 256.0))
-            painter.setPen(pen)
+            path = QPainterPath()
+            path.moveTo(rect.left(), rect.bottom())
             for i in range(256):
-                x = int(i * w / 256)
-                y = int(top + hh - norm[i] * hh * 0.95)
-                painter.drawLine(x, top + hh, x, y)
+                x = rect.left() + (i / 255.0) * w
+                y = rect.bottom() - (data[i] / all_max) * h * 0.9
+                path.lineTo(x, y)
+            path.lineTo(rect.right(), rect.bottom())
+            path.closeSubpath()
 
-        # Clipped areas on histogram edges
-        if self._clip_shadows:
-            painter.fillRect(0, top, int(w * 0.03), hh, QColor(255, 68, 68, 40))
-        if self._clip_highlights:
-            painter.fillRect(int(w * 0.97), top, int(w * 0.03), hh, QColor(68, 68, 255, 40))
+            # Semi-transparent fill
+            fill_color = QColor(color)
+            fill_color.setAlpha(60)
+            painter.fillPath(path, fill_color)
 
-        draw(self._hist_l, "#888888")
-        draw(self._hist_r, "#FF5555")
-        draw(self._hist_g, "#55FF55")
-        draw(self._hist_b, "#5555FF")
+            # Outline
+            painter.setPen(QPen(color, 1))
+            outline = QPainterPath()
+            first = True
+            for i in range(256):
+                x = rect.left() + (i / 255.0) * w
+                y = rect.bottom() - (data[i] / all_max) * h * 0.9
+                if first:
+                    outline.moveTo(x, y)
+                    first = False
+                else:
+                    outline.lineTo(x, y)
+            painter.drawPath(outline)
 
-        # Border line
-        painter.setPen(QPen(QColor("#333333")))
-        painter.drawLine(0, h - 1, w, h - 1)
+        # Draw luminance first (behind)
+        draw_channel(self._lum, QColor(180, 180, 180))
+        draw_channel(self._r, QColor(220, 50, 50))
+        draw_channel(self._g, QColor(50, 180, 50))
+        draw_channel(self._b, QColor(50, 80, 220))
+
         painter.end()
+
+
+class HistogramDock(QWidget):
+    """Histogram panel with label."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        lbl = QLabel(t("histogram"))
+        lbl.setStyleSheet("font-weight: bold; padding: 4px;")
+        layout.addWidget(lbl)
+        self.hist = HistogramWidget()
+        layout.addWidget(self.hist)
+
+    def set_image(self, qimg):
+        self.hist.set_image(qimg)

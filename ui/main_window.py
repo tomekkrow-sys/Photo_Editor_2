@@ -207,6 +207,11 @@ class MainWindow(QMainWindow):
         self.actions.denoise.triggered.connect(self._on_denoise)
         self.actions.perspective.triggered.connect(self._on_perspective)
         self.actions.lens_correction.triggered.connect(self._on_lens_correction)
+        self.actions.adjust.triggered.connect(self._on_adjust)
+        self.actions.rotate_custom.triggered.connect(self._on_rotate_custom)
+        self.actions.eyedropper.triggered.connect(self._on_eyedropper_toggle)
+        self.actions.histogram.triggered.connect(self._on_histogram)
+        self.canvas.color_picked.connect(self._on_color_picked)
 
         # Tab navigation shortcuts
         from PySide6.QtGui import QShortcut, QKeySequence
@@ -1762,3 +1767,114 @@ class MainWindow(QMainWindow):
             for bar in self.findChildren(QToolBar):
                 bar.setVisible(False)
             self.statusBar().setVisible(False)
+
+    # --- v0.4.1: Adjust (brightness/contrast/saturation) ---
+    def _on_adjust(self):
+        if self._orig is None:
+            QMessageBox.warning(self, t("adjust"), t("status_no_image"))
+            return
+        from ui.adjust_dialog import AdjustDialog
+        dlg = AdjustDialog(self)
+        if dlg.exec() != AdjustDialog.DialogCode.Accepted:
+            return
+        vals = dlg.get_values()
+        self._history.push(self._orig)
+        # Apply using PIL
+        from PIL import ImageEnhance
+        img = self._orig.copy()
+        b = vals["brightness"]
+        c = vals["contrast"]
+        s = vals["saturation"]
+        if b != 0:
+            factor = 1.0 + b / 100.0
+            img = ImageEnhance.Brightness(img).enhance(factor)
+        if c != 0:
+            factor = 1.0 + c / 100.0
+            img = ImageEnhance.Contrast(img).enhance(factor)
+        if s != 0:
+            factor = 1.0 + s / 100.0
+            img = ImageEnhance.Color(img).enhance(factor)
+        # Temperature (warm/cool shift)
+        temp = vals["temperature"]
+        tint = vals["tint"]
+        if temp != 0 or tint != 0:
+            import numpy as np
+            arr = np.array(img, dtype=np.float32)
+            if temp != 0:
+                arr[:, :, 0] += temp * 0.8
+                arr[:, :, 2] -= temp * 0.8
+            if tint != 0:
+                arr[:, :, 1] += tint * 0.8
+            arr = np.clip(arr, 0, 255).astype(np.uint8)
+            img = Image.fromarray(arr)
+        self._orig = img
+        self._refresh_after_edit()
+        self.statusBar().showMessage(t("adjust") + ": OK")
+
+    # --- v0.4.1: Rotate by custom angle ---
+    def _on_rotate_custom(self):
+        if self._orig is None:
+            QMessageBox.warning(self, t("rotate_custom"), t("status_no_image"))
+            return
+        from ui.rotate_dialog import RotateDialog
+        dlg = RotateDialog(self)
+        if dlg.exec() != RotateDialog.DialogCode.Accepted:
+            return
+        angle = dlg.get_angle()
+        expand = dlg.expand()
+        if angle == 0:
+            return
+        self._history.push(self._orig)
+        self._orig = self._orig.rotate(-angle, expand=expand, resample=Image.Resampling.BICUBIC)
+        self._refresh_after_edit()
+        self.statusBar().showMessage(f"{t('rotate_custom')}: {angle}\u00b0")
+
+    # --- v0.4.1: Eyedropper ---
+    def _on_eyedropper_toggle(self):
+        if self._orig is None:
+            QMessageBox.warning(self, t("eyedropper"), t("status_no_image"))
+            return
+        if self._ba_active:
+            self._on_before_after()
+        if self.canvas._eyedropper_mode:
+            self.canvas.cancel_eyedropper()
+            self.statusBar().showMessage(t("eyedropper") + " OFF")
+        else:
+            self.canvas.cancel_crop()
+            self.canvas.cancel_spot()
+            self.canvas.cancel_brush()
+            self.canvas.cancel_draw()
+            self.canvas.start_eyedropper()
+            self.statusBar().showMessage(t("eyedropper") + ": " + "Kliknij na obraz")
+
+    def _on_color_picked(self, point):
+        if self._orig is None:
+            return
+        px, py = int(point.x()), int(point.y())
+        if 0 <= px < self._orig.width and 0 <= py < self._orig.height:
+            r, g, b = self._orig.getpixel((px, py))[:3]
+            hex_color = f"#{r:02x}{g:02x}{b:02x}"
+            self.statusBar().showMessage(f"{t('color_picked')}: {hex_color}  RGB({r}, {g}, {b})  [{px},{py}]")
+            # Copy to clipboard
+            from PySide6.QtWidgets import QApplication
+            clipboard = QApplication.clipboard()
+            if clipboard:
+                clipboard.setText(hex_color)
+            self.canvas.cancel_eyedropper()
+
+    # --- v0.4.1: Histogram ---
+    def _on_histogram(self):
+        if self._orig is None:
+            QMessageBox.warning(self, t("histogram"), t("status_no_image"))
+            return
+        from PySide6.QtWidgets import QDialog, QVBoxLayout
+        from ui.histogram import HistogramDock
+        dlg = QDialog(self)
+        dlg.setWindowTitle(t("histogram"))
+        dlg.setMinimumSize(400, 220)
+        lay = QVBoxLayout(dlg)
+        lay.setContentsMargins(8, 8, 8, 8)
+        hist = HistogramDock()
+        hist.set_image(pil_to_qpixmap(self._orig))
+        lay.addWidget(hist)
+        dlg.exec()

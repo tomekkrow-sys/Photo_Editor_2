@@ -41,6 +41,7 @@ class MenuBar(QMenuBar):
 
         om = self.addMenu(t("menu_image"))
         om.addAction(self.actions.auto_enhance)
+        om.addAction(self.actions.adjust)
         om.addAction(self.actions.resize_image)
         om.addAction(self.actions.overlay)
         om.addAction(self.actions.straighten)
@@ -74,6 +75,7 @@ class MenuBar(QMenuBar):
         vm.addAction(self.actions.fit)
         vm.addAction(self.actions.actual_size)
         vm.addSeparator()
+        vm.addAction(self.actions.histogram)
         vm.addAction(self.actions.compare)
 
         tm = self.addMenu(t("menu_tools"))
@@ -81,9 +83,11 @@ class MenuBar(QMenuBar):
         tm.addAction(self.actions.spot)
         tm.addAction(self.actions.text_tool)
         tm.addAction(self.actions.draw_tool)
+        tm.addAction(self.actions.eyedropper)
         tm.addSeparator()
         tm.addAction(self.actions.rotate_left)
         tm.addAction(self.actions.rotate_right)
+        tm.addAction(self.actions.rotate_custom)
         tm.addAction(self.actions.flip_h)
         tm.addAction(self.actions.flip_v)
         tm.addSeparator()
