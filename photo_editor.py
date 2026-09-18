@@ -126,6 +126,67 @@ def main() -> int:
 
     window.show()
 
+    # --- Auto-update check in background ---
+    try:
+        from PySide6.QtCore import QThread, Signal as QSignal
+
+        class _UpdateChecker(QThread):
+            result = QSignal(str)
+
+            def run(self):
+                try:
+                    import urllib.request
+                    import json
+                    from config.version import APP_VERSION as _cur
+                    from pathlib import Path as _P
+                    cfg_path = _P(__file__).resolve().parent / "config" / "updater_config.json"
+                    if cfg_path.exists():
+                        cfg = json.loads(cfg_path.read_text())
+                    else:
+                        cfg = {}
+                    gh = cfg.get("github", {})
+                    url = f"{gh.get('api_url', 'https://api.github.com')}/repos/{gh.get('owner', 'tomekkrow-sys')}/{gh.get('repo', 'Photo_Editor_2')}/releases/latest"
+                    req = urllib.request.Request(url, headers={"User-Agent": "Photo-Editor-2"})
+                    resp = urllib.request.urlopen(req, timeout=10)
+                    data = json.loads(resp.read().decode())
+                    latest = data.get("tag_name", "").lstrip("v")
+                    current = _cur
+                    cur_parts = [int(x) for x in current.split(".")]
+                    lat_parts = [int(x) for x in latest.split(".")]
+                    newer = False
+                    for i in range(min(len(cur_parts), len(lat_parts))):
+                        if lat_parts[i] > cur_parts[i]:
+                            newer = True
+                            break
+                        elif lat_parts[i] < cur_parts[i]:
+                            break
+                    if newer:
+                        self.result.emit(latest)
+                    else:
+                        self.result.emit("")
+                except Exception:
+                    self.result.emit("")
+
+        def _on_update_result(ver):
+            if ver:
+                from PySide6.QtWidgets import QMessageBox
+                from config.i18n import t
+                ret = QMessageBox.information(
+                    window,
+                    t("check_updates"),
+                    f"Nowa wersja: v{ver}\nObecna: v{_APP_VERSION}\n\nOtworzyc strone pobierania?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                )
+                if ret == QMessageBox.StandardButton.Yes:
+                    import webbrowser
+                    webbrowser.open(f"https://github.com/tomekkrow-sys/Photo_Editor_2/releases/tag/v{ver}")
+
+        _checker = _UpdateChecker()
+        _checker.result.connect(_on_update_result)
+        _checker.start()
+    except Exception:
+        pass
+
     logging.info("Application started")
 
     return app.exec()
