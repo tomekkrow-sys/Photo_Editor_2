@@ -35,7 +35,12 @@ jobs:
       - name: Get version
         id: version
         shell: bash
-        run: echo "VERSION=$(cat version.txt)" >> $GITHUB_OUTPUT
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=$(cat version.txt)" >> $GITHUB_OUTPUT
+          fi
 
       - name: Zip package
         run: Compress-Archive -Path dist/Photo_Editor_2 -DestinationPath Photo_Editor_2-windows-v${{ steps.version.outputs.VERSION }}.zip
@@ -60,6 +65,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=$(cat version.txt)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Patch version in version.txt
+        shell: bash
+        run: echo "${{ steps.version.outputs.VERSION }}" > version.txt
 
       - name: Build DEB
         run: ./build_deb.sh
@@ -92,8 +111,18 @@ jobs:
           --collect-all rawpy
           photo_editor.py
 
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=$(cat version.txt)" >> $GITHUB_OUTPUT
+          fi
+
       - name: Zip package
-        run: ditto -c -k --sequesterRsrc --keepParent dist/Photo_Editor_2.app Photo_Editor_2-macos-v$(cat version.txt).zip
+        run: ditto -c -k --sequesterRsrc --keepParent dist/Photo_Editor_2.app Photo_Editor_2-macos-v${{ steps.version.outputs.VERSION }}.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
