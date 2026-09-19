@@ -165,6 +165,8 @@ TRANSLATIONS = {
         "select_feather": "Mglistosc krawedzi",
         "history_current": "Aktualny stan",
         "history_undo_to": "Cofnij do tego",
+        "duotone_color1": "Kolor 1 (swiatla):",
+        "duotone_color2": "Kolor 2 (cienie):",
     },
     "en": {
         "app_name": "Photo Editor 2",
@@ -322,6 +324,8 @@ TRANSLATIONS = {
         "select_feather": "Edge feather",
         "history_current": "Current state",
         "history_undo_to": "Undo to here",
+        "duotone_color1": "Color 1 (highlights):",
+        "duotone_color2": "Color 2 (shadows):",
     },
     "es": {
         "app_name": "Photo Editor 2",
@@ -479,6 +483,8 @@ TRANSLATIONS = {
         "select_feather": "Difuminar bordes",
         "history_current": "Estado actual",
         "history_undo_to": "Deshacer hasta aqui",
+        "duotone_color1": "Color 1 (luces):",
+        "duotone_color2": "Color 2 (sombras):",
     },
 }
 

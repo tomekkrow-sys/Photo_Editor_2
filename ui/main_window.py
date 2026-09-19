@@ -1387,7 +1387,18 @@ class MainWindow(QMainWindow):
         self._run_filter(pixelate, "Pikseloza", "_pixel.png")
 
     def _on_duotone(self):
-        self._run_filter(duotone, "Duotone", "_duotone.png")
+        if self._orig is None:
+            QMessageBox.warning(self, "Duotone", t("status_no_image"))
+            return
+        from ui.duotone_dialog import DuotoneDialog
+        dlg = DuotoneDialog(self)
+        if dlg.exec() != DuotoneDialog.DialogCode.Accepted:
+            return
+        c1, c2 = dlg.get_colors()
+        self._history.push(self._orig, "Duotone")
+        self._orig = duotone(self._orig, color1=c1, color2=c2)
+        self._refresh_after_edit()
+        self.statusBar().showMessage(f"Duotone: {c1} / {c2}")
 
     def _on_text_tool(self):
         if self._orig is None:
