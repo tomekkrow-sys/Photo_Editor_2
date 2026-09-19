@@ -228,26 +228,46 @@ class Canvas(QWidget):
             r = self._img_rect()
             if r:
                 x, y, iw, ih = r
-                split_x = x + iw * self._ba_split
-                # Before (left)
-                src_before = QRectF(0, 0, self._pixmap_before.width() * self._ba_split, self._pixmap_before.height())
-                self.update()
-                dst_before = QRectF(x, y, iw * self._ba_split, ih)
+                split_y = y + ih * self._ba_split
+                # Before (top)
+                src_before = QRectF(0, 0, self._pixmap_before.width(), self._pixmap_before.height() * self._ba_split)
+                dst_before = QRectF(x, y, iw, ih * self._ba_split)
                 painter.drawPixmap(dst_before, self._pixmap_before, src_before)
-                # After (right)
-                src_after = QRectF(self._pixmap_after.width() * self._ba_split, 0, self._pixmap_after.width() * (1 - self._ba_split), self._pixmap_after.height())
-                self.update()
-                dst_after = QRectF(split_x, y, iw * (1 - self._ba_split), ih)
+                # After (bottom)
+                src_after = QRectF(0, self._pixmap_after.height() * self._ba_split, self._pixmap_after.width(), self._pixmap_after.height() * (1 - self._ba_split))
+                dst_after = QRectF(x, split_y, iw, ih * (1 - self._ba_split))
                 painter.drawPixmap(dst_after, self._pixmap_after, src_after)
-                # Divider line
+                # Divider line - thick, visible
                 pen = QPen(QColor("#FFFFFF"))
-                pen.setWidth(2)
+                pen.setWidth(3)
                 painter.setPen(pen)
-                painter.drawLine(int(split_x), int(y), int(split_x), int(y + ih))
-                # Labels
+                painter.drawLine(int(x), int(split_y), int(x + iw), int(split_y))
+                # Slider handle
+                handle_w = 40
+                handle_h = 12
+                handle_x = x + iw / 2 - handle_w / 2
+                handle_y = split_y - handle_h / 2
+                painter.setBrush(QColor("#FFFFFF"))
+                painter.setPen(QPen(QColor("#333333"), 1))
+                from PySide6.QtCore import QRectF as QRF
+                painter.drawRoundedRect(QRF(handle_x, handle_y, handle_w, handle_h), 6, 6)
+                # Labels with background
+                font = painter.font()
+                font.setBold(True)
+                font.setPointSize(10)
+                painter.setFont(font)
+                # PRZED label
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QColor(0, 0, 0, 160))
+                painter.drawRoundedRect(QRF(x + 8, y + 8, 70, 24), 4, 4)
                 painter.setPen(QColor("#FFFFFF"))
-                painter.drawText(int(x + 10), int(y + 20), "PRZED")
-                painter.drawText(int(x + iw - 60), int(y + 20), "PO")
+                painter.drawText(int(x + 12), int(y + 25), "BEFORE")
+                # PO label
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QColor(0, 0, 0, 160))
+                painter.drawRoundedRect(QRF(x + 8, y + ih - 32, 50, 24), 4, 4)
+                painter.setPen(QColor("#FFFFFF"))
+                painter.drawText(int(x + 12), int(y + ih - 12), "AFTER")
 
         elif self._pixmap and not self._pixmap.isNull():
             r = self._img_rect()
@@ -327,8 +347,8 @@ class Canvas(QWidget):
             r = self._img_rect()
             if r:
                 x, y, iw, ih = r
-                split_x = x + iw * self._ba_split
-                if abs(event.pos().x() - split_x) < 10:
+                split_y = y + ih * self._ba_split
+                if abs(event.pos().y() - split_y) < 15:
                     self._ba_drag = True
             return
         if self._select_mode:
@@ -375,7 +395,7 @@ class Canvas(QWidget):
             r = self._img_rect()
             if r:
                 x, y, iw, ih = r
-                self._ba_split = (event.pos().x() - x) / iw
+                self._ba_split = (event.pos().y() - y) / ih
                 self._ba_split = max(0.05, min(0.95, self._ba_split))
                 self.update()
             return
