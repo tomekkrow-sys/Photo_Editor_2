@@ -219,21 +219,41 @@ def main() -> int:
                     os.makedirs(downloads, exist_ok=True)
                     dest = os.path.join(downloads, filename)
                     shutil.copy2(download_path, dest)
+                    logging.info("Update: downloaded to %s", dest)
 
-                    # Write install script
-                    script_content = f"""#!/bin/bash
+                    # Method 1: pkexec (GUI password dialog on KDE/GNOME/XFCE)
+                    installed = False
+                    try:
+                        ret = subprocess.run(
+                            ["pkexec", "dpkg", "-i", dest],
+                            timeout=120
+                        )
+                        if ret.returncode == 0:
+                            installed = True
+                            logging.info("Update: pkexec dpkg succeeded")
+                        else:
+                            logging.warning("Update: pkexec dpkg failed rc=%d", ret.returncode)
+                    except FileNotFoundError:
+                        logging.warning("Update: pkexec not found")
+                    except subprocess.TimeoutExpired:
+                        logging.warning("Update: pkexec timed out")
+
+                    # Method 2: Write script + open terminal
+                    if not installed:
+                        script_path = os.path.join(tmp_dir, "install.sh")
+                        with open(script_path, "w") as f:
+                            f.write(f"""#!/bin/bash
 echo "==========================================="
 echo "  Photo Editor 2 - Aktualizacja v{ver}"
 echo "==========================================="
 echo ""
 echo "Plik: {dest}"
 echo ""
-echo "Krok 1: Instalacja..."
 sudo dpkg -i "{dest}"
 RC=$?
 if [ $RC -ne 0 ]; then
     echo ""
-    echo "Krok 2: Naprawa zaleznosci..."
+    echo "Naprawa zaleznosci..."
     sudo apt-get install -f -y
 fi
 echo ""
@@ -243,48 +263,42 @@ echo "==========================================="
 echo ""
 echo "Zamknij Photo Editor i uruchom ponownie."
 echo ""
-read -p "Nacisnij Enter aby zamknac terminal..."
-"""
-                    script_path = os.path.join(tmp_dir, "install.sh")
-                    with open(script_path, "w") as f:
-                        f.write(script_content)
-                    os.chmod(script_path, 0o755)
+read -p "Nacisnij Enter aby zamknac..."
+""")
+                        os.chmod(script_path, 0o755)
+                        for term in [
+                            ["konsole", "-e", "bash", script_path],
+                            ["x-terminal-emulator", "-e", f"bash {script_path}"],
+                            ["xterm", "-e", f"bash {script_path}"],
+                            ["gnome-terminal", "--", "bash", script_path],
+                            ["lxterminal", "-e", f"bash {script_path}"],
+                        ]:
+                            try:
+                                subprocess.Popen(term, start_new_session=True)
+                                installed = True
+                                logging.info("Update: opened terminal %s", term[0])
+                                break
+                            except FileNotFoundError:
+                                continue
 
-                    # Try to open terminal
-                    opened = False
-                    for term in [
-                        ["x-terminal-emulator", "-e", f"bash '{script_path}'"],
-                        ["xterm", "-e", f"bash '{script_path}'"],
-                        ["konsole", "-e", f"bash '{script_path}'"],
-                        ["gnome-terminal", "--", f"bash '{script_path}'"],
-                        ["lxterminal", "-e", f"bash '{script_path}'"],
-                    ]:
-                        try:
-                            subprocess.Popen(term, start_new_session=True)
-                            opened = True
-                            break
-                        except FileNotFoundError:
-                            continue
-
-                    if opened:
+                    if installed:
                         QMessageBox.information(window, "Aktualizacja",
                             f"Pobrano v{ver} do: {dest}\n\n"
-                            f"Otwart terminal z instalacja.\n"
-                            f"Po instalacji zamknij program i uruchom ponownie.")
+                            f"Zainstaluj i uruchom program ponownie.")
                     else:
-                        QMessageBox.information(window, "Aktualizacja",
+                        QMessageBox.warning(window, "Aktualizacja",
                             f"Pobrano: {dest}\n\n"
-                            f"Otworz terminal i wklej:\n"
-                            f"sudo dpkg -i \"{dest}\"\n\n"
-                            f"Potem zamknij i uruchom program ponownie.")
+                            f"Nie udalo sie otworzyc terminala.\n"
+                            f"Recznie otworz terminal i wklej:\n\n"
+                            f"sudo dpkg -i \"{dest}\"")
                 else:
                     QMessageBox.information(window, "Aktualizacja",
                         f"Pobrano: {download_path}")
 
             except Exception as e:
-                logging.error("Update download failed: %s", e)
+                logging.error("Update failed: %s", e, exc_info=True)
                 QMessageBox.warning(window, "Aktualizacja",
-                    f"Blad pobierania: {e}\n\nPobierz recznie:\n{download_url}")
+                    f"Blad: {e}\n\nPobierz recznie:\n{download_url}")
 
         _checker = _UpdateChecker()
         _checker.result.connect(_on_update_result)
