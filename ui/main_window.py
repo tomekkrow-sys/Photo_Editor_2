@@ -219,6 +219,7 @@ class MainWindow(QMainWindow):
         self.actions.perspective.triggered.connect(self._on_perspective)
         self.actions.lens_correction.triggered.connect(self._on_lens_correction)
         self.actions.adjust.triggered.connect(self._on_adjust)
+        self.actions.color_grading.triggered.connect(self._on_color_grading)
         self.actions.rotate_custom.triggered.connect(self._on_rotate_custom)
         self.actions.eyedropper.triggered.connect(self._on_eyedropper_toggle)
         self.actions.histogram.triggered.connect(self._toggle_histogram)
@@ -1825,6 +1826,26 @@ class MainWindow(QMainWindow):
         self._orig = img
         self._refresh_after_edit()
         self.statusBar().showMessage(t("adjust") + ": OK")
+
+    def _on_color_grading(self):
+        if self._orig is None:
+            QMessageBox.warning(self, t("color_grading"), t("status_no_image"))
+            return
+        from ui.color_grading_dialog import ColorGradingDialog
+        dlg = ColorGradingDialog(
+            self,
+            shadows=self._adj.shadows_color,
+            midtones=self._adj.midtones_color,
+            highlights=self._adj.highlights_color,
+        )
+        if dlg.exec() != ColorGradingDialog.DialogCode.Accepted:
+            return
+        self._history.push(self._orig, "Color Grading")
+        self._adj.shadows_color = dlg.get_shadows()
+        self._adj.midtones_color = dlg.get_midtones()
+        self._adj.highlights_color = dlg.get_highlights()
+        self._refresh_after_edit()
+        self.statusBar().showMessage("Color Grading: OK")
 
     # --- v0.4.1: Rotate by custom angle ---
     def _on_rotate_custom(self):

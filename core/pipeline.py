@@ -71,6 +71,25 @@ def apply_adjustments_cv(arr, adj):
     if adj.clarity != 0.0:
         blur = cv2.GaussianBlur(out, (0,0), 3.0)
         out = np.clip(out + (out - blur) * (adj.clarity / 100.0), 0, 1)
+    # Color grading: 3-way wheels (shadows / midtones / highlights)
+    if adj.shadows_color or adj.midtones_color or adj.highlights_color:
+        gray = cv2.cvtColor((out * 255).astype(np.uint8), cv2.COLOR_BGR2GRAY).astype(np.float32) / 255.0
+        # Smooth masks for each zone
+        shadow_mask = np.clip(1.0 - gray / 0.5, 0, 1)[:, :, None]
+        highlight_mask = np.clip((gray - 0.5) / 0.5, 0, 1)[:, :, None]
+        mid_mask = 1.0 - shadow_mask - highlight_mask
+        if adj.shadows_color:
+            r, g, b = adj.shadows_color
+            tint = np.array([b / 128.0 - 1.0, g / 128.0 - 1.0, r / 128.0 - 1.0], dtype=np.float32)
+            out = np.clip(out + shadow_mask * tint * 0.3, 0, 1)
+        if adj.midtones_color:
+            r, g, b = adj.midtones_color
+            tint = np.array([b / 128.0 - 1.0, g / 128.0 - 1.0, r / 128.0 - 1.0], dtype=np.float32)
+            out = np.clip(out + mid_mask * tint * 0.3, 0, 1)
+        if adj.highlights_color:
+            r, g, b = adj.highlights_color
+            tint = np.array([b / 128.0 - 1.0, g / 128.0 - 1.0, r / 128.0 - 1.0], dtype=np.float32)
+            out = np.clip(out + highlight_mask * tint * 0.3, 0, 1)
     return out
 
 def apply_adjustments_arr(arr, adj):
