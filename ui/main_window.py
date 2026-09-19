@@ -120,8 +120,6 @@ class MainWindow(QMainWindow):
         cl.setSpacing(0)
         self.canvas = Canvas(self)
         cl.addWidget(self.canvas, stretch=1)
-        self.histogram = HistogramWidget(self)
-        cl.addWidget(self.histogram)
         splitter.addWidget(center)
         self.right_panel = RightPanel(self)
         self.right_panel.adjustments_changed.connect(self._on_adj)
@@ -130,6 +128,19 @@ class MainWindow(QMainWindow):
         self.right_panel.preset_save_requested.connect(self._on_preset_save)
         self.right_panel.preset_load_requested.connect(self._on_preset_load)
         self.right_panel.preset_delete_requested.connect(self._on_preset_delete)
+
+        # Histogram dock - above right panel
+        from PySide6.QtWidgets import QDockWidget
+        self._hist_dock = QDockWidget(t("histogram"), self)
+        self._hist_dock.setAllowedAreas(
+            Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.LeftDockWidgetArea
+        )
+        self.histogram = HistogramWidget()
+        self._hist_dock.setWidget(self.histogram)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self._hist_dock)
+        self._hist_dock.setMinimumWidth(200)
+        self._hist_dock.setVisible(True)
+
         splitter.addWidget(self.right_panel)
         splitter.setSizes([1200, 280])
         self.setCentralWidget(splitter)
@@ -210,7 +221,7 @@ class MainWindow(QMainWindow):
         self.actions.adjust.triggered.connect(self._on_adjust)
         self.actions.rotate_custom.triggered.connect(self._on_rotate_custom)
         self.actions.eyedropper.triggered.connect(self._on_eyedropper_toggle)
-        self.actions.histogram.triggered.connect(self._on_histogram)
+        self.actions.histogram.triggered.connect(self._toggle_histogram)
         self.actions.select_edit.triggered.connect(self._on_select_edit)
         self.canvas.color_picked.connect(self._on_color_picked)
         self.canvas.selection_made.connect(self._on_selection_made)
@@ -224,6 +235,7 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("F11"), self, self._toggle_fullscreen)
         QShortcut(QKeySequence("I"), self, self._on_info)
         QShortcut(QKeySequence("Ctrl+Shift+R"), self, self._on_crop_ratio)
+        QShortcut(QKeySequence("H"), self, self._toggle_histogram)
 
     def _on_open(self):
         f = "Obrazy (" + " ".join("*" + e for e in SUPPORTED_FORMATS) + ")"
@@ -1763,6 +1775,9 @@ class MainWindow(QMainWindow):
             for bar in self.findChildren(QToolBar):
                 bar.setVisible(False)
             self.statusBar().setVisible(False)
+
+    def _toggle_histogram(self):
+        self._hist_dock.setVisible(not self._hist_dock.isVisible())
 
     # --- v0.4.1: Adjust (brightness/contrast/saturation) ---
     def _on_adjust(self):

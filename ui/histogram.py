@@ -13,8 +13,8 @@ class HistogramWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setMinimumHeight(120)
-        self.setMaximumHeight(160)
+        self.setMinimumHeight(160)
+        self.setMaximumHeight(220)
         self._r = np.zeros(256, dtype=np.float64)
         self._g = np.zeros(256, dtype=np.float64)
         self._b = np.zeros(256, dtype=np.float64)
