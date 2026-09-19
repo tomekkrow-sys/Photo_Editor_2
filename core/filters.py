@@ -719,12 +719,14 @@ def perspective(img: Image.Image, corners: list = None) -> Image.Image:
 def add_text_overlay(img: Image.Image, text: str, font_name: str = "Arial",
                      font_size: int = 48, color: tuple = (255, 255, 255),
                      opacity: float = 1.0, position: tuple = (0, 0),
-                     anchor: str = "center", bold: bool = False) -> Image.Image:
-    """Add text overlay to an image."""
-    from PIL import ImageDraw, ImageFont
+                     anchor: str = "center", bold: bool = False,
+                     shadow: dict | None = None, outline: dict | None = None) -> Image.Image:
+    """Add text overlay with optional shadow and outline."""
+    from PIL import ImageDraw, ImageFont, ImageFilter
     result = img.convert("RGBA")
     overlay = Image.new("RGBA", result.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
+
     try:
         font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else
                                   "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
@@ -742,12 +744,45 @@ def add_text_overlay(img: Image.Image, text: str, font_name: str = "Arial",
     if anchor == "center":
         x -= tw // 2
         y -= th // 2
+    elif anchor == "right":
+        x -= tw
+    elif anchor == "topleft":
+        pass
+    elif anchor == "topright":
+        x -= tw
+    elif anchor == "bottomleft":
+        y -= th
     elif anchor == "bottomright":
         x -= tw
         y -= th
 
     alpha = int(255 * opacity)
     fill = (color[0], color[1], color[2], alpha)
+
+    # Shadow
+    if shadow:
+        sh_alpha = int(255 * shadow.get("opacity", 0.7))
+        sh_fill = (shadow["color"][0], shadow["color"][1], shadow["color"][2], sh_alpha)
+        sh_ox = shadow.get("offset_x", 3)
+        sh_oy = shadow.get("offset_y", 3)
+        # Shadow layer with blur
+        sh_layer = Image.new("RGBA", result.size, (0, 0, 0, 0))
+        sh_draw = ImageDraw.Draw(sh_layer)
+        sh_draw.text((x + sh_ox, y + sh_oy), text, font=font, fill=sh_fill)
+        sh_layer = sh_layer.filter(ImageFilter.GaussianBlur(radius=3))
+        overlay = Image.alpha_composite(overlay, sh_layer)
+        draw = ImageDraw.Draw(overlay)
+
+    # Outline
+    if outline:
+        ow = outline.get("width", 3)
+        ol_fill = (outline["color"][0], outline["color"][1], outline["color"][2], alpha)
+        for dx in range(-ow, ow + 1):
+            for dy in range(-ow, ow + 1):
+                if dx * dx + dy * dy <= ow * ow:
+                    draw.text((x + dx, y + dy), text, font=font, fill=ol_fill)
+
+    # Main text
     draw.text((x, y), text, font=font, fill=fill)
     result = Image.alpha_composite(result, overlay)
     return result.convert("RGB")

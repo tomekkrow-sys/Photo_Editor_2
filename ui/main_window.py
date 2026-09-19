@@ -1441,6 +1441,8 @@ class MainWindow(QMainWindow):
         opacity = dlg.get_opacity()
         pos = dlg.get_position()
         anchor = dlg.get_anchor()
+        shadow = dlg.get_shadow()
+        outline = dlg.get_outline()
         self._history.push(self._orig, "Tekst")
         self._orig = add_text_overlay(
             self._orig, text,
@@ -1451,6 +1453,8 @@ class MainWindow(QMainWindow):
             position=pos,
             anchor=anchor,
             bold=font.bold(),
+            shadow=shadow,
+            outline=outline,
         )
         self._refresh_after_edit()
         self.statusBar().showMessage(t("text_tool") + ": " + text)
