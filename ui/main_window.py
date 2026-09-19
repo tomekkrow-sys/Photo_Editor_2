@@ -789,8 +789,13 @@ class MainWindow(QMainWindow):
         self._history.push(self._orig, name)
         result = func(self._orig)
         # Blend original with filtered based on strength
-        if strength < 1.0:
-            from PIL import ImageChops
+        if strength < 1.0 and result.size == self._orig.size and result.mode == self._orig.mode:
+            result = Image.blend(self._orig, result, strength)
+        elif strength < 1.0:
+            # Fallback: resize result to match original if sizes differ
+            result = result.resize(self._orig.size, Image.Resampling.LANCZOS)
+            if result.mode != self._orig.mode:
+                result = result.convert(self._orig.mode)
             result = Image.blend(self._orig, result, strength)
         self._orig = result
         self._refresh_after_edit()
