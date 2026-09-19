@@ -220,24 +220,32 @@ def main() -> int:
                     dest = os.path.join(downloads, filename)
                     shutil.copy2(download_path, dest)
 
-                    # Write install script that installs then restarts app
+                    # Write install script
                     script_content = f"""#!/bin/bash
-echo "=== Photo Editor 2 - Aktualizacja do v{ver} ==="
+echo "==========================================="
+echo "  Photo Editor 2 - Aktualizacja v{ver}"
+echo "==========================================="
 echo ""
+echo "Plik: {dest}"
+echo ""
+echo "Krok 1: Instalacja..."
 sudo dpkg -i "{dest}"
 RC=$?
 if [ $RC -ne 0 ]; then
     echo ""
-    echo "Probuję naprawic zaleznosci..."
+    echo "Krok 2: Naprawa zaleznosci..."
     sudo apt-get install -f -y
 fi
 echo ""
-echo "=== Gotowe! Uruchamiam Photo Editor... ==="
-sleep 1
-cd "$(dirname "$(readlink -f "$(which photo-editor-2 2>/dev/null || echo /opt/photo-editor-2/Photo_Editor_2)")")"
-exec ./Photo_Editor_2 2>/dev/null || exec photo-editor-2 2>/dev/null || echo "Uruchom program recznie z menu."
+echo "==========================================="
+echo "  INSTALACJA ZAKONCZONA"
+echo "==========================================="
+echo ""
+echo "Zamknij Photo Editor i uruchom ponownie."
+echo ""
+read -p "Nacisnij Enter aby zamknac terminal..."
 """
-                    script_path = os.path.join(tmp_dir, "install_and_restart.sh")
+                    script_path = os.path.join(tmp_dir, "install.sh")
                     with open(script_path, "w") as f:
                         f.write(script_content)
                     os.chmod(script_path, 0o755)
@@ -260,17 +268,15 @@ exec ./Photo_Editor_2 2>/dev/null || exec photo-editor-2 2>/dev/null || echo "Ur
 
                     if opened:
                         QMessageBox.information(window, "Aktualizacja",
-                            f"Otwarto terminal z instalacja v{ver}.\n"
-                            f"Wpisz haslo sudo gdy pytany.")
-                        app = QApplication.instance()
-                        if app:
-                            app.quit()
+                            f"Pobrano v{ver} do: {dest}\n\n"
+                            f"Otwart terminal z instalacja.\n"
+                            f"Po instalacji zamknij program i uruchom ponownie.")
                     else:
                         QMessageBox.information(window, "Aktualizacja",
                             f"Pobrano: {dest}\n\n"
                             f"Otworz terminal i wklej:\n"
                             f"sudo dpkg -i \"{dest}\"\n\n"
-                            f"Potem uruchom program ponownie.")
+                            f"Potem zamknij i uruchom program ponownie.")
                 else:
                     QMessageBox.information(window, "Aktualizacja",
                         f"Pobrano: {download_path}")
