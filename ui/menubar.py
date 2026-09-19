@@ -79,6 +79,7 @@ class MenuBar(QMenuBar):
         vm.addSeparator()
         vm.addAction(self.actions.histogram)
         vm.addAction(self.actions.compare)
+        vm.addAction(self.actions.slideshow)
 
         tm = self.addMenu(t("menu_tools"))
         tm.addAction(self.actions.crop)

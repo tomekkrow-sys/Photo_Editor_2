@@ -227,6 +227,7 @@ class MainWindow(QMainWindow):
         self.actions.adjust.triggered.connect(self._on_adjust)
         self.actions.color_grading.triggered.connect(self._on_color_grading)
         self.actions.smart_crop.triggered.connect(self._on_smart_crop)
+        self.actions.slideshow.triggered.connect(self._on_slideshow)
         self.actions.rotate_custom.triggered.connect(self._on_rotate_custom)
         self.actions.eyedropper.triggered.connect(self._on_eyedropper_toggle)
         self.actions.histogram.triggered.connect(self._toggle_histogram)
@@ -1892,6 +1893,20 @@ class MainWindow(QMainWindow):
         self._orig = result
         self._refresh_after_edit()
         self.statusBar().showMessage(f"Smart Crop: {result.width} x {result.height}")
+
+    def _on_slideshow(self):
+        from ui.slideshow_dialog import SlideshowDialog
+        dlg = SlideshowDialog(self)
+        if dlg.exec() != SlideshowDialog.DialogCode.Accepted:
+            return
+        from ui.slideshow_widget import SlideshowWidget
+        self._slideshow = SlideshowWidget(
+            folder=dlg.get_folder(),
+            interval=dlg.get_interval(),
+            transition=dlg.get_transition(),
+            loop=dlg.get_loop(),
+            random_order=dlg.get_random(),
+        )
 
     # --- v0.4.1: Rotate by custom angle ---
     def _on_rotate_custom(self):
