@@ -83,6 +83,12 @@ class MainWindow(QMainWindow):
         self._spot_size = None
         self._brush = BrushTool()
         self._brush_size = None
+        self._brush_v2_mode = "dodge"
+        self._brush_v2_opacity = 0.25
+        self._brush_v2_flow = 1.0
+        self._brush_v2_hardness = 0.8
+        self._brush_v2_spacing = 0.25
+        self._brush_v2_strength = 1.0
         self._draw_tool = DrawTool()
         self._draw_size = None
         self._preview_arr = None
@@ -574,12 +580,23 @@ class MainWindow(QMainWindow):
             self.canvas.cancel_brush()
             self.statusBar().showMessage("Pedzel wylaczony.")
         else:
+            from ui.brush_dialog_v2 import BrushDialogV2
+            dlg = BrushDialogV2(self)
+            if dlg.exec() != BrushDialogV2.DialogCode.Accepted:
+                return
+            self._brush_v2_mode = dlg.get_mode()
+            self._brush_v2_opacity = dlg.get_opacity()
+            self._brush_v2_flow = dlg.get_flow()
+            self._brush_v2_hardness = dlg.get_hardness()
+            self._brush_v2_spacing = dlg.get_spacing()
+            self._brush_v2_strength = dlg.get_strength()
+            self._brush_size = dlg.get_size()
             self.canvas.cancel_crop()
             self.canvas.cancel_spot()
             self.canvas.start_brush()
             self.statusBar().showMessage(
-                "Pedzel: lewy przycisk rozjasnia, prawy przyciemnia, "
-                "kolko myszy zmienia rozmiar."
+                "Pedzel v2: lewy przycisk = aktywny, prawy = odwrotny, "
+                "kolko myszy = rozmiar."
             )
 
     def _on_brush_wheel(self, delta: int):
@@ -598,30 +615,42 @@ class MainWindow(QMainWindow):
         scale_x = self._orig.width / preview_w
         scale_y = self._orig.height / preview_h
         size = (self._brush_size or 40) * scale_x
-        dodge = button != Qt.MouseButton.RightButton
+        invert = button == Qt.MouseButton.RightButton
+        mode_str = getattr(self, '_brush_v2_mode', 'dodge')
+        strength = getattr(self, '_brush_v2_strength', 1.0)
+        opacity = getattr(self, '_brush_v2_opacity', 0.25)
+        flow = getattr(self, '_brush_v2_flow', 1.0)
+        hardness = getattr(self, '_brush_v2_hardness', 0.8)
+        spacing = getattr(self, '_brush_v2_spacing', 0.25)
+        mode_map = {
+            "dodge": BrushMode.DODGE, "burn": BrushMode.BURN,
+            "saturate": BrushMode.SATURATE, "desaturate": BrushMode.DESATURATE,
+            "warm": BrushMode.WARM, "cool": BrushMode.COOL,
+        }
+        actual_mode = mode_map.get(mode_str, BrushMode.DODGE)
+        if invert:
+            inv = {"dodge": "burn", "burn": "dodge", "warm": "cool", "cool": "warm",
+                   "saturate": "desaturate", "desaturate": "saturate"}
+            actual_mode = mode_map.get(inv.get(mode_str, "dodge"), BrushMode.BURN)
+        color = QColor(255, 128, 0) if actual_mode == BrushMode.WARM else \
+                QColor(0, 128, 255) if actual_mode == BrushMode.COOL else QColor("white")
         qimg = pil_to_qimage(self._orig)
         self._brush.settings.size = size
-        self._brush.settings.opacity = 0.25
-        self._brush.settings.flow = 1.0
-        self._brush.settings.mode = (
-            BrushMode.DODGE if dodge else BrushMode.BURN
-        )
-        self._brush.settings.color = (
-            QColor("white") if dodge else QColor("black")
-        )
-        orig_points = [
-            QPointF(p.x() * scale_x, p.y() * scale_y) for p in points
-        ]
-        self._history.push(self._orig, "Pedzel")
+        self._brush.settings.opacity = opacity * strength
+        self._brush.settings.flow = flow
+        self._brush.settings.hardness = hardness
+        self._brush.settings.spacing = spacing
+        self._brush.settings.mode = actual_mode
+        self._brush.settings.color = color
+        orig_points = [QPointF(p.x() * scale_x, p.y() * scale_y) for p in points]
+        self._history.push(self._orig, "Pedzel v2")
         self._brush.begin(orig_points[0], qimg)
         for p in orig_points[1:]:
             self._brush.update(p, qimg)
         self._brush.finish()
         self._orig = qimage_to_pil(qimg)
         self._refresh_after_edit()
-        self.statusBar().showMessage(
-            "Pedzel: rozjasniono." if dodge else "Pedzel: przyciemniono."
-        )
+        self.statusBar().showMessage(f"Pedzel v2: {mode_str}" + (" (inv)" if invert else ""))
 
     def _on_info(self):
         if self._orig is None:

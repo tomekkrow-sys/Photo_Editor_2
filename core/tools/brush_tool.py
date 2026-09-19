@@ -23,6 +23,8 @@ class BrushMode(Enum):
     BURN = "burn"
     SATURATE = "saturate"
     DESATURATE = "desaturate"
+    WARM = "warm"
+    COOL = "cool"
 
 
 @dataclass
@@ -127,8 +129,9 @@ class BrushTool:
             BrushMode.ERASE: QPainter.CompositionMode.CompositionMode_DestinationOut,
             BrushMode.DODGE: QPainter.CompositionMode.CompositionMode_Plus,
             BrushMode.BURN: QPainter.CompositionMode.CompositionMode_Multiply,
-            # Qt6 removed CompositionMode_Saturation - approximate with Overlay
             BrushMode.SATURATE: QPainter.CompositionMode.CompositionMode_Overlay,
             BrushMode.DESATURATE: QPainter.CompositionMode.CompositionMode_ColorDodge,
+            BrushMode.WARM: QPainter.CompositionMode.CompositionMode_Plus,
+            BrushMode.COOL: QPainter.CompositionMode.CompositionMode_Plus,
         }
         return mapping.get(mode, QPainter.CompositionMode.CompositionMode_SourceOver)
