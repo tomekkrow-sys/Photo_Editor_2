@@ -53,7 +53,8 @@ def _writable_dir(primary: Path, fallback_name: str) -> Path:
         return fallback
 
 
-LOG_DIR = _writable_dir(ROOT_DIR / "logs", "logs")
+LOG_DIR = Path.home() / ".local" / "share" / "Photo_Editor_2" / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 LOG_FILE = LOG_DIR / "photo_editor.log"
 UPDATE_LOG = LOG_DIR / "update.log"
@@ -237,65 +238,39 @@ def main() -> int:
                     self.log_line.emit(f"Copied to: {dest}")
                     _ulog(f"Copied to: {dest}")
 
-                    # Step 3: Install
-                    self.log_line.emit("Installing with pkexec...")
-                    _ulog("Attempting pkexec dpkg -i")
+                    # Step 3: Install via terminal with sudo
+                    self.log_line.emit("Installing via terminal...")
+                    _ulog("Opening terminal for install")
                     installed = False
-                    try:
-                        ret = subprocess.run(
-                            ["pkexec", "dpkg", "-i", dest],
-                            timeout=120
-                        )
-                        self.log_line.emit(f"pkexec returned: {ret.returncode}")
-                        _ulog(f"pkexec returned: {ret.returncode}")
-                        if ret.returncode == 0:
-                            installed = True
-                            self.log_line.emit("Install SUCCESS via pkexec")
-                            _ulog("Install SUCCESS via pkexec")
-                        else:
-                            self.log_line.emit(f"pkexec failed (rc={ret.returncode}), trying terminal...")
-                            _ulog(f"pkexec failed rc={ret.returncode}")
-                    except FileNotFoundError:
-                        self.log_line.emit("pkexec not found on system")
-                        _ulog("pkexec not found")
-                    except subprocess.TimeoutExpired:
-                        self.log_line.emit("pkexec timed out (120s)")
-                        _ulog("pkexec timed out")
-                    except Exception as e:
-                        self.log_line.emit(f"pkexec error: {e}")
-                        _ulog(f"pkexec error: {e}")
+                    script_path = os.path.join(tmp_dir, "install.sh")
+                    with open(script_path, "w") as f:
+                        f.write(f"#!/bin/bash\n")
+                        f.write(f"echo '=== Photo Editor 2 - Aktualizacja ==='\n")
+                        f.write(f"echo 'Instalowanie v{ver}...'\n")
+                        f.write(f"echo ''\n")
+                        f.write(f"sudo dpkg -i \"{dest}\"\n")
+                        f.write(f"RC=$?\n")
+                        f.write(f"if [ $RC -ne 0 ]; then\n")
+                        f.write(f"  echo 'Naprawa zaleznosci...'\n")
+                        f.write(f"  sudo apt-get install -f -y\n")
+                        f.write(f"fi\n")
+                        f.write(f"echo ''\n")
+                        f.write(f"echo '=== Gotowe! Zamknij i uruchom program ponownie. ==='\n")
+                        f.write(f"read -p 'Enter aby zamknac...'\n")
+                    os.chmod(script_path, 0o755)
 
-                    # Step 4: Terminal fallback
-                    if not installed:
-                        self.log_line.emit("Trying terminal fallback...")
-                        _ulog("Trying terminal fallback")
-                        script_path = os.path.join(tmp_dir, "install.sh")
-                        with open(script_path, "w") as f:
-                            f.write(f"#!/bin/bash\n")
-                            f.write(f"echo '=== Photo Editor 2 - Aktualizacja ==='\n")
-                            f.write(f"sudo dpkg -i \"{dest}\"\n")
-                            f.write(f"RC=$?\n")
-                            f.write(f"if [ $RC -ne 0 ]; then\n")
-                            f.write(f"  echo 'Naprawa zaleznosci...'\n")
-                            f.write(f"  sudo apt-get install -f -y\n")
-                            f.write(f"fi\n")
-                            f.write(f"echo ''\n")
-                            f.write(f"echo 'Gotowe! Zamknij i uruchom program ponownie.'\n")
-                            f.write(f"read -p 'Enter aby zamknac...'\n")
-                        os.chmod(script_path, 0o755)
+                    # Clean LD_LIBRARY_PATH so system terminal works
+                    env = os.environ.copy()
+                    env.pop("LD_LIBRARY_PATH", None)
+                    env.pop("PYTHONPATH", None)
 
-                        # Clean LD_LIBRARY_PATH so system terminal works
-                        env = os.environ.copy()
-                        env.pop("LD_LIBRARY_PATH", None)
-                        env.pop("PYTHONPATH", None)
-
-                        for term in [
-                            ["konsole", "-e", "bash", script_path],
-                            ["x-terminal-emulator", "-e", f"bash {script_path}"],
-                            ["xterm", "-e", f"bash {script_path}"],
-                            ["gnome-terminal", "--", "bash", script_path],
-                            ["lxterminal", "-e", f"bash {script_path}"],
-                        ]:
+                    for term in [
+                        ["konsole", "-e", "bash", script_path],
+                        ["x-terminal-emulator", "-e", f"bash {script_path}"],
+                        ["xterm", "-e", f"bash {script_path}"],
+                        ["gnome-terminal", "--", "bash", script_path],
+                        ["lxterminal", "-e", f"bash {script_path}"],
+                    ]:
                             try:
                                 self.log_line.emit(f"Trying: {term[0]}")
                                 _ulog(f"Trying terminal: {term[0]}")
