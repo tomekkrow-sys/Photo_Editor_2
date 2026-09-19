@@ -247,6 +247,9 @@ class ActionManager:
         self.slideshow = QAction(t("slideshow"), self.parent)
         _tip(self.slideshow, t("slideshow"))
 
+        self.raw_batch = QAction(t("raw_batch"), self.parent)
+        _tip(self.raw_batch, t("raw_batch"))
+
     def _refresh_texts(self, lang=None):
         self.new.setText(t("new"))
         self.open.setText(t("open"))
@@ -384,3 +387,5 @@ class ActionManager:
         _tip(self.smart_crop, t("smart_crop"))
         self.slideshow.setText(t("slideshow"))
         _tip(self.slideshow, t("slideshow"))
+        self.raw_batch.setText(t("raw_batch"))
+        _tip(self.raw_batch, t("raw_batch"))

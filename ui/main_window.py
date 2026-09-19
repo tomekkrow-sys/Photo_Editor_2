@@ -228,6 +228,7 @@ class MainWindow(QMainWindow):
         self.actions.color_grading.triggered.connect(self._on_color_grading)
         self.actions.smart_crop.triggered.connect(self._on_smart_crop)
         self.actions.slideshow.triggered.connect(self._on_slideshow)
+        self.actions.raw_batch.triggered.connect(self._on_raw_batch)
         self.actions.rotate_custom.triggered.connect(self._on_rotate_custom)
         self.actions.eyedropper.triggered.connect(self._on_eyedropper_toggle)
         self.actions.histogram.triggered.connect(self._toggle_histogram)
@@ -1907,6 +1908,11 @@ class MainWindow(QMainWindow):
             loop=dlg.get_loop(),
             random_order=dlg.get_random(),
         )
+
+    def _on_raw_batch(self):
+        from ui.raw_batch_dialog import RawBatchDialog
+        dlg = RawBatchDialog(self)
+        dlg.exec()
 
     # --- v0.4.1: Rotate by custom angle ---
     def _on_rotate_custom(self):
