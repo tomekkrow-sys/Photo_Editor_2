@@ -244,19 +244,21 @@ def main() -> int:
                     installed = False
                     script_path = os.path.join(tmp_dir, "install.sh")
                     with open(script_path, "w") as f:
-                        f.write(f"#!/bin/bash\n")
-                        f.write(f"echo '=== Photo Editor 2 - Aktualizacja ==='\n")
-                        f.write(f"echo 'Instalowanie v{ver}...'\n")
-                        f.write(f"echo ''\n")
-                        f.write(f"sudo dpkg -i \"{dest}\"\n")
-                        f.write(f"RC=$?\n")
-                        f.write(f"if [ $RC -ne 0 ]; then\n")
-                        f.write(f"  echo 'Naprawa zaleznosci...'\n")
-                        f.write(f"  sudo apt-get install -f -y\n")
-                        f.write(f"fi\n")
-                        f.write(f"echo ''\n")
-                        f.write(f"echo '=== Gotowe! Zamknij i uruchom program ponownie. ==='\n")
-                        f.write(f"read -p 'Enter aby zamknac...'\n")
+                        f.write("#!/bin/bash\n")
+                        f.write("echo '=== Photo Editor 2 - Aktualizacja ==='\n")
+                        f.write("echo 'Instalowanie v{0}...'\n".format(ver))
+                        f.write("echo ''\n")
+                        f.write("sudo dpkg -i \"{0}\"\n".format(dest))
+                        f.write("RC=$?\n")
+                        f.write("if [ $RC -ne 0 ]; then\n")
+                        f.write("  echo 'Naprawa zaleznosci...'\n")
+                        f.write("  sudo apt-get install -f -y\n")
+                        f.write("fi\n")
+                        f.write("echo ''\n")
+                        f.write("echo '=== Gotowe! ==='\n")
+                        f.write("echo 'Uruchamiam Photo Editor...'\n")
+                        f.write("sleep 1\n")
+                        f.write("nohup photo-editor-2 >/dev/null 2>&1 &\n")
                     os.chmod(script_path, 0o755)
 
                     # Clean LD_LIBRARY_PATH so system terminal works
@@ -287,10 +289,9 @@ def main() -> int:
                                 _ulog(f"{term[0]} failed: {e}")
 
                     if installed:
-                        self.done.emit("ok",
-                            f"Pobrano v{ver} do: {dest}\n\n"
-                            f"Zainstalowano lub otwarto terminal.\n"
-                            f"Po instalacji zamknij program i uruchom ponownie.")
+                        self.done.emit("restart",
+                            f"Pobrano v{ver}. Instalacja w terminalu.\n"
+                            f"Program uruchomi sie automatycznie po instalacji.")
                     else:
                         self.done.emit("manual",
                             f"Pobrano: {dest}\n\n"
@@ -339,12 +340,17 @@ def main() -> int:
             def on_done(status, message):
                 progress.close()
                 if status == "error":
-                    # Show full log + error
                     full_log = "\n".join(log_text)
                     QMessageBox.warning(window, "Aktualizacja",
                         f"{message}\n\n--- Log ---\n{full_log}")
                 elif status == "manual":
                     QMessageBox.information(window, "Aktualizacja", message)
+                elif status == "restart":
+                    QMessageBox.information(window, "Aktualizacja", message)
+                    _ulog("Auto-restart: quitting app")
+                    app = QApplication.instance()
+                    if app:
+                        app.quit()
                 else:
                     QMessageBox.information(window, "Aktualizacja", message)
 
