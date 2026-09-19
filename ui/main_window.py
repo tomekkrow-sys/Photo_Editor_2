@@ -222,6 +222,8 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("Ctrl+T"), self, self._on_new_tab)
         QShortcut(QKeySequence("Ctrl+W"), self, self._on_close_tab)
         QShortcut(QKeySequence("F11"), self, self._toggle_fullscreen)
+        QShortcut(QKeySequence("I"), self, self._on_info)
+        QShortcut(QKeySequence("Ctrl+Shift+R"), self, self._on_crop_ratio)
 
     def _on_open(self):
         f = "Obrazy (" + " ".join("*" + e for e in SUPPORTED_FORMATS) + ")"
@@ -397,6 +399,20 @@ class MainWindow(QMainWindow):
         else:
             self.canvas.start_crop()
             self.statusBar().showMessage("Tryb kadrowania: zaznacz prostokat, potem kliknij Kadruj.")
+
+    def _on_crop_ratio(self):
+        if self._orig is None:
+            QMessageBox.warning(self, t("crop_ratio"), t("status_no_image"))
+            return
+        from ui.crop_ratio_dialog import CropRatioDialog
+        dlg = CropRatioDialog(self._orig.width, self._orig.height, self)
+        if dlg.exec() != CropRatioDialog.DialogCode.Accepted:
+            return
+        w, h = dlg.get_size()
+        self._history.push(self._orig, t("crop_ratio"))
+        self._orig = self._orig.resize((w, h), Image.Resampling.LANCZOS)
+        self._refresh_after_edit()
+        self.statusBar().showMessage(f"{t('crop_ratio')}: {w} x {h}")
 
     def _on_spot_toggle(self):
         if self._orig is None:

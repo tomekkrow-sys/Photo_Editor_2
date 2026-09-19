@@ -169,6 +169,9 @@ TRANSLATIONS = {
         "duotone_color2": "Kolor 2 (cienie):",
         "filter_strength": "Silafiltrow:",
         "filter_blend_info": "Efekt zostanie wymieszany z oryginalnym zdjeciem.",
+        "crop_ratio": "Kadrowanie z proporcjami",
+        "crop_ratio_choose": "Wybierz proporcje:",
+        "crop_ratio_info": "Proporcje:",
     },
     "en": {
         "app_name": "Photo Editor 2",
@@ -330,6 +333,9 @@ TRANSLATIONS = {
         "duotone_color2": "Color 2 (shadows):",
         "filter_strength": "Filter strength:",
         "filter_blend_info": "Effect will be blended with the original image.",
+        "crop_ratio": "Crop by ratio",
+        "crop_ratio_choose": "Choose aspect ratio:",
+        "crop_ratio_info": "Ratio:",
     },
     "es": {
         "app_name": "Photo Editor 2",
@@ -491,6 +497,9 @@ TRANSLATIONS = {
         "duotone_color2": "Color 2 (sombras):",
         "filter_strength": "Intensidad del filtro:",
         "filter_blend_info": "El efecto se mezclara con la imagen original.",
+        "crop_ratio": "Recortar por proporcion",
+        "crop_ratio_choose": "Elige la proporcion:",
+        "crop_ratio_info": "Proporcion:",
     },
 }
 
