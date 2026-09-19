@@ -220,6 +220,7 @@ class MainWindow(QMainWindow):
         self.actions.lens_correction.triggered.connect(self._on_lens_correction)
         self.actions.adjust.triggered.connect(self._on_adjust)
         self.actions.color_grading.triggered.connect(self._on_color_grading)
+        self.actions.smart_crop.triggered.connect(self._on_smart_crop)
         self.actions.rotate_custom.triggered.connect(self._on_rotate_custom)
         self.actions.eyedropper.triggered.connect(self._on_eyedropper_toggle)
         self.actions.histogram.triggered.connect(self._toggle_histogram)
@@ -1846,6 +1847,22 @@ class MainWindow(QMainWindow):
         self._adj.highlights_color = dlg.get_highlights()
         self._refresh_after_edit()
         self.statusBar().showMessage("Color Grading: OK")
+
+    def _on_smart_crop(self):
+        if self._orig is None:
+            QMessageBox.warning(self, "Smart Crop", t("status_no_image"))
+            return
+        from ui.smart_crop_dialog import SmartCropDialog
+        dlg = SmartCropDialog(self._orig, self)
+        if dlg.exec() != SmartCropDialog.DialogCode.Accepted:
+            return
+        result = dlg.get_result()
+        if result is None:
+            return
+        self._history.push(self._orig, "Smart Crop")
+        self._orig = result
+        self._refresh_after_edit()
+        self.statusBar().showMessage(f"Smart Crop: {result.width} x {result.height}")
 
     # --- v0.4.1: Rotate by custom angle ---
     def _on_rotate_custom(self):

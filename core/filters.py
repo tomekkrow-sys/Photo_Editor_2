@@ -799,3 +799,80 @@ def lens_correction(img: Image.Image, k1: float = 0.0, k2: float = 0.0,
     new_camera, roi = cv2.getOptimalNewCameraMatrix(camera_matrix, dist_coeffs, (w, h), 1, (w, h))
     result = cv2.undistort(bgr, camera_matrix, dist_coeffs, None, new_camera)
     return Image.fromarray(cv2.cvtColor(result, cv2.COLOR_BGR2RGB))
+
+
+def smart_crop(img: Image.Image, ratio: float = 16/9, margin: float = 0.05) -> Image.Image:
+    """Smart crop: find the most interesting region using edge/saliency analysis.
+    
+    ratio: target aspect ratio (width/height), e.g. 16/9
+    margin: how much of the shorter axis to use as search window step
+    Returns cropped PIL Image.
+    """
+    arr = np.array(img.convert("RGB"))
+    h, w = arr.shape[:2]
+    
+    # Target crop dimensions
+    cur_ratio = w / h
+    if ratio > cur_ratio:
+        crop_w = w
+        crop_h = int(w / ratio)
+    else:
+        crop_h = h
+        crop_w = int(h * ratio)
+    
+    # Ensure crop fits
+    crop_w = min(crop_w, w)
+    crop_h = min(crop_h, h)
+    
+    if crop_w >= w and crop_h >= h:
+        return img.copy()
+    
+    # Edge detection for saliency
+    gray = cv2.cvtColor(arr, cv2.COLOR_RGB2GRAY)
+    edges = cv2.Canny(gray, 50, 150)
+    edges = edges.astype(np.float32) / 255.0
+    
+    # Rule-of-thirds grid preference (bonus for center composition)
+    rof = np.zeros_like(edges)
+    cy, cx = h / 2, w / 2
+    for y in range(h):
+        for x in range(w):
+            # Distance from rule-of-thirds intersection points
+            d1 = ((x/3 - cx)**2 + (y/3 - cy)**2)**0.5
+            d2 = ((2*x/3 - cx)**2 + (2*y/3 - cy)**2)**0.5
+            d = min(d1, d2)
+            rof[y, x] = max(0, 1.0 - d / (w * 0.3))
+    
+    # Combine edge saliency with rule-of-thirds
+    saliency = edges * 0.7 + rof * 0.3
+    
+    # Sliding window search
+    best_score = -1
+    best_x, best_y = 0, 0
+    
+    step_x = max(1, int(w * margin / 10))
+    step_y = max(1, int(h * margin / 10))
+    
+    for y in range(0, h - crop_h + 1, step_y):
+        for x in range(0, w - crop_w + 1, step_x):
+            window = saliency[y:y+crop_h, x:x+crop_w]
+            score = window.mean()
+            # Slight center preference
+            cy_score = 1.0 - abs(y + crop_h/2 - h/2) / (h/2)
+            cx_score = 1.0 - abs(x + crop_w/2 - w/2) / (w/2)
+            score *= (0.85 + 0.15 * (cy_score + cx_score) / 2)
+            if score > best_score:
+                best_score = score
+                best_x, best_y = x, y
+    
+    return img.crop((best_x, best_y, best_x + crop_w, best_y + crop_h))
+
+
+def smart_crop_auto(img: Image.Image) -> Image.Image:
+    """Smart crop with auto-detected aspect ratio (keep closest standard ratio)."""
+    w, h = img.size
+    ratio = w / h
+    # Pick closest standard ratio
+    standards = [16/9, 4/3, 3/2, 1/1, 2/3, 3/4, 9/16]
+    closest = min(standards, key=lambda r: abs(r - ratio))
+    return smart_crop(img, ratio=closest)

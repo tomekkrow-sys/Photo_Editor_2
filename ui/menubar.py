@@ -43,6 +43,7 @@ class MenuBar(QMenuBar):
         om.addAction(self.actions.auto_enhance)
         om.addAction(self.actions.adjust)
         om.addAction(self.actions.color_grading)
+        om.addAction(self.actions.smart_crop)
         om.addAction(self.actions.resize_image)
         om.addAction(self.actions.overlay)
         om.addAction(self.actions.straighten)

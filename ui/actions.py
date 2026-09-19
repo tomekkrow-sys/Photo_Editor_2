@@ -241,6 +241,9 @@ class ActionManager:
         self.color_grading = QAction(t("color_grading"), self.parent)
         _tip(self.color_grading, t("color_grading"))
 
+        self.smart_crop = QAction(t("smart_crop"), self.parent)
+        _tip(self.smart_crop, t("smart_crop"))
+
     def _refresh_texts(self, lang=None):
         self.new.setText(t("new"))
         self.open.setText(t("open"))
@@ -374,3 +377,5 @@ class ActionManager:
         _tip(self.select_edit, t("select_edit"))
         self.color_grading.setText(t("color_grading"))
         _tip(self.color_grading, t("color_grading"))
+        self.smart_crop.setText(t("smart_crop"))
+        _tip(self.smart_crop, t("smart_crop"))
