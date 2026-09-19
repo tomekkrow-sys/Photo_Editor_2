@@ -496,34 +496,43 @@ class MainWindow(QMainWindow):
             self.canvas.set_before_after(pil_to_qpixmap(before), pil_to_qpixmap(after))
             self.statusBar().showMessage("Przed/Po: przeciagaj linie podzialu")
 
+    def _run_filter_with_dialog(self, func, name):
+        """Show strength dialog, then apply filter with blending."""
+        from ui.filter_strength_dialog import FilterStrengthDialog
+        dlg = FilterStrengthDialog(name, self)
+        if dlg.exec() != FilterStrengthDialog.DialogCode.Accepted:
+            return
+        strength = dlg.get_strength()
+        self._run_filter(func, name, "", strength)
+
     def _on_pencil(self):
-        self._run_filter(pencil_sketch, "Olowek", "_olowek.png")
+        self._run_filter_with_dialog(pencil_sketch, t("pencil"))
 
     def _on_black_white(self):
-        self._run_filter(black_and_white, "Czarno-biale", "_bw.png")
+        self._run_filter_with_dialog(black_and_white, t("black_white"))
 
     def _on_sepia(self):
-        self._run_filter(sepia, "Sepia", "_sepia.png")
+        self._run_filter_with_dialog(sepia, t("sepia"))
 
     def _on_negative(self):
-        self._run_filter(negative, "Negatyw", "_negatyw.png")
+        self._run_filter_with_dialog(negative, t("negative"))
 
 
 
     def _on_gaussian_blur(self):
-        self._run_filter(gaussian_blur, "Rozmycie Gaussa", "_gaussian.png")
+        self._run_filter_with_dialog(gaussian_blur, t("blur"))
 
     def _on_sharpen(self):
-        self._run_filter(sharpen, "Ostrzenie", "_sharpen.png")
+        self._run_filter_with_dialog(sharpen, t("sharpen"))
 
     def _on_emboss(self):
-        self._run_filter(emboss, "Wydrążenie", "_emboss.png")
+        self._run_filter_with_dialog(emboss, t("emboss"))
 
     def _on_vignette(self):
-        self._run_filter(vignette, "Winieta", "_winieta.png")
+        self._run_filter_with_dialog(vignette, t("vignette"))
 
     def _on_frame(self):
-        self._run_filter(frame, "Ramka", "_ramka.png")
+        self._run_filter_with_dialog(frame, t("frame"))
 
     def _on_brush_toggle(self):
         if self._orig is None:
@@ -752,8 +761,8 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Zmieniono rozmiar: {width} x {height}")
         return True
 
-    def _run_filter(self, func, name, suffix):
-        """Preview a filter on the full image, offer save-as-new-file."""
+    def _run_filter(self, func, name, suffix, strength=1.0):
+        """Apply a filter with strength blending, undoable."""
 
         if self._orig is None:
             QMessageBox.warning(self, name, "Najpierw otworz zdjecie.")
@@ -761,36 +770,15 @@ class MainWindow(QMainWindow):
         if self._ba_active:
             self._on_before_after()
         self.canvas.cancel_crop()
+        self._history.push(self._orig, name)
         result = func(self._orig)
-        preview = prepare_preview(result, max_dim=800)
-        self.canvas.set_pixmap(pil_to_qpixmap(preview))
-        self.statusBar().showMessage("Podglad: " + name)
-        answer = QMessageBox.question(
-            self,
-            name,
-            "Zapisac wersje '" + name + "' jako nowy plik?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.Yes,
-        )
-        if answer == QMessageBox.StandardButton.Yes:
-            suggested = "filtr.png"
-            if self._path is not None:
-                suggested = str(self._path.with_name(self._path.stem + suffix))
-            p, _ = QFileDialog.getSaveFileName(
-                self,
-                "Zapisz: " + name,
-                suggested,
-                "PNG (*.png);;JPEG (*.jpg *.jpeg)",
-            )
-            if p:
-                try:
-                    result.save(p)
-                    logging.info("Zapisano filtr %s: %s", name, p)
-                    self.statusBar().showMessage("Zapisano: " + Path(p).name)
-                except Exception as e:
-                    logging.error("Blad zapisu filtra %s: %s", name, e)
-                    QMessageBox.critical(self, "Blad", "Nie mozna zapisac pliku.")
-        self._render_now()
+        # Blend original with filtered based on strength
+        if strength < 1.0:
+            from PIL import ImageChops
+            result = Image.blend(self._orig, result, strength)
+        self._orig = result
+        self._refresh_after_edit()
+        self.statusBar().showMessage(f"{name}: {int(strength * 100)}%")
 
     def _on_batch_export(self):
         from ui.batch_dialog import BatchDialog
@@ -1372,19 +1360,19 @@ class MainWindow(QMainWindow):
         os.execl(sys.executable, sys.executable, *sys.argv)
 
     def _on_hdr(self):
-        self._run_filter(hdr_tone_map, "HDR", "_hdr.png")
+        self._run_filter_with_dialog(hdr_tone_map, t("hdr"))
 
     def _on_cartoon(self):
-        self._run_filter(cartoon, "Cartoon", "_cartoon.png")
+        self._run_filter_with_dialog(cartoon, t("cartoon"))
 
     def _on_glitch(self):
-        self._run_filter(glitch_art, "Glitch Art", "_glitch.png")
+        self._run_filter_with_dialog(glitch_art, t("glitch"))
 
     def _on_thermal(self):
-        self._run_filter(thermal, "Termowizja", "_thermal.png")
+        self._run_filter_with_dialog(thermal, t("thermal"))
 
     def _on_pixelate(self):
-        self._run_filter(pixelate, "Pikseloza", "_pixel.png")
+        self._run_filter_with_dialog(pixelate, t("pixelate"))
 
     def _on_duotone(self):
         if self._orig is None:

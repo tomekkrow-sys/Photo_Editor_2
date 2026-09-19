@@ -167,6 +167,8 @@ TRANSLATIONS = {
         "history_undo_to": "Cofnij do tego",
         "duotone_color1": "Kolor 1 (swiatla):",
         "duotone_color2": "Kolor 2 (cienie):",
+        "filter_strength": "Silafiltrow:",
+        "filter_blend_info": "Efekt zostanie wymieszany z oryginalnym zdjeciem.",
     },
     "en": {
         "app_name": "Photo Editor 2",
@@ -326,6 +328,8 @@ TRANSLATIONS = {
         "history_undo_to": "Undo to here",
         "duotone_color1": "Color 1 (highlights):",
         "duotone_color2": "Color 2 (shadows):",
+        "filter_strength": "Filter strength:",
+        "filter_blend_info": "Effect will be blended with the original image.",
     },
     "es": {
         "app_name": "Photo Editor 2",
@@ -485,6 +489,8 @@ TRANSLATIONS = {
         "history_undo_to": "Deshacer hasta aqui",
         "duotone_color1": "Color 1 (luces):",
         "duotone_color2": "Color 2 (sombras):",
+        "filter_strength": "Intensidad del filtro:",
+        "filter_blend_info": "El efecto se mezclara con la imagen original.",
     },
 }
 
