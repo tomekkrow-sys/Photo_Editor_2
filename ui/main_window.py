@@ -831,7 +831,11 @@ class MainWindow(QMainWindow):
     def _on_preview_ready(self, pil_img):
         if pil_img is None:
             return
-        self.histogram.set_image(pil_img)
+        try:
+            qimg = pil_to_qpixmap(pil_img).toImage()
+            self.histogram.set_image(qimg)
+        except Exception:
+            pass
         self.canvas.set_pixmap(pil_to_qpixmap(pil_img))
 
     def _render_now(self):
