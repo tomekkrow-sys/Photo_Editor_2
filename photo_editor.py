@@ -214,14 +214,63 @@ def main() -> int:
                 progress.close()
 
                 if system == "linux":
-                    # Copy to home dir so user can install with sudo
-                    dest = os.path.expanduser(f"~/{filename}")
+                    # Copy to ~/Downloads
+                    downloads = os.path.expanduser("~/Downloads")
+                    os.makedirs(downloads, exist_ok=True)
+                    dest = os.path.join(downloads, filename)
                     shutil.copy2(download_path, dest)
-                    QMessageBox.information(window, "Aktualizacja",
-                        f"Pobrano: {dest}\n\n"
-                        f"Aby zainstalowac, otworz terminal i wklej:\n"
-                        f"sudo dpkg -i {dest}\n\n"
-                        f"Potem uruchom program ponownie.")
+
+                    # Write install script that installs then restarts app
+                    script_content = f"""#!/bin/bash
+echo "=== Photo Editor 2 - Aktualizacja do v{ver} ==="
+echo ""
+sudo dpkg -i "{dest}"
+RC=$?
+if [ $RC -ne 0 ]; then
+    echo ""
+    echo "Probuję naprawic zaleznosci..."
+    sudo apt-get install -f -y
+fi
+echo ""
+echo "=== Gotowe! Uruchamiam Photo Editor... ==="
+sleep 1
+cd "$(dirname "$(readlink -f "$(which photo-editor-2 2>/dev/null || echo /opt/photo-editor-2/Photo_Editor_2)")")"
+exec ./Photo_Editor_2 2>/dev/null || exec photo-editor-2 2>/dev/null || echo "Uruchom program recznie z menu."
+"""
+                    script_path = os.path.join(tmp_dir, "install_and_restart.sh")
+                    with open(script_path, "w") as f:
+                        f.write(script_content)
+                    os.chmod(script_path, 0o755)
+
+                    # Try to open terminal
+                    opened = False
+                    for term in [
+                        ["x-terminal-emulator", "-e", f"bash '{script_path}'"],
+                        ["xterm", "-e", f"bash '{script_path}'"],
+                        ["konsole", "-e", f"bash '{script_path}'"],
+                        ["gnome-terminal", "--", f"bash '{script_path}'"],
+                        ["lxterminal", "-e", f"bash '{script_path}'"],
+                    ]:
+                        try:
+                            subprocess.Popen(term, start_new_session=True)
+                            opened = True
+                            break
+                        except FileNotFoundError:
+                            continue
+
+                    if opened:
+                        QMessageBox.information(window, "Aktualizacja",
+                            f"Otwarto terminal z instalacja v{ver}.\n"
+                            f"Wpisz haslo sudo gdy pytany.")
+                        app = QApplication.instance()
+                        if app:
+                            app.quit()
+                    else:
+                        QMessageBox.information(window, "Aktualizacja",
+                            f"Pobrano: {dest}\n\n"
+                            f"Otworz terminal i wklej:\n"
+                            f"sudo dpkg -i \"{dest}\"\n\n"
+                            f"Potem uruchom program ponownie.")
                 else:
                     QMessageBox.information(window, "Aktualizacja",
                         f"Pobrano: {download_path}")
