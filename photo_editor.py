@@ -8,6 +8,8 @@ Main entry point.
 from __future__ import annotations
 
 import logging
+import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -212,17 +214,14 @@ def main() -> int:
                 progress.close()
 
                 if system == "linux":
-                    ret2 = subprocess.run(
-                        ["pkexec", "dpkg", "-i", download_path],
-                        capture_output=True, text=True
-                    )
-                    if ret2.returncode == 0:
-                        QMessageBox.information(window, "Aktualizacja",
-                            f"Zainstalowano v{ver}. Uruchom ponownie program.")
-                    else:
-                        # Fallback without pkexec
-                        QMessageBox.information(window, "Aktualizacja",
-                            f"Pobrano: {download_path}\n\nUruchom:\nsudo dpkg -i {download_path}")
+                    # Copy to home dir so user can install with sudo
+                    dest = os.path.expanduser(f"~/{filename}")
+                    shutil.copy2(download_path, dest)
+                    QMessageBox.information(window, "Aktualizacja",
+                        f"Pobrano: {dest}\n\n"
+                        f"Aby zainstalowac, otworz terminal i wklej:\n"
+                        f"sudo dpkg -i {dest}\n\n"
+                        f"Potem uruchom program ponownie.")
                 else:
                     QMessageBox.information(window, "Aktualizacja",
                         f"Pobrano: {download_path}")
