@@ -88,7 +88,7 @@ class ImageHistory:
 
 
 class EditHistory:
-    """Two-stack undo/redo history for PIL images with operation names and thumbnails."""
+    """Two-stack undo/redo history for PIL images with operation names and cached thumbnails."""
 
     def __init__(self, limit: int = 30) -> None:
         self._limit = limit
@@ -96,6 +96,7 @@ class EditHistory:
         self._redo: list = []
         self._names: list = []
         self._redo_names: list = []
+        self._thumbnails: dict = {}
         self.last_change: float = 0.0
 
     @property
@@ -123,6 +124,7 @@ class EditHistory:
         self._redo.clear()
         self._names.clear()
         self._redo_names.clear()
+        self._thumbnails.clear()
         self.last_change = 0.0
 
     def push(self, current, name: str = "") -> None:
@@ -131,9 +133,19 @@ class EditHistory:
         self._undo.append(current.copy())
         if len(self._undo) > self._limit:
             self._undo.pop(0)
-        self._names.append(name or f"Krok {len(self._names) + 1}")
+            if self._thumbnails:
+                old_keys = sorted(self._thumbnails.keys())
+                if old_keys:
+                    del self._thumbnails[old_keys[0]]
+
+        step_name = name or f"Krok {len(self._names) + 1}"
+        self._names.append(step_name)
         if len(self._names) > self._limit:
             self._names.pop(0)
+
+        idx = len(self._undo) - 1
+        self._thumbnails[idx] = self.make_thumbnail(current)
+
         self._redo.clear()
         self._redo_names.clear()
         self.last_change = time.monotonic()
@@ -164,6 +176,17 @@ class EditHistory:
         """Get state at specific index (0 = first undo state)."""
         if 0 <= index < len(self._undo):
             return self._undo[index]
+        return None
+
+    def get_thumbnail(self, index: int):
+        """Get cached thumbnail at index for instant rendering."""
+        if index in self._thumbnails:
+            return self._thumbnails[index]
+        state = self.get_state(index)
+        if state is not None:
+            thumb = self.make_thumbnail(state)
+            self._thumbnails[index] = thumb
+            return thumb
         return None
 
     def get_name(self, index: int) -> str:
