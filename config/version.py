@@ -11,8 +11,8 @@ APP_AUTHOR: str = "Tomek Krówczyński"
 ORGANIZATION: str = "PhotoEditor"
 
 VERSION_MAJOR: int = 0
-VERSION_MINOR: int = 6
-VERSION_PATCH: int = 9
+VERSION_MINOR: int = 7
+VERSION_PATCH: int = 0
 
 APP_VERSION: str = (
     f"{VERSION_MAJOR}."

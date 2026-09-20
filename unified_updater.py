@@ -113,20 +113,39 @@ class UpdateManager:
                 repository = "username/repo"
                 
         try:
-            # Get the latest release from GitHub
+            # 1. Try fetching the officially marked latest release
             response = requests.get(f"https://api.github.com/repos/{self.full_repo_path}/releases/latest", timeout=10)
             if response.status_code == 200:
                 latest_release = response.json()
-                # Check if tag_name exists in the response
-                if 'tag_name' not in latest_release:
-                    logger.warning("Release response does not contain tag_name")
-                    return None
-                latest_version = latest_release['tag_name'].lstrip('v')
-                logger.info(f"Latest version from GitHub: {latest_version}")
-                return latest_version
-            else:
-                logger.warning(f"Failed to get latest version, status code: {response.status_code}")
-                return None
+                if 'tag_name' in latest_release:
+                    latest_version = latest_release['tag_name'].lstrip('v')
+                    logger.info(f"Latest version from GitHub (latest release): {latest_version}")
+                    return latest_version
+
+            # 2. Fallback: fetch all releases and pick the highest version
+            logger.info("Falling back to listing all GitHub releases...")
+            response = requests.get(f"https://api.github.com/repos/{self.full_repo_path}/releases", timeout=10)
+            if response.status_code == 200:
+                releases = response.json()
+                if isinstance(releases, list) and len(releases) > 0:
+                    versions = []
+                    for rel in releases:
+                        tag = rel.get('tag_name')
+                        if tag:
+                            versions.append(tag.lstrip('v'))
+                    if versions:
+                        def parse_v(v):
+                            try:
+                                return [int(x) for x in v.split('-')[0].split('.')]
+                            except ValueError:
+                                return [0, 0, 0]
+                        versions.sort(key=parse_v, reverse=True)
+                        best_version = versions[0]
+                        logger.info(f"Latest version from GitHub releases list: {best_version}")
+                        return best_version
+
+            logger.warning(f"Failed to get latest version, status code: {response.status_code}")
+            return None
         except Exception as e:
             logger.error(f"Error getting latest version from GitHub: {e}")
             return None
@@ -180,7 +199,7 @@ class UpdateManager:
             return v1_pre > v2_pre
         else:
             # Both are normal versions and equal
-            return True
+            return False
 
     def _get_platform_info(self):
         """Get platform and architecture information."""
