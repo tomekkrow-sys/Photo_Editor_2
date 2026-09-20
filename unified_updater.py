@@ -463,3 +463,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# Alias for backward compatibility
+UnifiedUpdateManager = UpdateManager

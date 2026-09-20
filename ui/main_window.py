@@ -55,7 +55,7 @@ from core.tools.brush_tool import BrushMode, BrushTool
 from core.tools.draw_tool import DrawTool
 from core.tab_manager import TabManager, TabData
 from core.tools.spot_tool import SpotTool
-from core.worker import PipelineWorker
+from core.worker import PipelineWorker, ImageLoaderWorker
 from ui.actions import ActionManager
 from ui.canvas import Canvas
 from ui.export_dialog import ExportDialog
@@ -347,10 +347,21 @@ class MainWindow(QMainWindow):
             return None
 
     def _load(self, path):
-        self._orig = self._open_image(path)
-        if self._orig is None:
+        self.statusBar().showMessage(f"Wczytywanie {path.name}...")
+        if hasattr(self, '_image_loader_worker') and self._image_loader_worker and self._image_loader_worker.isRunning():
+            self._image_loader_worker.terminate()
+
+        self._image_loader_worker = ImageLoaderWorker(path, self)
+        self._image_loader_worker.finished.connect(self._on_image_loaded_async)
+        self._image_loader_worker.error.connect(self._on_image_load_error)
+        self._image_loader_worker.start()
+
+    def _on_image_loaded_async(self, path, img):
+        if img is None:
             QMessageBox.critical(self, "Blad", "Nie mozna otworzyc: " + path.name)
+            self.statusBar().showMessage("Błąd otwierania " + path.name)
             return
+        self._orig = img
         preview = prepare_preview(self._orig, max_dim=800)
         self._preview_arr = pil_to_cv(preview)
         self._path = path
@@ -372,7 +383,12 @@ class MainWindow(QMainWindow):
             tab.history = self._history
             tab.adj_history = self._adj_history
         self._update_tab_title()
-        self.statusBar().showMessage("Otwarto: " + path.name)
+        self.statusBar().showMessage("Otwarto: " + path.name, 3000)
+
+    def _on_image_load_error(self, path, error_msg):
+        logging.error("Blad otwierania %s: %s", path, error_msg)
+        QMessageBox.critical(self, "Błąd", f"Nie można otworzyć pliku {path.name}:\n{error_msg}")
+        self.statusBar().showMessage(f"Błąd otwierania {path.name}", 3000)
         sb = self.statusBar()
         if hasattr(sb, 'size_label'):
             sb.size_label.setText(str(self._orig.width) + " x " + str(self._orig.height))
