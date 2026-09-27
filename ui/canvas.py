@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 from PySide6.QtCore import Qt, QRectF, QPointF, Signal
-from PySide6.QtGui import QColor, QPainter, QPen
+from PySide6.QtGui import QColor, QPainter, QPen, QKeySequence
 from PySide6.QtWidgets import QWidget
 
 class Canvas(QWidget):
@@ -62,6 +62,7 @@ class Canvas(QWidget):
         self._draw_points = None
         self._crop_start = None
         self._crop_end = None
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.update()
 
     def set_before_after(self, before, after):
@@ -488,3 +489,19 @@ class Canvas(QWidget):
         self._offset_x = new_x - (self.width() - new_iw) / 2
         self._offset_y = new_y - (self.height() - new_ih) / 2
         self.update()
+
+    def keyPressEvent(self, event):
+        """Ctrl+Plus/Minus zoom — canvas has focus so main_window doesn't see it."""
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            key = event.key()
+            if key in (Qt.Key.Key_Plus, Qt.Key.Key_Equal, Qt.Key.Key_ZoomIn):
+                mw = self.window()
+                if hasattr(mw, '_on_zin'):
+                    mw._on_zin()
+                    return
+            elif key in (Qt.Key.Key_Minus, Qt.Key.Key_ZoomOut):
+                mw = self.window()
+                if hasattr(mw, '_on_zout'):
+                    mw._on_zout()
+                    return
+        super().keyPressEvent(event)
