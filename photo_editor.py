@@ -142,6 +142,32 @@ def main() -> int:
 
     window.show()
 
+    # --- Global Ctrl+/- zoom event filter (catches it no matter which widget has focus) ---
+    try:
+        from PySide6.QtCore import QObject, QEvent
+        from PySide6.QtGui import QKeySequence
+        class _ZoomFilter(QObject):
+            def eventFilter(self, obj, event):
+                if event.type() == QEvent.Type.KeyPress and (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
+                    key = event.key()
+                    if key in (Qt.Key.Key_Plus, Qt.Key.Key_Equal, Qt.Key.Key_ZoomIn):
+                        window._on_zin()
+                        return True
+                    elif key in (Qt.Key.Key_Minus, Qt.Key.Key_ZoomOut):
+                        window._on_zout()
+                        return True
+                    elif key == Qt.Key.Key_0:
+                        window._on_fit()
+                        return True
+                    elif key == Qt.Key.Key_1:
+                        window._on_z100()
+                        return True
+                return super().eventFilter(obj, event)
+        _zoom_filter = _ZoomFilter(app)
+        app.installEventFilter(_zoom_filter)
+    except Exception as _e:
+        _ulog(f"Zoom filter install failed: {_e}")
+
     # --- Auto-update check in background ---
     try:
         from PySide6.QtCore import QThread, Signal as QSignal
