@@ -197,8 +197,10 @@ class EditHistory:
 
     @staticmethod
     def make_thumbnail(img, size=(80, 60)):
-        """Create a small thumbnail from a PIL image."""
+        """Create a small thumbnail from a PIL image (or None for non-image objects)."""
         if img is None:
+            return None
+        if not hasattr(img, 'copy') or not hasattr(img, 'thumbnail'):
             return None
         thumb = img.copy()
         thumb.thumbnail(size, Image.Resampling.LANCZOS)
