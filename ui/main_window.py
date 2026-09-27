@@ -1712,6 +1712,25 @@ class MainWindow(QMainWindow):
             f"<p>GitHub: <a href='https://github.com/tomekkrow-sys/Photo_Editor_2'>tomekkrow-sys/Photo_Editor_2</a></p>"
         )
 
+    def keyPressEvent(self, event):
+        """Handle Ctrl+Plus/Minus for zoom as fallback."""
+        from PySide6.QtCore import Qt
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            key = event.key()
+            if key in (Qt.Key.Key_Plus, Qt.Key.Key_Equal):
+                self._on_zin()
+                return
+            elif key == Qt.Key.Key_Minus:
+                self._on_zout()
+                return
+            elif key == Qt.Key.Key_0:
+                self._on_fit()
+                return
+            elif key == Qt.Key.Key_1:
+                self._on_z100()
+                return
+        super().keyPressEvent(event)
+
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()

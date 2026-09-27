@@ -28,6 +28,7 @@ DELETE = "Delete"
 # VIEW
 
 ZOOM_IN = "Ctrl++"
+ZOOM_IN_ALT = "Ctrl+="
 ZOOM_OUT = "Ctrl+-"
 FIT = "Ctrl+0"
 ACTUAL_SIZE = "Ctrl+1"

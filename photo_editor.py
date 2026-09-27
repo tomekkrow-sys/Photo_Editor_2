@@ -162,11 +162,25 @@ def main() -> int:
                     else:
                         cfg = {}
                     gh = cfg.get("github", {})
-                    url = f"{gh.get('api_url', 'https://api.github.com')}/repos/{gh.get('owner', 'tomekkrow-sys')}/{gh.get('repo', 'Photo_Editor_2')}/releases/latest"
+                    base = f"{gh.get('api_url', 'https://api.github.com')}/repos/{gh.get('owner', 'tomekkrow-sys')}/{gh.get('repo', 'Photo_Editor_2')}"
+                    # Fetch ALL releases (not just /latest) — pick highest semver
+                    url = f"{base}/releases?per_page=100"
                     req = urllib.request.Request(url, headers={"User-Agent": "Photo-Editor-2"})
-                    resp = urllib.request.urlopen(req, timeout=10)
-                    data = json.loads(resp.read().decode())
-                    latest = data.get("tag_name", "").lstrip("v")
+                    resp = urllib.request.urlopen(req, timeout=15)
+                    releases = json.loads(resp.read().decode())
+                    best_tag = "0.0.0"
+                    for rel in releases:
+                        if rel.get("draft") or rel.get("prerelease"):
+                            continue
+                        tag = (rel.get("tag_name") or "").lstrip("v") or "0.0.0"
+                        try:
+                            tag_parts = [int(x) for x in tag.split(".")]
+                            best_parts = [int(x) for x in best_tag.split(".")]
+                            if tag_parts > best_parts:
+                                best_tag = tag
+                        except Exception:
+                            pass
+                    latest = best_tag
                     current = _cur
                     _ulog(f"Current: v{current}, Latest: v{latest}")
                     cur_parts = [int(x) for x in current.split(".")]

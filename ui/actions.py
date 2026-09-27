@@ -72,11 +72,13 @@ class ActionManager:
         _tip(self.delete, t("delete"), shortcuts.DELETE)
 
         self.zoom_in = QAction(t("zoom_in"), self.parent)
-        self.zoom_in.setShortcut(shortcuts.ZOOM_IN)
+        self.zoom_in.setShortcuts([shortcuts.ZOOM_IN, shortcuts.ZOOM_IN_ALT])
+        self.zoom_in.setShortcutVisibleInContextMenu(True)
         _tip(self.zoom_in, t("zoom_in"), shortcuts.ZOOM_IN)
 
         self.zoom_out = QAction(t("zoom_out"), self.parent)
         self.zoom_out.setShortcut(shortcuts.ZOOM_OUT)
+        self.zoom_out.setShortcutVisibleInContextMenu(True)
         _tip(self.zoom_out, t("zoom_out"), shortcuts.ZOOM_OUT)
 
         self.fit = QAction(t("fit"), self.parent)
