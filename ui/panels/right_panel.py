@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
 )
 from core.adjustments import Adjustments
 from config.i18n import t, I18n
+from ui.widgets.collapsible_section import CollapsibleSection
 
 class SliderRow(QWidget):
     value_changed = Signal(str, float)
@@ -72,8 +73,8 @@ class RightPanel(QScrollArea):
         lay = QVBoxLayout(c)
         lay.setSpacing(6)
 
-        pres = QGroupBox(t("presets"))
-        pl = QVBoxLayout(pres)
+        pres = CollapsibleSection(t("presets"), icon="\u2728")
+        pl = QVBoxLayout()
         self.preset_combo = QComboBox()
         self.preset_combo.addItem(t("select_preset"))
         pl.addWidget(self.preset_combo)
@@ -92,15 +93,17 @@ class RightPanel(QScrollArea):
         rl.addWidget(lb)
         rl.addWidget(db)
         pl.addWidget(row)
+        pres.add_layout(pl)
         lay.addWidget(pres)
 
-        basic = QGroupBox(t("basic"))
-        bl = QFormLayout(basic)
+        basic = CollapsibleSection(t("basic"), icon="\u26A1")
+        bl = QFormLayout()
         bl.setSpacing(4)
         self.exp = self._mk(t("exposure"), "exposure", -5.0, 5.0, 0.0, 0.1)
         self.con = self._mk(t("contrast"), "contrast", -100, 100, 0, 1)
         bl.addRow(self.exp)
         bl.addRow(self.con)
+        basic.add_layout(bl)
         lay.addWidget(basic)
 
         tone = QGroupBox(t("tone"))
