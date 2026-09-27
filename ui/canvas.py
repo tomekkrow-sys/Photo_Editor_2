@@ -44,7 +44,7 @@ class Canvas(QWidget):
         self._select_end = None
         self._select_feather = 0
         self.setAutoFillBackground(True)
-        self.setStyleSheet("background: #141414;")
+        self.setStyleSheet("background: #0E0E12;")
         self.setCursor(Qt.OpenHandCursor)
 
     def set_pixmap(self, pixmap):

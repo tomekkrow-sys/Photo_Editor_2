@@ -32,11 +32,11 @@ class HistoryItem(QFrame):
         layout.setContentsMargins(4, 4, 4, 4)
 
         self.name_label = QLabel(name)
-        self.name_label.setStyleSheet("color: #FFFFFF; font-weight: bold;")
+        self.name_label.setStyleSheet("color: #EEEEF0; font-weight: 600; font-size: 12px;")
         layout.addWidget(self.name_label)
 
         self.time_label = QLabel(timestamp)
-        self.time_label.setStyleSheet("color: #888888; font-size: 10px;")
+        self.time_label.setStyleSheet("color: #5E5E6C; font-size: 10px;")
         layout.addWidget(self.time_label)
 
         self._update_style()
@@ -49,17 +49,17 @@ class HistoryItem(QFrame):
         if self._is_current:
             self.setStyleSheet("""
                 QFrame {
-                    background: #2E3B4E;
-                    border: 2px solid #4A9EFF;
-                    border-radius: 4px;
+                    background: #1A2A3A;
+                    border: 1px solid #4A9EFF;
+                    border-radius: 8px;
                 }
             """)
         else:
             self.setStyleSheet("""
                 QFrame {
-                    background: #1E1E1E;
-                    border: 2px solid #333333;
-                    border-radius: 4px;
+                    background: #1A1A20;
+                    border: 1px solid #2C2C36;
+                    border-radius: 8px;
                 }
             """)
 
@@ -77,8 +77,8 @@ class HistoryPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
 
-        title = QLabel("<b>Historia</b>")
-        title.setStyleSheet("color: #FFFFFF; font-size: 13px; padding-bottom: 4px;")
+        title = QLabel("<b>HISTORIA</b>")
+        title.setStyleSheet("color: #4A9EFF; font-size: 11px; padding-bottom: 4px; letter-spacing: 1px;")
         layout.addWidget(title)
 
         buttons_layout = QHBoxLayout()

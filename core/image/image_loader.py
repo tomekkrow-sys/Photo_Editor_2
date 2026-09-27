@@ -5,7 +5,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import rawpy
+try:
+    import rawpy
+except ImportError:
+    rawpy = None
 from PySide6.QtGui import QImage
 
 from .image_document import ImageDocument
@@ -93,6 +96,8 @@ class ImageLoader:
     def _load_raw_image(path: Path) -> QImage:
         """Decode a RAW image and convert it to an RGB QImage."""
         try:
+            if rawpy is None:
+                return QImage()
             with rawpy.imread(str(path)) as raw:
                 rgb = raw.postprocess(
                     use_camera_wb=True,

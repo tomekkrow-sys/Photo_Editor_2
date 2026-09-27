@@ -22,7 +22,7 @@ class FilterStrengthDialog(QDialog):
 
         # Filter name label
         name_lbl = QLabel(filter_name)
-        name_lbl.setStyleSheet("font-weight: bold; font-size: 14px;")
+        name_lbl.setStyleSheet("font-weight: 700; font-size: 14px; color: #EEEEF0;")
         lay.addWidget(name_lbl)
 
         # Strength slider
@@ -42,7 +42,7 @@ class FilterStrengthDialog(QDialog):
 
         # Blend info
         self._info = QLabel(t("filter_blend_info"))
-        self._info.setStyleSheet("color: #888; font-size: 10px;")
+        self._info.setStyleSheet("color: #5E5E6C; font-size: 11px;")
         lay.addWidget(self._info)
 
         # Buttons

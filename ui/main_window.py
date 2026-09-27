@@ -12,7 +12,10 @@ import shutil
 import zipfile
 import tarfile
 import numpy as np
-import rawpy
+try:
+    import rawpy
+except ImportError:
+    rawpy = None
 from pathlib import Path
 from PIL import Image
 from PySide6.QtCore import Qt, QPointF, QSettings
@@ -319,6 +322,8 @@ class MainWindow(QMainWindow):
                 pass
 
             if path.suffix.lower() in RAW_EXTS:
+                if rawpy is None:
+                    raise ImportError("rawpy is not installed")
                 with rawpy.imread(str(path)) as raw:
                     rgb = raw.postprocess(
                         use_camera_wb=True,
@@ -348,6 +353,7 @@ class MainWindow(QMainWindow):
 
     def _load(self, path):
         self.statusBar().showMessage(f"Wczytywanie {path.name}...")
+        self.statusBar().show_progress(0, 0)
         if hasattr(self, '_image_loader_worker') and self._image_loader_worker and self._image_loader_worker.isRunning():
             self._image_loader_worker.terminate()
 
@@ -357,6 +363,7 @@ class MainWindow(QMainWindow):
         self._image_loader_worker.start()
 
     def _on_image_loaded_async(self, path, img):
+        self.statusBar().hide_progress()
         if img is None:
             QMessageBox.critical(self, "Blad", "Nie mozna otworzyc: " + path.name)
             self.statusBar().showMessage("Błąd otwierania " + path.name)
@@ -384,8 +391,14 @@ class MainWindow(QMainWindow):
             tab.adj_history = self._adj_history
         self._update_tab_title()
         self.statusBar().showMessage("Otwarto: " + path.name, 3000)
+        sb = self.statusBar()
+        if hasattr(sb, 'size_label'):
+            sb.size_label.setText(str(self._orig.width) + " x " + str(self._orig.height))
+        if hasattr(sb, 'format_label'):
+            sb.format_label.setText(path.suffix.upper().replace(".", ""))
 
     def _on_image_load_error(self, path, error_msg):
+        self.statusBar().hide_progress()
         logging.error("Blad otwierania %s: %s", path, error_msg)
         QMessageBox.critical(self, "Błąd", f"Nie można otworzyć pliku {path.name}:\n{error_msg}")
         self.statusBar().showMessage(f"Błąd otwierania {path.name}", 3000)
@@ -1287,7 +1300,7 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(24, 24, 24, 24)
 
         status_label = QLabel(f"Przygotowywanie aktualizacji do {latest_tag}...")
-        status_label.setStyleSheet("font-size: 14px; font-weight: bold;")
+        status_label.setStyleSheet("font-size: 14px; font-weight: 700; color: #EEEEF0;")
         layout.addWidget(status_label)
 
         detail_label = QLabel("")

@@ -96,33 +96,7 @@ class DetailPanel(QWidget):
         return button
 
     def _style_widget(self) -> None:
-        self.setStyleSheet(
-            """
-            QWidget {
-                background: #1E1E1E;
-                color: #CCCCCC;
-                font-family: "Segoe UI", "Ubuntu", sans-serif;
-                font-size: 12px;
-            }
-            QSlider::groove:horizontal {
-                border: 1px solid #444;
-                height: 6px;
-                background: #2A2A2A;
-                border-radius: 3px;
-            }
-            QSlider::handle:horizontal {
-                background: #4A9EFF;
-                border: 1px solid #2A6BCF;
-                width: 14px;
-                height: 14px;
-                border-radius: 7px;
-            }
-            QSlider::sub-page:horizontal {
-                background: #4A9EFF;
-                border-radius: 3px;
-            }
-            """
-        )
+        pass  # Uses global theme
 
     def _on_value_changed(self) -> None:
         self.valuesChanged.emit(self.get_values())

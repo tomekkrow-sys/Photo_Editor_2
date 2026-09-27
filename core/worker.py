@@ -3,7 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 from PySide6.QtCore import QThread, Signal
 from PIL import Image
-import rawpy
+try:
+    import rawpy
+except ImportError:
+    rawpy = None
 from core.pipeline import apply_adjustments_arr, arr_to_pil
 
 class PipelineWorker(QThread):
@@ -48,6 +51,8 @@ class ImageLoaderWorker(QThread):
                 pass
 
             if path.suffix.lower() in self.RAW_EXTS:
+                if rawpy is None:
+                    raise ImportError("rawpy is not installed")
                 with rawpy.imread(str(path)) as raw:
                     rgb = raw.postprocess(
                         use_camera_wb=True,

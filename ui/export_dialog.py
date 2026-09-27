@@ -8,17 +8,18 @@ from PySide6.QtWidgets import (
 )
 
 DARK_STYLE = """
-QDialog { background: #1E1E1E; color: #CCCCCC; }
-QLabel { color: #CCCCCC; font-size: 11px; }
-QLineEdit { background: #2A2A2A; color: #FFFFFF; border: 1px solid #444; padding: 4px; }
-QComboBox { background: #2A2A2A; color: #FFFFFF; border: 1px solid #444; padding: 4px; }
-QSlider::groove:horizontal { height: 4px; background: #333; border-radius: 2px; }
-QSlider::handle:horizontal { width: 14px; background: #4A9EFF; border-radius: 7px; margin: -5px 0; }
-QSlider::sub-page:horizontal { background: #4A9EFF; }
-QSpinBox { background: #2A2A2A; color: #FFFFFF; border: 1px solid #444; padding: 4px; }
-QPushButton { background: #333; color: #FFF; border: 1px solid #444; padding: 6px 16px; border-radius: 3px; }
-QPushButton:hover { background: #444; }
-QPushButton:default { background: #2E7D32; }
+QDialog { background: #1A1A20; color: #EEEEF0; }
+QLabel { color: #9898A4; font-size: 12px; }
+QLineEdit { background: #22222A; color: #EEEEF0; border: 1px solid #2C2C36; padding: 6px 10px; border-radius: 8px; }
+QComboBox { background: #22222A; color: #EEEEF0; border: 1px solid #2C2C36; padding: 6px 10px; border-radius: 8px; }
+QSlider::groove:horizontal { height: 4px; background: #2C2C36; border-radius: 2px; }
+QSlider::handle:horizontal { width: 14px; background: #4A9EFF; border-radius: 7px; margin: -5px 0; border: 2px solid #1A1A20; }
+QSlider::sub-page:horizontal { background: #4A9EFF; border-radius: 2px; }
+QSpinBox { background: #22222A; color: #EEEEF0; border: 1px solid #2C2C36; padding: 6px 10px; border-radius: 8px; }
+QPushButton { background: #2A2A34; color: #EEEEF0; border: 1px solid #2C2C36; padding: 8px 18px; border-radius: 8px; font-weight: 600; }
+QPushButton:hover { background: #36364A; border-color: #3A3A46; }
+QPushButton:default { background: #34D399; color: #121216; border: none; }
+QPushButton:default:hover { background: #4AE0A8; }
 """
 
 class ExportDialog(QDialog):
@@ -84,7 +85,7 @@ class ExportDialog(QDialog):
 
         # Szacunkowy rozmiar pliku
         self.file_size_label = QLabel("~ --")
-        self.file_size_label.setStyleSheet("color: #4A9EFF; font-weight: bold;")
+        self.file_size_label.setStyleSheet("color: #4A9EFF; font-weight: 700; font-size: 13px;")
         form.addRow("Szac. rozmiar:", self.file_size_label)
 
         lay.addLayout(form)

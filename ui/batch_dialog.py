@@ -248,7 +248,7 @@ class BatchDialog(QDialog):
         lay.addWidget(self.status_label)
 
         self.log_label = QLabel("")
-        self.log_label.setStyleSheet("color: #888; font-size: 10px;")
+        self.log_label.setStyleSheet("color: #5E5E6C; font-size: 11px;")
         self.log_label.setWordWrap(True)
         lay.addWidget(self.log_label)
 
@@ -261,7 +261,7 @@ class BatchDialog(QDialog):
         btns.addStretch()
 
         self._ok_btn = QPushButton(t("batch_start") if t("batch_start") != "batch_start" else "Start")
-        self._ok_btn.setStyleSheet("background: #2E7D32; color: white; font-weight: bold;")
+        self._ok_btn.setStyleSheet("QPushButton { background: #34D399; color: #121216; font-weight: 700; border: none; } QPushButton:hover { background: #4AE0A8; }")
         self._ok_btn.clicked.connect(self._on_start)
         btns.addWidget(self._ok_btn)
 

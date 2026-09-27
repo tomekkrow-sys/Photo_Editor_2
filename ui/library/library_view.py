@@ -43,7 +43,7 @@ class PhotoGridItem(QFrame):
         layout.addWidget(self.thumb_label)
 
         self.filename_label = QLabel(photo.stem)
-        self.filename_label.setStyleSheet("color: #CCCCCC; font-size: 11px;")
+        self.filename_label.setStyleSheet("color: #9898A4; font-size: 11px;")
         layout.addWidget(self.filename_label)
 
         self._update_style()
@@ -65,17 +65,17 @@ class PhotoGridItem(QFrame):
         if self._is_selected:
             self.setStyleSheet("""
                 QFrame {
-                    background: #2A2A3A;
-                    border: 2px solid #4A9EFF;
-                    border-radius: 4px;
+                    background: #1A2A3A;
+                    border: 1px solid #4A9EFF;
+                    border-radius: 8px;
                 }
             """)
         else:
             self.setStyleSheet("""
                 QFrame {
-                    background: #1E1E1E;
-                    border: 2px solid #333333;
-                    border-radius: 4px;
+                    background: #1A1A20;
+                    border: 1px solid #2C2C36;
+                    border-radius: 8px;
                 }
             """)
 

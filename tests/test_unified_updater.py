@@ -42,6 +42,7 @@ class TestUnifiedUpdateManager(unittest.TestCase):
     "background_updates": true
 }
 '''
+        os.makedirs("config", exist_ok=True)
         with open("config/updater_config.json", "w") as f:
             f.write(config_content)
         

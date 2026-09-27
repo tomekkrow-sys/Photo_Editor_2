@@ -59,7 +59,7 @@ class EffectsPanel(QWidget):
         layout.setSpacing(4)
 
         title = QLabel("<b>Efekty</b>")
-        title.setStyleSheet("color: #FFFFFF; font-size: 13px; padding-bottom: 4px;")
+        title.setStyleSheet("color: #4A9EFF; font-size: 11px; padding-bottom: 4px; letter-spacing: 1px;")
         layout.addWidget(title)
 
         for name, label in [
@@ -97,43 +97,4 @@ class EffectsPanel(QWidget):
         self.valuesChanged.emit(self.get_values())
 
     def _style_widget(self):
-        self.setStyleSheet("""
-            QWidget {
-                background: #1E1E1E;
-                color: #CCCCCC;
-                font-family: "Segoe UI", "Ubuntu", sans-serif;
-                font-size: 12px;
-            }
-            QLabel {
-                color: #AAAAAA;
-                padding: 2px 0px;
-            }
-            QSlider::groove:horizontal {
-                height: 4px;
-                background: #333333;
-                border-radius: 2px;
-            }
-            QSlider::handle:horizontal {
-                width: 14px;
-                height: 14px;
-                margin: -5px 0;
-                background: #888888;
-                border-radius: 7px;
-            }
-            QSlider::handle:horizontal:hover {
-                background: #AAAAAA;
-            }
-            QSlider::sub-page:horizontal {
-                background: #555555;
-                border-radius: 2px;
-            }
-            QPushButton {
-                background: #333333;
-                border: 1px solid #444444;
-                padding: 4px 12px;
-                border-radius: 3px;
-            }
-            QPushButton:hover {
-                background: #444444;
-            }
-        """)
+        pass  # Uses global theme

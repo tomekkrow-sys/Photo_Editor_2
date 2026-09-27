@@ -21,7 +21,7 @@ class SliderRow(QWidget):
         lay.setContentsMargins(4, 2, 4, 2)
         lay.setSpacing(2)
         self.lab = QLabel(f"{name}: {df:.1f}")
-        self.lab.setStyleSheet("font-size: 15px; font-weight: 700;")
+        self.lab.setStyleSheet("font-size: 12px; font-weight: 600; color: #9898A4;")
         lay.addWidget(self.lab)
         self.sli = QSlider(Qt.Orientation.Horizontal)
         self.sli.setRange(int(mn/st), int(mx/st))
@@ -31,6 +31,7 @@ class SliderRow(QWidget):
         b = QPushButton("R")
         b.setMaximumWidth(28)
         b.setMinimumHeight(20)
+        b.setStyleSheet("QPushButton { font-size: 10px; padding: 2px; border-radius: 4px; }")
         b.clicked.connect(self._reset)
         lay.addWidget(b)
     def _on(self, v):
