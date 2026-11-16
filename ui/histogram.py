@@ -57,8 +57,9 @@ class HistogramWidget(QWidget):
         w, h = rect.width(), rect.height()
 
         # Background
-        painter.fillRect(self.rect(), QColor(30, 30, 30))
-        painter.setPen(QPen(QColor(60, 60, 60), 1))
+        from ui.theme import tc
+        painter.fillRect(self.rect(), QColor(tc("bg_secondary")))
+        painter.setPen(QPen(QColor(tc("border")), 1))
         painter.drawRect(rect)
 
         # Find max value across all channels for normalization

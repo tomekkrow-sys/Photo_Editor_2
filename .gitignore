@@ -54,3 +54,6 @@ error.log
 crash.log
 blad.txt
 FETCH_HEAD
+
+# Core dumps
+core.*

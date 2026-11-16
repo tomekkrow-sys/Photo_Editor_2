@@ -76,7 +76,10 @@ class SmartCropDialog(QDialog):
         self.preview_label = QLabel("Przetwarzanie...")
         self.preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview_label.setMinimumHeight(300)
-        self.preview_label.setStyleSheet("background: #1a1a1a; border: 1px solid #333;")
+        from ui.theme import tc
+        self.preview_label.setStyleSheet(
+            f"background: {tc('bg_canvas')}; border: 1px solid {tc('border')};"
+        )
         lay.addWidget(self.preview_label)
 
         # Info

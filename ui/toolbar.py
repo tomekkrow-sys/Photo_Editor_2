@@ -10,7 +10,7 @@ class ToolBar(QToolBar):
         self.setMovable(False)
         self.setFloatable(False)
         self.setFixedHeight(40)
-        self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         self._build()
     def _build(self):
         self.addAction(self.actions.open)

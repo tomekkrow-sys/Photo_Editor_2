@@ -7,27 +7,11 @@ from PySide6.QtWidgets import (
     QPushButton, QSlider, QSpinBox, QVBoxLayout, QWidget,
 )
 
-DARK_STYLE = """
-QDialog { background: #1A1A20; color: #EEEEF0; }
-QLabel { color: #9898A4; font-size: 12px; }
-QLineEdit { background: #22222A; color: #EEEEF0; border: 1px solid #2C2C36; padding: 6px 10px; border-radius: 8px; }
-QComboBox { background: #22222A; color: #EEEEF0; border: 1px solid #2C2C36; padding: 6px 10px; border-radius: 8px; }
-QSlider::groove:horizontal { height: 4px; background: #2C2C36; border-radius: 2px; }
-QSlider::handle:horizontal { width: 14px; background: #4A9EFF; border-radius: 7px; margin: -5px 0; border: 2px solid #1A1A20; }
-QSlider::sub-page:horizontal { background: #4A9EFF; border-radius: 2px; }
-QSpinBox { background: #22222A; color: #EEEEF0; border: 1px solid #2C2C36; padding: 6px 10px; border-radius: 8px; }
-QPushButton { background: #2A2A34; color: #EEEEF0; border: 1px solid #2C2C36; padding: 8px 18px; border-radius: 8px; font-weight: 600; }
-QPushButton:hover { background: #36364A; border-color: #3A3A46; }
-QPushButton:default { background: #34D399; color: #121216; border: none; }
-QPushButton:default:hover { background: #4AE0A8; }
-"""
-
 class ExportDialog(QDialog):
     def __init__(self, parent=None, orig_width=0, orig_height=0, default_name="export"):
         super().__init__(parent)
         self.setWindowTitle("Eksportuj zdjecie")
         self.setMinimumWidth(420)
-        self.setStyleSheet(DARK_STYLE)
         self._orig_w = orig_width
         self._orig_h = orig_height
         self._default_name = default_name
@@ -85,7 +69,8 @@ class ExportDialog(QDialog):
 
         # Szacunkowy rozmiar pliku
         self.file_size_label = QLabel("~ --")
-        self.file_size_label.setStyleSheet("color: #4A9EFF; font-weight: 700; font-size: 13px;")
+        from ui.theme import tc
+        self.file_size_label.setStyleSheet(f"color: {tc('accent')}; font-weight: 700; font-size: 13px;")
         form.addRow("Szac. rozmiar:", self.file_size_label)
 
         lay.addLayout(form)

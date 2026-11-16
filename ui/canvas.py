@@ -44,7 +44,8 @@ class Canvas(QWidget):
         self._select_end = None
         self._select_feather = 0
         self.setAutoFillBackground(True)
-        self.setStyleSheet("background: #0E0E12;")
+        from ui.theme import tc
+        self.setStyleSheet(f"background: {tc('bg_canvas')};")
         self.setCursor(Qt.OpenHandCursor)
 
     def set_pixmap(self, pixmap):
@@ -223,7 +224,8 @@ class Canvas(QWidget):
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor("#141414"))
+        from ui.theme import tc
+        painter.fillRect(self.rect(), QColor(tc("bg_canvas")))
 
         if self._ba_mode and self._pixmap_before and self._pixmap_after:
             r = self._img_rect()

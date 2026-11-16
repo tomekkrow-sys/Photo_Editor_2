@@ -21,8 +21,9 @@ class FilterStrengthDialog(QDialog):
         lay = QVBoxLayout(self)
 
         # Filter name label
+        from ui.theme import tc
         name_lbl = QLabel(filter_name)
-        name_lbl.setStyleSheet("font-weight: 700; font-size: 14px; color: #EEEEF0;")
+        name_lbl.setStyleSheet(f"font-weight: 700; font-size: 14px; color: {tc('text_primary')};")
         lay.addWidget(name_lbl)
 
         # Strength slider
@@ -42,7 +43,7 @@ class FilterStrengthDialog(QDialog):
 
         # Blend info
         self._info = QLabel(t("filter_blend_info"))
-        self._info.setStyleSheet("color: #5E5E6C; font-size: 11px;")
+        self._info.setStyleSheet(f"color: {tc('text_muted')}; font-size: 11px;")
         lay.addWidget(self._info)
 
         # Buttons

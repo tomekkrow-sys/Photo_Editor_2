@@ -20,7 +20,7 @@ from pathlib import Path
 from PIL import Image
 from PySide6.QtCore import Qt, QPointF, QSettings
 from PySide6.QtGui import QColor, QGuiApplication, QPixmap
-from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QSplitter, QVBoxLayout, QWidget, QApplication, QToolBar
+from PySide6.QtWidgets import QFileDialog, QLabel, QMainWindow, QMessageBox, QSplitter, QVBoxLayout, QWidget, QApplication, QToolBar
 from config.defaults import DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH
 from config.version import WINDOW_TITLE, APP_VERSION as _APP_VERSION
 from config.i18n import t
@@ -73,8 +73,17 @@ RAW_EXTS = {".nef", ".cr2", ".cr3", ".arw", ".dng", ".orf", ".rw2", ".raf", ".pe
 class MainWindow(QMainWindow):
     def __init__(self, catalog=None):
         super().__init__()
-        from ui.theme import build_stylesheet, DARK_THEME
-        self.setStyleSheet(build_stylesheet(DARK_THEME))
+        from ui.theme import init_theme, apply_theme
+        init_theme()
+        apply_theme(self)
+        try:
+            from PySide6.QtGui import QIcon
+            from pathlib import Path as _P
+            _icon = _P(__file__).resolve().parent.parent / "resources" / "icons" / "photo_editor_2.png"
+            if _icon.exists():
+                self.setWindowIcon(QIcon(str(_icon)))
+        except Exception:
+            pass
         self.actions = ActionManager(self)
         self._orig = None
         self._path = None
@@ -106,15 +115,9 @@ class MainWindow(QMainWindow):
         saved_lang = QSettings("PhotoEditor2", "PhotoEditor2").value("language", "pl")
         if saved_lang and saved_lang != "pl":
             I18n.get().set_language(saved_lang)
-        # Load saved theme
-        saved_theme = QSettings("PhotoEditor2", "PhotoEditor2").value("theme", "dark")
-        if saved_theme == "light":
-            from ui.theme import build_stylesheet, LIGHT_THEME
-            self.setStyleSheet(build_stylesheet(LIGHT_THEME))
         self._build_ui()
         self._connect_actions()
         self.setAcceptDrops(True)
-        self._drop_highlight_style = "QMainWindow { border: 3px dashed #5B9EF4; }"
 
     def _build_ui(self):
         self.setWindowTitle(WINDOW_TITLE)
@@ -138,24 +141,32 @@ class MainWindow(QMainWindow):
         self.right_panel.preset_load_requested.connect(self._on_preset_load)
         self.right_panel.preset_delete_requested.connect(self._on_preset_delete)
 
-        # Histogram dock - above right panel
-        from PySide6.QtWidgets import QDockWidget
-        self._hist_dock = QDockWidget(t("histogram"), self)
-        self._hist_dock.setAllowedAreas(
-            Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.LeftDockWidgetArea
-        )
-        self.histogram = HistogramWidget()
-        self._hist_dock.setWidget(self.histogram)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self._hist_dock)
-        self._hist_dock.setMinimumWidth(200)
-        self._hist_dock.setVisible(True)
+        # Right column: histogram on top, adjustment panel below
+        right_col = QWidget()
+        rv = QVBoxLayout(right_col)
+        rv.setContentsMargins(0, 0, 0, 0)
+        rv.setSpacing(0)
 
-        splitter.addWidget(self.right_panel)
+        self._hist_container = QWidget()
+        hv = QVBoxLayout(self._hist_container)
+        hv.setContentsMargins(0, 0, 0, 0)
+        hv.setSpacing(0)
+        hist_header = QLabel(t("histogram").upper())
+        hist_header.setObjectName("histHeader")
+        hv.addWidget(hist_header)
+        self.histogram = HistogramWidget()
+        hv.addWidget(self.histogram, stretch=1)
+        self._hist_container.setMinimumHeight(180)
+        rv.addWidget(self._hist_container)
+
+        rv.addWidget(self.right_panel, stretch=1)
+
+        splitter.addWidget(right_col)
         splitter.setSizes([1200, 280])
         self.setCentralWidget(splitter)
         self._refresh_presets()
         self._refresh_recent_menu()
-        self.statusBar().showMessage(t("status_ready"))
+        # status_ready is already shown by StatusBar.msg_label — avoid double-draw
 
     def _connect_actions(self):
         self.actions.new.triggered.connect(self._on_new)
@@ -1300,11 +1311,12 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(24, 24, 24, 24)
 
         status_label = QLabel(f"Przygotowywanie aktualizacji do {latest_tag}...")
-        status_label.setStyleSheet("font-size: 14px; font-weight: 700; color: #EEEEF0;")
+        from ui.theme import tc
+        status_label.setStyleSheet(f"font-size: 14px; font-weight: 700; color: {tc('text_primary')};")
         layout.addWidget(status_label)
 
         detail_label = QLabel("")
-        detail_label.setStyleSheet("font-size: 12px; color: #A0A0AB;")
+        detail_label.setStyleSheet(f"font-size: 12px; color: {tc('text_secondary')};")
         layout.addWidget(detail_label)
 
         progress = QProgressBar()
@@ -1315,7 +1327,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(progress)
 
         speed_label = QLabel("")
-        speed_label.setStyleSheet("font-size: 11px; color: #6B6B76;")
+        speed_label.setStyleSheet(f"font-size: 11px; color: {tc('text_muted')};")
         layout.addWidget(speed_label)
 
         layout.addStretch()
@@ -1607,17 +1619,9 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(t("lens_correction"))
 
     def _on_theme_toggle(self):
-        from ui.theme import build_stylesheet, DARK_THEME, LIGHT_THEME
-        settings = QSettings("PhotoEditor2", "PhotoEditor2")
-        current = settings.value("theme", "dark")
-        if current == "dark":
-            new_theme = "light"
-            self.setStyleSheet(build_stylesheet(LIGHT_THEME))
-        else:
-            new_theme = "dark"
-            self.setStyleSheet(build_stylesheet(DARK_THEME))
-        settings.setValue("theme", new_theme)
-        self.statusBar().showMessage(f"Motyw: {new_theme}")
+        from ui.theme import toggle_theme, current_name
+        toggle_theme(save=True)
+        self.statusBar().showMessage(f"Motyw: {current_name()}")
 
     def _on_lang_change(self, lang):
         from config.i18n import I18n
@@ -1734,7 +1738,8 @@ class MainWindow(QMainWindow):
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
-            self.setStyleSheet(self._drop_highlight_style)
+            from ui.theme import tc
+            self.setStyleSheet(f"QMainWindow {{ border: 3px dashed {tc('accent')}; }}")
 
     def dragLeaveEvent(self, event):
         self._apply_current_theme()
@@ -1748,12 +1753,9 @@ class MainWindow(QMainWindow):
                 break
 
     def _apply_current_theme(self):
-        from ui.theme import build_stylesheet, DARK_THEME, LIGHT_THEME
-        saved = QSettings("PhotoEditor2", "PhotoEditor2").value("theme", "dark")
-        if saved == "light":
-            self.setStyleSheet(build_stylesheet(LIGHT_THEME))
-        else:
-            self.setStyleSheet(build_stylesheet(DARK_THEME))
+        from ui.theme import apply_theme
+        self.setStyleSheet("")  # clear drop-highlight override
+        apply_theme()
 
     # === MULTI-TAB MANAGEMENT ===
 
@@ -1862,7 +1864,7 @@ class MainWindow(QMainWindow):
             self.statusBar().setVisible(False)
 
     def _toggle_histogram(self):
-        self._hist_dock.setVisible(not self._hist_dock.isVisible())
+        self._hist_container.setVisible(not self._hist_container.isVisible())
 
     # --- v0.4.1: Adjust (brightness/contrast/saturation) ---
     def _on_adjust(self):

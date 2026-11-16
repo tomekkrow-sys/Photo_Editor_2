@@ -9,13 +9,15 @@ from PySide6.QtWidgets import (
     QSpinBox,
 )
 
+from config.i18n import t
+
 
 class ResizeDialog(QDialog):
     """Dialog for resizing the image with optional aspect-ratio lock."""
 
     def __init__(self, parent, width: int, height: int) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Zmien rozmiar")
+        self.setWindowTitle(t("resize_title"))
         self._ratio = width / height
 
         layout = QFormLayout(self)
@@ -28,17 +30,19 @@ class ResizeDialog(QDialog):
         self.height_spin.setRange(1, 20000)
         self.height_spin.setValue(height)
 
-        self.lock = QCheckBox("Zachowaj proporcje")
+        self.lock = QCheckBox(t("keep_ratio"))
         self.lock.setChecked(True)
 
-        layout.addRow("Szerokosc:", self.width_spin)
-        layout.addRow("Wysokosc:", self.height_spin)
+        layout.addRow(t("width_lbl"), self.width_spin)
+        layout.addRow(t("height_lbl"), self.height_spin)
         layout.addRow(self.lock)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok
             | QDialogButtonBox.StandardButton.Cancel
         )
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText(t("ok"))
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("cancel"))
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addRow(buttons)

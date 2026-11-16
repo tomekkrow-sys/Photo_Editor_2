@@ -12,6 +12,7 @@ import os
 import shutil
 import sys
 import traceback
+import re
 from pathlib import Path
 
 from PySide6.QtCore import Qt
@@ -136,6 +137,22 @@ def main() -> int:
     app.setApplicationName(APP_NAME)
     app.setApplicationVersion(APP_VERSION)
 
+    # --- Application-level theme (dialogs / message boxes inherit) ---
+    try:
+        from ui.theme import init_theme, apply_theme
+        init_theme()
+        apply_theme(app)
+    except Exception as _e:
+        logging.warning("Theme init failed: %s", _e)
+
+    try:
+        from PySide6.QtGui import QIcon
+        _icon_path = ROOT_DIR / "resources" / "icons" / "photo_editor_2.png"
+        if _icon_path.exists():
+            app.setWindowIcon(QIcon(str(_icon_path)))
+    except Exception as _e:
+        logging.warning("Window icon failed: %s", _e)
+
     install_exception_handler(APP_VERSION)
 
     window = MainWindow(catalog)
@@ -209,15 +226,31 @@ def main() -> int:
                     latest = best_tag
                     current = _cur
                     _ulog(f"Current: v{current}, Latest: v{latest}")
-                    cur_parts = [int(x) for x in current.split(".")]
-                    lat_parts = [int(x) for x in latest.split(".")]
+                    
+                    # Parse version numbers, handling 'v' prefix if present
+                    def parse_version(ver):
+                        """Parse version string to list of integers."""
+                        ver = re.sub(r'^v', '', ver)
+                        try:
+                            return [int(x) for x in ver.split('.')]
+                        except ValueError:
+                            return [0, 0, 0]
+                    
+                    cur_parts = parse_version(current)
+                    lat_parts = parse_version(latest)
+                    
+                    # Compare versions
                     newer = False
-                    for i in range(min(len(cur_parts), len(lat_parts))):
-                        if lat_parts[i] > cur_parts[i]:
+                    max_len = max(len(cur_parts), len(lat_parts))
+                    for i in range(max_len):
+                        cur_val = cur_parts[i] if i < len(cur_parts) else 0
+                        lat_val = lat_parts[i] if i < len(lat_parts) else 0
+                        if lat_val > cur_val:
                             newer = True
                             break
-                        elif lat_parts[i] < cur_parts[i]:
+                        elif lat_val < cur_val:
                             break
+                    
                     if newer:
                         _ulog(f"New version available: v{latest}")
                         self.result.emit(current, latest)
@@ -398,9 +431,12 @@ def main() -> int:
             downloader.done.connect(on_done)
             downloader.start()
 
-        _checker = _UpdateChecker()
-        _checker.result.connect(_on_update_result)
-        _checker.start()
+        # Check for updates only if background updates are enabled
+        update_cfg = cfg.get("update", {})
+        if update_cfg.get("background_updates", True):
+            _checker = _UpdateChecker()
+            _checker.result.connect(_on_update_result)
+            _checker.start()
     except Exception as e:
         logging.warning("Auto-update setup failed: %s", e)
 

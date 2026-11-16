@@ -252,6 +252,46 @@ class ActionManager:
         self.raw_batch = QAction(t("raw_batch"), self.parent)
         _tip(self.raw_batch, t("raw_batch"))
 
+        self._assign_icons()
+
+    def _assign_icons(self):
+        """Attach SVG icons to actions (falls back silently if missing)."""
+        try:
+            from core.icon_manager import IconManager
+            from ui.theme import tc
+            color = tc("text_primary")
+            im = IconManager()
+            mapping = {
+                "new": "new", "open": "open", "save": "save",
+                "save_as": "save_as", "export": "export",
+                "batch": "batch", "exit": "exit",
+                "undo": "undo", "redo": "redo",
+                "zoom_in": "zoom_in", "zoom_out": "zoom_out",
+                "fit": "fit", "actual_size": "actual_size",
+                "crop": "crop", "spot": "spot", "brush": "brush",
+                "rotate_left": "rotate_left", "rotate_right": "rotate_right",
+                "flip_h": "flip_h", "flip_v": "flip_v",
+                "before_after": "before_after",
+                "pencil": "pencil", "black_white": "black_white",
+                "about": "about", "theme_toggle": "settings",
+                "move": "move", "rectangle": "rectangle",
+                "ellipse": "ellipse",
+            }
+            for attr, name in mapping.items():
+                action = getattr(self, attr, None)
+                if action is None:
+                    continue
+                icon = im.icon(name, color=color)
+                if not icon.isNull():
+                    action.setIcon(icon)
+            # Re-tint icons when theme changes
+            from ui.theme import on_change
+            if not getattr(self, "_theme_hooked", False):
+                on_change(self._assign_icons)
+                self._theme_hooked = True
+        except Exception:
+            pass
+
     def _refresh_texts(self, lang=None):
         self.new.setText(t("new"))
         self.open.setText(t("open"))

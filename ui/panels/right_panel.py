@@ -22,7 +22,8 @@ class SliderRow(QWidget):
         lay.setContentsMargins(4, 2, 4, 2)
         lay.setSpacing(2)
         self.lab = QLabel(f"{name}: {df:.1f}")
-        self.lab.setStyleSheet("font-size: 12px; font-weight: 600; color: #9898A4;")
+        from ui.theme import tc
+        self.lab.setStyleSheet(f"font-size: 12px; font-weight: 600; color: {tc('text_secondary')};")
         lay.addWidget(self.lab)
         self.sli = QSlider(Qt.Orientation.Horizontal)
         self.sli.setRange(int(mn/st), int(mx/st))
@@ -73,7 +74,7 @@ class RightPanel(QScrollArea):
         lay = QVBoxLayout(c)
         lay.setSpacing(6)
 
-        pres = CollapsibleSection(t("presets"), icon="\u2728")
+        pres = CollapsibleSection(t("presets"), icon="\u2605")  # ★ (emoji ✨ has no glyph)
         pl = QVBoxLayout()
         self.preset_combo = QComboBox()
         self.preset_combo.addItem(t("select_preset"))
@@ -83,15 +84,18 @@ class RightPanel(QScrollArea):
         pl.addWidget(self.preset_name)
         row = QWidget()
         rl = QHBoxLayout(row)
+        rl.setSpacing(4)
         sb = QPushButton(t("preset_save"))
         lb = QPushButton(t("preset_load"))
         db = QPushButton(t("preset_delete"))
+        for b in (sb, lb, db):
+            b.setProperty("compact", "true")
         sb.clicked.connect(self._on_preset_save)
         lb.clicked.connect(self._on_preset_load)
         db.clicked.connect(self._on_preset_delete)
-        rl.addWidget(sb)
-        rl.addWidget(lb)
-        rl.addWidget(db)
+        rl.addWidget(sb, 1)
+        rl.addWidget(lb, 1)
+        rl.addWidget(db, 1)
         pl.addWidget(row)
         pres.add_layout(pl)
         lay.addWidget(pres)
@@ -184,17 +188,17 @@ class RightPanel(QScrollArea):
 
     def _on_preset_load(self):
         n = self.preset_combo.currentText()
-        if n and n != "-- wybierz --":
+        if n and n != t("select_preset"):
             self.preset_load_requested.emit(n)
 
     def _on_preset_delete(self):
         n = self.preset_combo.currentText()
-        if n and n != "-- wybierz --":
+        if n and n != t("select_preset"):
             self.preset_delete_requested.emit(n)
 
     def set_preset_list(self, names):
         self.preset_combo.clear()
-        self.preset_combo.addItem("-- wybierz --")
+        self.preset_combo.addItem(t("select_preset"))
         for n in names:
             self.preset_combo.addItem(n)
 
