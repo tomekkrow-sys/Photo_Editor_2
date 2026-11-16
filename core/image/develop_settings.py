@@ -4,7 +4,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Self
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # typing.Self requires Python 3.11+; annotations are strings
+    from typing import Self
 
 
 @dataclass(slots=True)

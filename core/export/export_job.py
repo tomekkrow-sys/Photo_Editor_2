@@ -6,7 +6,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
-from typing import Self
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # typing.Self requires Python 3.11+; annotations are strings
+    from typing import Self
 
 from core.image.develop_settings import DevelopSettings
 
