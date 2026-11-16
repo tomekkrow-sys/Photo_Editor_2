@@ -27,7 +27,7 @@ class HistogramLuminanceTests(unittest.TestCase):
 
         widget.set_image(img)
 
-        self.assertEqual(int(np.argmax(widget._hist_l)), 200)
+        self.assertEqual(int(np.argmax(widget._lum)), 200)
 
     def test_rgb_channels_peak_at_channel_value(self) -> None:
         widget = HistogramWidget()
@@ -35,9 +35,9 @@ class HistogramLuminanceTests(unittest.TestCase):
 
         widget.set_image(img)
 
-        self.assertEqual(int(np.argmax(widget._hist_r)), 10)
-        self.assertEqual(int(np.argmax(widget._hist_g)), 128)
-        self.assertEqual(int(np.argmax(widget._hist_b)), 250)
+        self.assertEqual(int(np.argmax(widget._r)), 10)
+        self.assertEqual(int(np.argmax(widget._g)), 128)
+        self.assertEqual(int(np.argmax(widget._b)), 250)
 
 
 if __name__ == "__main__":

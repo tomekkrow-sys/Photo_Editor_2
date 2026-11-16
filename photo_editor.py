@@ -162,7 +162,6 @@ def main() -> int:
     # --- Global Ctrl+/- zoom event filter (catches it no matter which widget has focus) ---
     try:
         from PySide6.QtCore import QObject, QEvent
-        from PySide6.QtGui import QKeySequence
         class _ZoomFilter(QObject):
             def eventFilter(self, obj, event):
                 if event.type() == QEvent.Type.KeyPress and (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
@@ -432,7 +431,14 @@ def main() -> int:
             downloader.start()
 
         # Check for updates only if background updates are enabled
-        update_cfg = cfg.get("update", {})
+        update_cfg = {}
+        try:
+            import json as _json
+            _cfg_path = Path(__file__).resolve().parent / "config" / "updater_config.json"
+            if _cfg_path.exists():
+                update_cfg = _json.loads(_cfg_path.read_text()).get("update", {})
+        except Exception:
+            update_cfg = {}
         if update_cfg.get("background_updates", True):
             _checker = _UpdateChecker()
             _checker.result.connect(_on_update_result)

@@ -5,7 +5,6 @@ Handles version retrieval, checking, downloading, and installing updates.
 """
 
 import os
-import sys
 import json
 import logging
 import requests
@@ -14,7 +13,6 @@ import tarfile
 import zipfile
 import shutil
 import tempfile
-from pathlib import Path
 from datetime import datetime
 import hashlib
 
@@ -226,6 +224,14 @@ class UpdateManager:
             
         return platform_name, arch
 
+    def _calculate_checksum(self, file_path, algorithm="sha256"):
+        """Calculate hex digest of a file (for verifying downloaded assets)."""
+        digest = hashlib.new(algorithm)
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+
     def _create_backup(self):
         """Create a backup of current installation."""
         try:
@@ -390,6 +396,25 @@ class UpdateManager:
                 self._rollback_update(backup_dir)
                 
             return False
+
+    def check_for_update(self):
+        """Check GitHub for a newer release and return update info.
+
+        Returns:
+            dict with current_version, latest_version, update_available,
+            is_up_to_date and is_newer (current ahead of release).
+        """
+        current = self.get_current_version()
+        latest = self.get_latest_version()
+        update_available = bool(latest) and self.is_version_newer(latest, current)
+        is_newer = bool(latest) and self.is_version_newer(current, latest)
+        return {
+            "current_version": current,
+            "latest_version": latest,
+            "update_available": update_available,
+            "is_up_to_date": bool(latest) and not update_available and not is_newer,
+            "is_newer": is_newer,
+        }
 
     def check_and_update(self, auto_install=True):
         """

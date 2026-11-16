@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QSlider, QFormLayout, QSpinBox,
+    QFormLayout, QSpinBox,
 )
 from config.i18n import t
 
@@ -28,34 +28,58 @@ class PerspectiveDialog(QDialog):
 
         # Top-left
         tl_row = QHBoxLayout()
-        self.tl_x = QSpinBox(); self.tl_x.setRange(0, 99999); self.tl_x.setValue(0)
-        self.tl_y = QSpinBox(); self.tl_y.setRange(0, 99999); self.tl_y.setValue(0)
-        tl_row.addWidget(QLabel("X:")); tl_row.addWidget(self.tl_x)
-        tl_row.addWidget(QLabel("Y:")); tl_row.addWidget(self.tl_y)
+        self.tl_x = QSpinBox()
+        self.tl_x.setRange(0, 99999)
+        self.tl_x.setValue(0)
+        self.tl_y = QSpinBox()
+        self.tl_y.setRange(0, 99999)
+        self.tl_y.setValue(0)
+        tl_row.addWidget(QLabel("X:"))
+        tl_row.addWidget(self.tl_x)
+        tl_row.addWidget(QLabel("Y:"))
+        tl_row.addWidget(self.tl_y)
         form.addRow(t("perspective_topleft"), tl_row)
 
         # Top-right
         tr_row = QHBoxLayout()
-        self.tr_x = QSpinBox(); self.tr_x.setRange(0, 99999); self.tr_x.setValue(self.img_w)
-        self.tr_y = QSpinBox(); self.tr_y.setRange(0, 99999); self.tr_y.setValue(0)
-        tr_row.addWidget(QLabel("X:")); tr_row.addWidget(self.tr_x)
-        tr_row.addWidget(QLabel("Y:")); tr_row.addWidget(self.tr_y)
+        self.tr_x = QSpinBox()
+        self.tr_x.setRange(0, 99999)
+        self.tr_x.setValue(self.img_w)
+        self.tr_y = QSpinBox()
+        self.tr_y.setRange(0, 99999)
+        self.tr_y.setValue(0)
+        tr_row.addWidget(QLabel("X:"))
+        tr_row.addWidget(self.tr_x)
+        tr_row.addWidget(QLabel("Y:"))
+        tr_row.addWidget(self.tr_y)
         form.addRow(t("perspective_topright"), tr_row)
 
         # Bottom-right
         br_row = QHBoxLayout()
-        self.br_x = QSpinBox(); self.br_x.setRange(0, 99999); self.br_x.setValue(self.img_w)
-        self.br_y = QSpinBox(); self.br_y.setRange(0, 99999); self.br_y.setValue(self.img_h)
-        br_row.addWidget(QLabel("X:")); br_row.addWidget(self.br_x)
-        br_row.addWidget(QLabel("Y:")); br_row.addWidget(self.br_y)
+        self.br_x = QSpinBox()
+        self.br_x.setRange(0, 99999)
+        self.br_x.setValue(self.img_w)
+        self.br_y = QSpinBox()
+        self.br_y.setRange(0, 99999)
+        self.br_y.setValue(self.img_h)
+        br_row.addWidget(QLabel("X:"))
+        br_row.addWidget(self.br_x)
+        br_row.addWidget(QLabel("Y:"))
+        br_row.addWidget(self.br_y)
         form.addRow(t("perspective_bottomright"), br_row)
 
         # Bottom-left
         bl_row = QHBoxLayout()
-        self.bl_x = QSpinBox(); self.bl_x.setRange(0, 99999); self.bl_x.setValue(0)
-        self.bl_y = QSpinBox(); self.bl_y.setRange(0, 99999); self.bl_y.setValue(self.img_h)
-        bl_row.addWidget(QLabel("X:")); bl_row.addWidget(self.bl_x)
-        bl_row.addWidget(QLabel("Y:")); bl_row.addWidget(self.bl_y)
+        self.bl_x = QSpinBox()
+        self.bl_x.setRange(0, 99999)
+        self.bl_x.setValue(0)
+        self.bl_y = QSpinBox()
+        self.bl_y.setRange(0, 99999)
+        self.bl_y.setValue(self.img_h)
+        bl_row.addWidget(QLabel("X:"))
+        bl_row.addWidget(self.bl_x)
+        bl_row.addWidget(QLabel("Y:"))
+        bl_row.addWidget(self.bl_y)
         form.addRow(t("perspective_bottomleft"), bl_row)
 
         lay.addLayout(form)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -13,6 +14,26 @@ from PIL import Image
 from PySide6.QtWidgets import QApplication
 
 from ui.main_window import MainWindow
+
+
+def _load_sync(window, app, path, timeout: float = 5.0) -> None:
+    """Run MainWindow._load (async) and pump events until it fully completes."""
+    window._load(path)
+    loader = getattr(window, "_image_loader_worker", None)
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        app.processEvents()
+        if loader is not None and not loader.isRunning():
+            break
+        time.sleep(0.01)
+    # deliver queued finished/error signals + follow-up render
+    for _ in range(20):
+        app.processEvents()
+    worker = getattr(window, "_worker", None)
+    if worker is not None and worker.isRunning():
+        worker.wait(2000)
+        for _ in range(10):
+            app.processEvents()
 
 
 class MainWindowOpsTests(unittest.TestCase):
@@ -27,7 +48,7 @@ class MainWindowOpsTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.image_path = Path(self.tmp.name) / "photo.png"
         Image.new("RGB", (120, 80), (200, 120, 60)).save(self.image_path)
-        self.window._load(self.image_path)
+        _load_sync(self.window, self.app, self.image_path)
 
     def tearDown(self) -> None:
         self.window._worker.wait(2000)
@@ -73,7 +94,7 @@ class MainWindowOpsTests(unittest.TestCase):
 
         second = Path(self.tmp.name) / "second.png"
         Image.new("RGB", (50, 50), (10, 10, 10)).save(second)
-        self.window._load(second)
+        _load_sync(self.window, self.app, second)
 
         self.assertFalse(self.window._history.can_undo)
         self.assertFalse(self.window._history.can_redo)
@@ -203,7 +224,7 @@ class MainWindowAdjUndoTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.image_path = Path(self.tmp.name) / "photo.png"
         Image.new("RGB", (120, 80), (200, 120, 60)).save(self.image_path)
-        self.window._load(self.image_path)
+        _load_sync(self.window, self.app, self.image_path)
 
     def tearDown(self) -> None:
         self.window._worker.wait(2000)
@@ -260,7 +281,7 @@ class MainWindowAdjUndoTests(unittest.TestCase):
         self.window._on_adj(adj)
         self.assertTrue(self.window._adj_history.can_undo)
 
-        self.window._load(self.image_path)
+        _load_sync(self.window, self.app, self.image_path)
         self.assertFalse(self.window._adj_history.can_undo)
 
 
@@ -283,7 +304,7 @@ class MainWindowBrushAndRecentTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.image_path = Path(self.tmp.name) / "photo.png"
         Image.new("RGB", (120, 80), (128, 128, 128)).save(self.image_path)
-        self.window._load(self.image_path)
+        _load_sync(self.window, self.app, self.image_path)
 
     def tearDown(self) -> None:
         self.window._worker.wait(2000)

@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-import importlib
-import inspect
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
@@ -12,12 +10,8 @@ from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import (
     QAction,
     QFileDialog,
-    QFrame,
     QHBoxLayout,
-    QLabel,
     QListWidget,
-    QListWidgetItem,
-    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,

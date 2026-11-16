@@ -5,18 +5,13 @@ Handles version retrieval, checking, downloading, and installing updates.
 """
 
 import os
-import sys
 import json
 import logging
 import requests
 import platform
 import tarfile
 import zipfile
-import shutil
 import tempfile
-from pathlib import Path
-from datetime import datetime
-import hashlib
 
 # Configure logging
 logging.basicConfig(

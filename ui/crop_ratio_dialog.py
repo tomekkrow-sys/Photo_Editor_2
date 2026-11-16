@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Crop by aspect ratio dialog."""
 from __future__ import annotations
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QDialogButtonBox, QLabel, QVBoxLayout,
 )

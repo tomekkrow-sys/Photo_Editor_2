@@ -21,22 +21,18 @@ This implementation maintains full backward compatibility while adding advanced 
 
 import sys
 import os
-import subprocess
 try:
     import requests
 except ImportError:
     requests = None
 import json
 import hashlib
-import base64
-from pathlib import Path
 import tempfile
 import shutil
 import zipfile
 import tarfile
 import re
 import threading
-import time
 import logging
 from datetime import datetime
 try:

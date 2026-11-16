@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
-    QLabel, QPushButton, QSplitter, QWidget, QSizePolicy,
+    QLabel, QPushButton, QSplitter, QWidget,
 )
 from config.i18n import t
 

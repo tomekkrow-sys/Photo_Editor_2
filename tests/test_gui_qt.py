@@ -9,7 +9,6 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PIL import Image
-from PySide6.QtWidgets import QApplication
 from ui.main_window import MainWindow
 from core.worker import ImageLoaderWorker
 
@@ -24,7 +23,8 @@ def test_main_window_creation(qtbot):
 def test_status_bar_progress(qtbot):
     window = MainWindow()
     qtbot.addWidget(window)
-    
+    window.show()
+
     sb = window.statusBar()
     sb.show_progress(0, 100)
     assert sb.progress_bar.isVisible()

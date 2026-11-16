@@ -2,9 +2,9 @@
 """Collapsible section widget — button header with icon + text."""
 
 from __future__ import annotations
-from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget,
+    QPushButton, QVBoxLayout, QWidget,
 )
 
 
@@ -59,8 +59,8 @@ class CollapsibleSection(QWidget):
     def add_widget(self, w: QWidget):
         self._content_layout.addWidget(w)
 
-    def add_layout(self, l):
-        self._content_layout.addLayout(l)
+    def add_layout(self, layout):
+        self._content_layout.addLayout(layout)
 
     def _toggle(self):
         self._expanded = not self._expanded

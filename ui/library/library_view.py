@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QSortFilterProxyModel, Signal, QThreadPool
+from PySide6.QtCore import Qt, Signal, QThreadPool
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -14,7 +14,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QPushButton,
     QVBoxLayout,
     QWidget,
 )

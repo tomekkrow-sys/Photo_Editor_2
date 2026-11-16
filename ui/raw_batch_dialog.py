@@ -6,9 +6,9 @@ import time
 from pathlib import Path
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (
-    QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog,
+    QCheckBox, QComboBox, QDialog, QFileDialog,
     QFormLayout, QHBoxLayout, QLabel, QLineEdit, QProgressBar,
-    QPushButton, QSlider, QVBoxLayout, QGroupBox, QSpinBox,
+    QPushButton, QSlider, QVBoxLayout, QGroupBox,
 )
 from config.i18n import t
 

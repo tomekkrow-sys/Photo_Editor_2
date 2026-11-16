@@ -9,12 +9,10 @@ from pathlib import Path
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
-    QFileDialog,
     QFormLayout,
     QGroupBox,
     QListWidget,
     QListWidgetItem,
-    QMessageBox,
     QVBoxLayout,
     QWidget,
 )
@@ -144,7 +142,6 @@ class ExportPresetDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
-        formats = ["JPG", "PNG", "TIFF"]
         self._format_combo = preset.get("format", "JPG")
         return widget
 

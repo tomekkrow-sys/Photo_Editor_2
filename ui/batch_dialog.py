@@ -5,10 +5,10 @@ import json
 from pathlib import Path
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (
-    QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog,
+    QComboBox, QDialog, QFileDialog,
     QFormLayout, QHBoxLayout, QLabel, QLineEdit, QListWidget,
     QListWidgetItem, QProgressBar, QPushButton, QSlider, QSpinBox,
-    QVBoxLayout, QWidget, QMessageBox, QGroupBox,
+    QVBoxLayout, QMessageBox, QGroupBox,
 )
 from config.i18n import t
 
@@ -44,7 +44,7 @@ class _BatchWorker(QThread):
         self._cancel = True
 
     def run(self):
-        from PIL import Image, ImageEnhance, ImageFilter
+        from PIL import Image
         import core.filters as F
 
         ok = 0

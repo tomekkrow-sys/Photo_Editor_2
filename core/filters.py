@@ -89,22 +89,6 @@ def negative(img: Image.Image) -> Image.Image:
     return Image.fromarray(255 - rgb, mode="RGB")
 
 
-def vignette(img: Image.Image, strength: float = 0.6) -> Image.Image:
-    """Darken image corners; returns a new RGB image."""
-
-    rgb = np.asarray(img.convert("RGB"), dtype=np.float32)
-    h, w = rgb.shape[:2]
-
-    y, x = np.ogrid[:h, :w]
-    d = np.sqrt(((x - w / 2) / (w / 2)) ** 2 + ((y - h / 2) / (h / 2)) ** 2)
-    corner = np.sqrt(2.0)
-    falloff = np.clip((d - 0.5) / (corner - 0.5), 0.0, 1.0)
-    mask = 1.0 - strength * falloff
-
-    out = rgb * mask[..., None]
-    return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8), mode="RGB")
-
-
 def frame(img: Image.Image, border: int | None = None, color=(255, 255, 255)) -> Image.Image:
     """Add a solid border around the photo; returns a new RGB image."""
 
@@ -323,8 +307,15 @@ def gaussian_blur(img: Image.Image, kernel_size: int = 5, sigma: float = 1.0) ->
         # Compute luminance from blurred RGB to get back grayscale
         gray = 0.299 * result[..., 0] + 0.587 * result[..., 1] + 0.114 * result[..., 2]
         result = gray.astype(np.uint8)
+        return Image.fromarray(result, mode="L")
 
-    return Image.fromarray(result.astype(np.uint8), mode=img.mode)
+    # Preserve alpha channel for RGBA input
+    if img.mode == "RGBA":
+        alpha = np.asarray(img)[..., 3]
+        result = np.dstack([result, alpha])
+        return Image.fromarray(result.astype(np.uint8), mode="RGBA")
+
+    return Image.fromarray(result.astype(np.uint8), mode="RGB")
 
 
 def sharpen(
@@ -368,7 +359,7 @@ def emboss(
     Args:
         img: Input image (RGB, RGBA, L).
         intensity: Strength of embossing (0.0 = no emboss, 1.0 = standard).
-        angle: Direction of light source in degrees (0 = from right, 90 = from top).
+        angle: Direction of light source in degrees (0 = from right, 90 = from bottom).
 
     Returns:
         New RGB image with emboss effect.
@@ -396,24 +387,19 @@ def emboss(
     # Create emboss base (mid-gray)
     embossed = np.full_like(arr, 128, dtype=np.float32)
 
-    # Apply emboss based on gradient direction and intensity
+    # Diffuse lighting: brightness ~ N.L with surface normal N = (-dh/dx, -dh/dy, 1)
     angle_rad = np.radians(angle)
-    light_x = np.cos(angle_rad)
-    light_y = np.sin(angle_rad)
-
-    # Dot product of gradient with light direction
     gradient_direction = np.arctan2(sobel_y, sobel_x)
-    light_direction = angle_rad
-    dot_product = np.cos(gradient_direction - light_direction)
+    dot_product = -np.cos(gradient_direction - angle_rad)
 
     # Apply emboss
-    embossed += magnitude * dot_product * intensity * 64
+    embossed += (magnitude * dot_product * intensity * 160)[..., None]
 
     # Add subtle lighting gradient for depth
     h, w = gray.shape
     y, x = np.ogrid[:h, :w]
     depth = (x / w + y / h) * 0.5
-    embossed += depth * intensity * 16
+    embossed += (depth * intensity * 32)[..., None]
 
     result = np.clip(embossed, 0, 255).astype(np.uint8)
 
@@ -674,10 +660,8 @@ def duotone(img: Image.Image, color1: str = "#FF6B35", color2: str = "#004E89") 
     """Duotone effect - map grayscale to two colors."""
     from PIL import ImageDraw
     gray = img.convert("L")
-    w, h = gray.size
     c1 = ImageDraw.Draw(Image.new("RGB", (1, 1))).getrgb(color1)
     c2 = ImageDraw.Draw(Image.new("RGB", (1, 1))).getrgb(color2)
-    result = Image.new("RGB", (w, h))
     gray_arr = np.asarray(gray, dtype=np.float32) / 255.0
     r = (gray_arr * c1[0] + (1 - gray_arr) * c2[0]).astype(np.uint8)
     g = (gray_arr * c1[1] + (1 - gray_arr) * c2[1]).astype(np.uint8)

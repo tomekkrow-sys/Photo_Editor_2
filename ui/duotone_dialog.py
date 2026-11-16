@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Duotone custom color dialog."""
 from __future__ import annotations
-from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QColorDialog, QDialog, QDialogButtonBox, QHBoxLayout,

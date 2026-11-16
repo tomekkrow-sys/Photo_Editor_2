@@ -3,7 +3,7 @@
 from __future__ import annotations
 import os
 import random
-from PySide6.QtCore import Qt, QTimer, QEasingCurve
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPixmap, QKeyEvent
 from PySide6.QtWidgets import QWidget, QLabel, QApplication
 

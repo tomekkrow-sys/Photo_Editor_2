@@ -2,8 +2,7 @@
 """RGB Histogram widget for Photo Editor 2."""
 from __future__ import annotations
 import numpy as np
-from PySide6.QtCore import Qt, QRect
-from PySide6.QtGui import QImage, QPainter, QColor, QPen, QLinearGradient, QPainterPath
+from PySide6.QtGui import QImage, QPainter, QColor, QPen, QPainterPath
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from config.i18n import t
 
@@ -20,7 +19,34 @@ class HistogramWidget(QWidget):
         self._b = np.zeros(256, dtype=np.float64)
         self._lum = np.zeros(256, dtype=np.float64)
 
+    @staticmethod
+    def _to_qimage(qimg) -> QImage | None:
+        """Accept QImage, QPixmap or PIL.Image; return QImage or None."""
+        if qimg is None:
+            return None
+        if isinstance(qimg, QImage):
+            return qimg
+        # PIL image (tests / non-Qt callers)
+        try:
+            from PIL import Image as PILImage
+
+            if isinstance(qimg, PILImage.Image):
+                rgba = qimg.convert("RGBA")
+                w, h = rgba.size
+                data = rgba.tobytes("raw", "RGBA")
+                return QImage(data, w, h, w * 4, QImage.Format.Format_RGBA8888).copy()
+        except Exception:
+            pass
+        # QPixmap
+        if hasattr(qimg, "toImage"):
+            try:
+                return qimg.toImage()
+            except Exception:
+                return None
+        return None
+
     def set_image(self, qimg: QImage | None):
+        qimg = self._to_qimage(qimg)
         if qimg is None or qimg.isNull():
             self._r[:] = 0
             self._g[:] = 0

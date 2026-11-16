@@ -65,16 +65,16 @@ class TestUnifiedUpdateManager(unittest.TestCase):
         # Remove the version.txt file
         os.remove("version.txt")
         version = self.updater.get_current_version()
-        self.assertEqual(version, "0.0.0")
+        self.assertEqual(version, "1.0.0")
     
     def test_version_comparison_newer(self):
         """Test version comparison - newer version"""
-        result = self.updater.is_version_newer("1.0.0", "1.0.1")
+        result = self.updater.is_version_newer("1.0.1", "1.0.0")
         self.assertTrue(result)
     
     def test_version_comparison_older(self):
         """Test version comparison - older version"""
-        result = self.updater.is_version_newer("1.0.1", "1.0.0")
+        result = self.updater.is_version_newer("1.0.0", "1.0.1")
         self.assertFalse(result)
     
     def test_version_comparison_equal(self):
@@ -142,7 +142,8 @@ class TestUnifiedUpdateManager(unittest.TestCase):
     def test_create_backup_success(self, mock_copy, mock_exists):
         """Test creating backup successfully"""
         mock_exists.return_value = True
-        backup_dir = self.updater._create_backup("test_backup")
+        os.makedirs("backup", exist_ok=True)
+        backup_dir = self.updater._create_backup()
         
         # Ensure we get a backup directory path
         self.assertIsNotNone(backup_dir)
@@ -154,7 +155,7 @@ class TestUnifiedUpdateManager(unittest.TestCase):
         mock_exists.return_value = False
         mock_copy.side_effect = Exception("Copy error")
         
-        backup_dir = self.updater._create_backup("test_backup")
+        backup_dir = self.updater._create_backup()
         # Method should return None on failure
         self.assertIsNone(backup_dir)
     

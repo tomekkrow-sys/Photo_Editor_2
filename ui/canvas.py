@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 from PySide6.QtCore import Qt, QRectF, QPointF, Signal
-from PySide6.QtGui import QColor, QPainter, QPen, QKeySequence
+from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
 class Canvas(QWidget):

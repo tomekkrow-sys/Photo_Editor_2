@@ -2,10 +2,9 @@
 """Smart crop dialog - auto-detect best crop region with ratio selection."""
 from __future__ import annotations
 from PySide6.QtCore import Qt, QThread, Signal
-from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QDialogButtonBox, QLabel, QVBoxLayout,
-    QHBoxLayout, QProgressBar, QCheckBox,
+    QHBoxLayout, QProgressBar,
 )
 from core.filters import smart_crop, smart_crop_auto
 from core.pipeline import pil_to_qpixmap

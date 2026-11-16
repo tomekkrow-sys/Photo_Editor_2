@@ -5,16 +5,19 @@ from __future__ import annotations
 import unittest
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from core.filters import (
     auto_enhance,
     black_and_white,
     composite,
+    emboss,
     frame,
+    gaussian_blur,
     negative,
     pencil_sketch,
     sepia,
+    sharpen,
     straighten,
     vignette,
     watermark,
@@ -364,8 +367,8 @@ class SharpenTests(unittest.TestCase):
         result = sharpen(img, amount=1.5)
 
         # Check edge pixels: left side should get darker, right side lighter
-        left_mean = np.mean(np.asarray(result)[:25, 25:75, 0])
-        right_mean = np.mean(np.asarray(result)[75:, 25:75, 0])
+        left_mean = np.mean(np.asarray(result)[:, :25, 0])
+        right_mean = np.mean(np.asarray(result)[:, 75:, 0])
         # After sharpening, contrast should increase
         self.assertGreater(right_mean - left_mean, 50)
 
@@ -424,6 +427,8 @@ class EmbossTests(unittest.TestCase):
 
         # Check that left_lit shows left-side darkening more than top_lit
         self.assertGreater(left_right - left_left, 10)
+        # Light from bottom: bottom side should be brighter than top
+        self.assertGreater(top_bottom - top_top, 10)
 
 
 class VignetteTests(unittest.TestCase):

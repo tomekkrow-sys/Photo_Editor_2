@@ -99,6 +99,9 @@ class BrushTool:
         grad = QRadialGradient(QPointF(r, r), r)
         alpha = int(255 * self.settings.opacity * self.settings.flow)
         color = QColor(self.settings.color)
+        if self.settings.mode == BrushMode.BURN:
+            # Multiply darkens only when multiplying by black
+            color = QColor("black")
         hard_color = QColor(color)
         hard_color.setAlpha(alpha)
         soft_color = QColor(color)

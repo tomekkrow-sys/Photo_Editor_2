@@ -5,8 +5,6 @@ Photo Editor 2 Main Application with Advanced Update Manager
 
 import sys
 import os
-import threading
-from pathlib import Path
 
 # Add the current directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

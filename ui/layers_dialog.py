@@ -4,11 +4,10 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap, QImage
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QSlider, QComboBox, QFileDialog, QListWidget, QListWidgetItem,
-    QSplitter, QWidget, QSpinBox,
+    QSlider, QComboBox, QFileDialog, QListWidget,
 )
 from PIL import Image
-import numpy as np
+from pathlib import Path
 
 
 class LayersDialog(QDialog):

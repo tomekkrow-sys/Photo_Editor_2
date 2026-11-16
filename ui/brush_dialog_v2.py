@@ -4,9 +4,8 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
-    QColorDialog, QDialog, QFormLayout, QHBoxLayout,
-    QLabel, QPushButton, QSlider, QVBoxLayout, QGroupBox,
-    QComboBox, QDoubleSpinBox,
+    QDialog, QFormLayout, QHBoxLayout,
+    QLabel, QPushButton, QSlider, QVBoxLayout, QComboBox,
 )
 from config.i18n import t
 

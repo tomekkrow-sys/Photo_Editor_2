@@ -6,7 +6,6 @@ Photo Editor 2 - Main Application with Update Manager
 import sys
 import os
 import subprocess
-from pathlib import Path
 
 # Add the current directory to Python path to import modules
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

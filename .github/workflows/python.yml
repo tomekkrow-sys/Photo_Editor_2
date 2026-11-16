@@ -32,10 +32,9 @@ jobs:
 
       - name: Install system packages
         run: |
-          sudo apt update
-          sudo apt install -y \
-            python3-pip \
-            python3-pyside6
+          sudo apt-get update
+          sudo apt-get install -y libgl1 libgomp1
+          sudo apt-get install -y libglib2.0-0t64 || sudo apt-get install -y libglib2.0-0
 
       - name: Install project dependencies
         run: |

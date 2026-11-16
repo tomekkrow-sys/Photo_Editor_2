@@ -12,9 +12,8 @@ import tempfile
 import zipfile
 from pathlib import Path
 from urllib.request import urlopen, Request
-from urllib.error import URLError
 
-from config.version import APP_VERSION, APP_NAME
+from config.version import APP_VERSION
 
 GITHUB_REPO = "tomekkrow-sys/Photo_Editor_2"
 GITHUB_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"

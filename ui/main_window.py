@@ -6,7 +6,6 @@ import re
 import os
 import platform
 import urllib.request
-import json
 import tempfile
 import shutil
 import zipfile
@@ -2064,7 +2063,6 @@ class MainWindow(QMainWindow):
         self.canvas.cancel_select()
 
         self._history.push(self._orig, "Edycja zaznaczenia")
-        import numpy as np
         from PIL import Image, ImageFilter as PILFilter
         import core.filters as F
 

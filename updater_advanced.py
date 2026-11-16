@@ -5,19 +5,14 @@ Advanced Update Manager for Photo Editor 2 with background updates
 
 import sys
 import os
-import subprocess
 import requests
-import json
-from pathlib import Path
 import tempfile
-import shutil
 import zipfile
 import tarfile
 import re
 import threading
 import time
 import logging
-from datetime import datetime
 
 # Add current directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

@@ -37,6 +37,8 @@ class WorkerTests(unittest.TestCase):
 
             worker.start()
             worker.wait(5000)
+            for _ in range(10):
+                QCoreApplication.processEvents()
 
             self.assertEqual(len(error_result), 0)
             self.assertEqual(len(loaded_result), 1)
@@ -57,6 +59,8 @@ class WorkerTests(unittest.TestCase):
 
             worker.start()
             worker.wait(5000)
+            for _ in range(10):
+                QCoreApplication.processEvents()
 
             self.assertEqual(len(loaded_result), 0)
             self.assertEqual(len(error_result), 1)
@@ -73,6 +77,8 @@ class WorkerTests(unittest.TestCase):
 
         worker.start()
         worker.wait(5000)
+        for _ in range(10):
+            QCoreApplication.processEvents()
 
         self.assertEqual(len(results), 1)
         self.assertIsNotNone(results[0])

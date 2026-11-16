@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPen, QBrush, QRadialGradient
 from PySide6.QtWidgets import (
     QDialog, QHBoxLayout, QVBoxLayout, QLabel, QPushButton,
-    QSlider, QWidget, QGroupBox, QFormLayout, QDoubleSpinBox,
+    QSlider, QWidget,
 )
 
 

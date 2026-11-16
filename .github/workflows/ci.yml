@@ -26,13 +26,14 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libgl1-mesa-glx libglib2.0-0 libgomp1
+        sudo apt-get install -y libgl1 libgomp1
+        sudo apt-get install -y libglib2.0-0t64 || sudo apt-get install -y libglib2.0-0
 
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest ruff
+        pip install pytest pytest-qt ruff
 
     - name: Lint with Ruff
       run: |

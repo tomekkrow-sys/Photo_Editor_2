@@ -5,7 +5,7 @@ from PySide6.QtGui import QColor, QFont, QIntValidator
 from PySide6.QtWidgets import (
     QColorDialog, QDialog, QFormLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QSlider, QVBoxLayout,
-    QFontComboBox, QComboBox, QGroupBox, QCheckBox,
+    QFontComboBox, QComboBox, QGroupBox,
 )
 from config.i18n import t
 
