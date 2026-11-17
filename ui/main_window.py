@@ -1169,10 +1169,8 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Wczytano preset: " + name)
 
     def _on_preset_delete(self, name):
-        import os
-        p = Path(__file__).resolve().parent.parent / "presets" / (name + ".json")
-        if p.exists():
-            os.remove(p)
+        from core.preset_manager import delete_preset
+        if delete_preset(name):
             self._refresh_presets()
             self.statusBar().showMessage("Usunieto preset: " + name)
 

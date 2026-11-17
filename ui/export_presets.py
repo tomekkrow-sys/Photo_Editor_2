@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
+from core.paths import user_data_dir
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -53,7 +53,8 @@ DEFAULT_PRESETS = [
 class PresetManager:
     """Export preset manager."""
 
-    PRESETS_DIR = Path("export_presets")
+    # Katalog użytkownika — /opt nie jest zapisywalne dla zwyklego usera.
+    PRESETS_DIR = user_data_dir() / "export_presets"
 
     @classmethod
     def load_presets(cls) -> list[dict]:
@@ -67,7 +68,7 @@ class PresetManager:
 
     @classmethod
     def save_preset(cls, preset: dict) -> None:
-        cls.PRESETS_DIR.mkdir(exist_ok=True)
+        cls.PRESETS_DIR.mkdir(parents=True, exist_ok=True)
         presets_file = cls.PRESETS_DIR / "presets.json"
         presets = cls.load_presets()
         presets = [p for p in presets if p["name"] != preset["name"]]

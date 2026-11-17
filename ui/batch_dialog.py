@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QMessageBox, QGroupBox,
 )
 from config.i18n import t
+from core.paths import user_data_dir
 
 FILTER_LIST = [
     ("resize", "resize"),
@@ -27,7 +28,8 @@ FILTER_LIST = [
     ("denoise", "denoise"),
 ]
 
-PRESETS_DIR = Path(__file__).resolve().parent.parent / "data" / "batch_presets"
+# Katalog użytkownika — nie katalog instalacji (/opt).
+PRESETS_DIR = user_data_dir() / "batch_presets"
 
 
 class _BatchWorker(QThread):

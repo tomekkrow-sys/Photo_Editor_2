@@ -7,10 +7,12 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QKeySequence
 import json
-from pathlib import Path
 
 
-CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
+# Zapis do katalogu użytkownika (/opt nie jest zapisywalne).
+from core.paths import user_config_dir
+
+CONFIG_DIR = user_config_dir()
 SHORTCUTS_FILE = CONFIG_DIR / "shortcuts.json"
 
 DEFAULT_SHORTCUTS = {
@@ -47,6 +49,7 @@ def load_shortcuts() -> dict:
 
 
 def save_shortcuts(shortcuts: dict) -> None:
+    SHORTCUTS_FILE.parent.mkdir(parents=True, exist_ok=True)
     SHORTCUTS_FILE.write_text(json.dumps(shortcuts, indent=2))
 
 
