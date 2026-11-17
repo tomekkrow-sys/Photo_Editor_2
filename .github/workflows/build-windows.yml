@@ -52,15 +52,32 @@ jobs:
           path: Photo_Editor_2-windows-v*.zip
 
   build-linux:
+    # Budowa na ubuntu:22.04 (glibc 2.35) - binarki musza dzialac na
+    # Pop!_OS/Ubuntu 22.04. Build na nowszym runnerze dawal binarki
+    # wymagajace glibc 2.38+ (libpython z toolcache + systemowe .so).
     runs-on: ubuntu-latest
+    container: ubuntu:22.04
     steps:
+      - name: Install system packages and Python 3.12
+        shell: bash
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates curl gnupg software-properties-common git binutils \
+            libgl1 libegl1 libgomp1 libfontconfig1 libxkbcommon0 \
+            libdbus-1-3 libglib2.0-0 libx11-6 libxcb1 libxext6 libxrender1
+          add-apt-repository -y ppa:deadsnakes/ppa
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            python3.12 python3.12-venv libpython3.12
+          python3.12 -m venv /opt/venv
+          echo "/opt/venv/bin" >> "$GITHUB_PATH"
+
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
       - name: Install dependencies
+        shell: bash
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
@@ -81,7 +98,36 @@ jobs:
         run: echo "${{ steps.version.outputs.VERSION }}" > version.txt
 
       - name: Build DEB
+        shell: bash
         run: ./build_deb.sh
+
+      - name: Verify glibc compatibility (max <= 2.35)
+        shell: bash
+        run: |
+          rm -rf /tmp/debcheck && mkdir -p /tmp/debcheck && cd /tmp/debcheck
+          dpkg-deb -x "$GITHUB_WORKSPACE"/photo-editor-2_*_amd64.deb .
+          python3 - <<'EOF'
+          import pathlib, subprocess, re, sys
+          maxv = (0, 0)
+          targets = list(pathlib.Path("opt").rglob("*.so*")) + [
+              pathlib.Path("opt/photo-editor-2/Photo_Editor_2")
+          ]
+          for p in targets:
+              if not p.is_file():
+                  continue
+              out = subprocess.run(
+                  ["readelf", "-V", str(p)], capture_output=True, text=True
+              ).stdout
+              for v in re.findall(r"Name: GLIBC_([0-9.]+)", out):
+                  t = tuple(map(int, v.split(".")))
+                  if t > maxv:
+                      maxv = t
+          print("Max GLIBC w bundle:", ".".join(map(str, maxv)))
+          if maxv > (2, 35):
+              print("BLAD: bundle wymaga glibc > 2.35 - nie uruchomi sie na Pop!_OS 22.04")
+              sys.exit(1)
+          print("OK: kompatybilne z glibc 2.35")
+          EOF
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
